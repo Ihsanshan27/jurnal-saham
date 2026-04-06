@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import {
   calculateStats, calculateStrategyStats, calculateDayOfWeekPnL,
-  calculateEmotionStats, calculateTopStocks, calculateMonthlyPnL
+  calculateEmotionStats, calculateTopStocks, calculateMonthlyPnL, calculateTagStats
 } from '../utils/calculations';
 import { formatRupiah, formatPercent, formatNumber } from '../utils/formatters';
 import { EMOTIONS } from '../utils/constants';
@@ -32,6 +32,7 @@ export default function AnalyticsPage() {
   const strategyStats = useMemo(() => calculateStrategyStats(trades), [trades]);
   const dayOfWeek = useMemo(() => calculateDayOfWeekPnL(trades), [trades]);
   const emotionStats = useMemo(() => calculateEmotionStats(trades), [trades]);
+  const tagStats = useMemo(() => calculateTagStats(trades), [trades]);
   const topStocks = useMemo(() => calculateTopStocks(trades), [trades]);
   const monthlyPnL = useMemo(() => calculateMonthlyPnL(trades), [trades]);
 
@@ -157,6 +158,36 @@ export default function AnalyticsPage() {
                 })}
               </div>
             ) : <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>Belum ada data emosi</div>}
+          </div>
+        </div>
+
+      </div>
+
+      <div className="grid-2" style={{ marginBottom: 24 }}>
+        {/* Tag Analytics */}
+        <div className="card">
+          <div className="card-header"><h3 className="card-title">🏷️ Analisis Custom Tags</h3></div>
+          <div className="card-body">
+            {tagStats.length > 0 ? (
+              <div>
+                {tagStats.slice(0, 10).map((ts, i) => (
+                  <div key={ts.tagName} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="badge badge-purple">#{ts.tagName}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{ts.count} trades</span>
+                      <span className={`badge ${ts.winRate >= 50 ? 'badge-green' : 'badge-red'}`}>
+                        {ts.winRate.toFixed(0)}% win
+                      </span>
+                      <span className={ts.totalPnL >= 0 ? 'text-profit' : 'text-loss'} style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                        {formatRupiah(ts.totalPnL)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>Belum ada data custom tags</div>}
           </div>
         </div>
 

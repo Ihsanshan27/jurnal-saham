@@ -45,6 +45,8 @@ export const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '📊', section: 'MENU' },
   { path: '/trades', label: 'Transaksi', icon: '📝', section: 'MENU' },
   { path: '/portfolio', label: 'Portfolio', icon: '💼', section: 'MENU' },
+  { path: '/cashflow', label: 'Cash Balance', icon: '💵', section: 'MENU' },
+  { path: '/dividends', label: 'Dividen', icon: '💰', section: 'MENU' },
   { path: '/analytics', label: 'Analitik', icon: '📈', section: 'MENU' },
   { path: '/calculator', label: 'Kalkulator', icon: '🧮', section: 'TOOLS' },
   { path: '/watchlist', label: 'Watchlist', icon: '👀', section: 'TOOLS' },

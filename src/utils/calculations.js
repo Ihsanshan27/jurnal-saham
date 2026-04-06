@@ -223,6 +223,34 @@ export function calculateEmotionStats(trades) {
   }));
 }
 
+// === Tag Stats ===
+
+export function calculateTagStats(trades) {
+  const closed = trades.filter(t => t.sellPrice && t.dateSell && t.tags && t.tags.length > 0);
+  const tagsData = {};
+
+  for (const t of closed) {
+    const { pnl } = calculateTradePnL(t);
+    for (const tag of t.tags) {
+      if (!tagsData[tag]) {
+        tagsData[tag] = { wins: 0, losses: 0, totalPnL: 0, count: 0 };
+      }
+      tagsData[tag].count++;
+      tagsData[tag].totalPnL += pnl;
+      if (pnl > 0) tagsData[tag].wins++;
+      else tagsData[tag].losses++;
+    }
+  }
+
+  return Object.entries(tagsData)
+    .map(([tagName, data]) => ({
+      tagName,
+      ...data,
+      winRate: data.count > 0 ? (data.wins / data.count) * 100 : 0,
+    }))
+    .sort((a, b) => b.count - a.count); // sort by most used tag
+}
+
 // === Calendar Heatmap Data ===
 
 export function calculateDailyPnL(trades) {
@@ -334,4 +362,113 @@ export function calcTargetPrice({ buyPrice, targetPercent, buyFee = 0.15, sellFe
   const profit = totalSell - totalBuy - fee;
 
   return { targetPrice, profitPerLot: profit, feePerLot: fee };
+}
+
+// === Portfolio Balance & Buying Power ===
+
+export function calculatePortfolioBalance(trades, cashflows = [], dividends = [], initialCapital = 10000000) {
+  const netCashflow = cashflows.reduce((sum, cf) => {
+    return sum + (cf.type === 'deposit' ? cf.amount : -cf.amount);
+  }, 0);
+
+  const totalCapital = initialCapital + netCashflow;
+
+  let realizedPnL = 0;
+  const closedTrades = trades.filter(t => t.sellPrice && t.dateSell);
+  for (const t of closedTrades) {
+    const { pnl } = calculateTradePnL(t);
+    realizedPnL += pnl;
+  }
+
+  const totalDividend = dividends.reduce((sum, d) => sum + (d.totalAmount || 0), 0);
+
+  const realizedEquity = totalCapital + realizedPnL + totalDividend;
+
+  let investedAmount = 0;
+  const openTrades = trades.filter(t => !t.sellPrice || !t.dateSell);
+  for (const t of openTrades) {
+    const { totalBuy, buyCommission } = calculateTradePnL(t);
+    investedAmount += (totalBuy + buyCommission);
+  }
+
+  const buyingPower = realizedEquity - investedAmount;
+
+  return {
+    initialCapital,
+    netCashflow,
+    totalCapital,
+    realizedPnL,
+    totalDividend,
+    realizedEquity,
+    investedAmount,
+    buyingPower,
+    openPositionsCount: openTrades.length
+  };
+}
+
+// === Gamifikasi & Achievements ===
+
+export function calculateAchievements(trades, dividends = []) {
+  const closed = trades.filter(t => t.sellPrice && t.dateSell);
+  const achievements = [];
+  
+  // 1. First Blood
+  achievements.push({
+    id: 'first_blood',
+    name: 'First Blood',
+    desc: 'Mencatat transaksi pertama di jurnal',
+    icon: '🩸',
+    unlocked: trades.length > 0
+  });
+
+  // 2. Profit Maker
+  const hasProfit = closed.some(t => calculateTradePnL(t).pnl > 0);
+  achievements.push({
+    id: 'profit_maker',
+    name: 'Profit Maker',
+    desc: 'Mencetak profit pertama kalinya',
+    icon: '🤑',
+    unlocked: hasProfit
+  });
+
+  // 3. Diamond Hands
+  const hasDiamond = closed.some(t => {
+    const { pnl } = calculateTradePnL(t);
+    const d1 = new Date(t.dateBuy);
+    const d2 = new Date(t.dateSell);
+    const days = (d2 - d1) / (1000 * 60 * 60 * 24);
+    return pnl > 0 && days >= 30;
+  });
+  achievements.push({
+    id: 'diamond_hands',
+    name: 'Diamond Hands',
+    desc: 'Hold posisi lebih dari 30 hari & profit',
+    icon: '💎',
+    unlocked: hasDiamond
+  });
+
+  // 4. Consistent Winner
+  let consistent = false;
+  if (closed.length >= 10) {
+     const wins = closed.filter(t => calculateTradePnL(t).pnl > 0).length;
+     if (wins / closed.length >= 0.6) consistent = true;
+  }
+  achievements.push({
+    id: 'consistent',
+    name: 'Consistent Winner',
+    desc: 'Mencapai win rate di atas 60% (>10 trade)',
+    icon: '🏆',
+    unlocked: consistent
+  });
+
+  // 5. Dividend Hunter
+  achievements.push({
+    id: 'dividend_hunter',
+    name: 'Passive Income',
+    desc: 'Mencetak dividen pertama',
+    icon: '💸',
+    unlocked: dividends.length > 0
+  });
+
+  return achievements;
 }

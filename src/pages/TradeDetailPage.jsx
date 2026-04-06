@@ -34,6 +34,7 @@ export default function TradeDetailPage() {
       buyPrice: parseFloat(form.buyPrice),
       sellPrice: form.sellPrice ? parseFloat(form.sellPrice) : null,
       lots: parseInt(form.lots),
+      tags: typeof form.tags === 'string' ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : form.tags,
     });
     setEditing(false);
   };
@@ -127,6 +128,10 @@ export default function TradeDetailPage() {
                   <textarea className="form-textarea" value={form.reasonExit || ''} onChange={e => set('reasonExit', e.target.value)} />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Custom Tags</label>
+                  <input className="form-input" value={Array.isArray(form.tags) ? form.tags.join(', ') : form.tags || ''} onChange={e => set('tags', e.target.value)} />
+                </div>
+                <div className="form-group">
                   <label className="form-label">Catatan</label>
                   <textarea className="form-textarea" value={form.notes || ''} onChange={e => set('notes', e.target.value)} />
                 </div>
@@ -164,6 +169,9 @@ export default function TradeDetailPage() {
                 <div className="calc-result-row"><span className="calc-result-label">Strategi</span><span className="calc-result-value">{trade.strategy ? <span className="badge badge-blue">{trade.strategy}</span> : '-'}</span></div>
                 <div className="calc-result-row"><span className="calc-result-label">Emosi</span><span className="calc-result-value">{emotion ? emotion.label : '-'}</span></div>
                 <div className="calc-result-row"><span className="calc-result-label">Rating</span><span className="calc-result-value">{trade.rating ? '⭐'.repeat(trade.rating) : '-'}</span></div>
+                <div className="calc-result-row"><span className="calc-result-label">Tags</span><span className="calc-result-value">
+                  {trade.tags && trade.tags.length > 0 ? trade.tags.map(t => <span key={t} className="badge" style={{ marginRight: 4 }}>#{t}</span>) : '-'}
+                </span></div>
               </div>
             </div>
           </div>

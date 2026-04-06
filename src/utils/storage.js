@@ -24,7 +24,7 @@ export function removeItem(key) {
 
 export function exportAllData() {
   const data = {};
-  const keys = ['users', 'trades', 'watchlist', 'notes', 'settings'];
+  const keys = ['users', 'trades', 'watchlist', 'notes', 'settings', 'cashflows', 'dividends'];
   for (const key of keys) {
     data[key] = getItem(key);
   }
@@ -35,7 +35,7 @@ export function exportAllData() {
 
 export function importAllData(data) {
   if (!data || !data.version) throw new Error('Format data tidak valid');
-  const keys = ['trades', 'watchlist', 'notes', 'settings'];
+  const keys = ['trades', 'watchlist', 'notes', 'settings', 'cashflows', 'dividends'];
   for (const key of keys) {
     if (data[key] != null) {
       setItem(key, data[key]);
@@ -44,7 +44,7 @@ export function importAllData(data) {
 }
 
 export function clearAllData() {
-  const keys = ['trades', 'watchlist', 'notes', 'settings'];
+  const keys = ['trades', 'watchlist', 'notes', 'settings', 'cashflows', 'dividends'];
   for (const key of keys) {
     removeItem(key);
   }

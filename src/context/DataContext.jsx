@@ -7,6 +7,8 @@ export function DataProvider({ children }) {
   const [trades, setTrades] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [cashflows, setCashflows] = useState([]);
+  const [dividends, setDividends] = useState([]);
   const [settings, setSettings] = useState({
     initialCapital: 10000000,
     monthlyTarget: 5,
@@ -20,6 +22,8 @@ export function DataProvider({ children }) {
     setTrades(getItem('trades') || []);
     setWatchlist(getItem('watchlist') || []);
     setNotes(getItem('notes') || []);
+    setCashflows(getItem('cashflows') || []);
+    setDividends(getItem('dividends') || []);
     const savedSettings = getItem('settings');
     if (savedSettings) setSettings(savedSettings);
   }, []);
@@ -106,6 +110,38 @@ export function DataProvider({ children }) {
     showToast('Catatan dihapus');
   };
 
+  // === CASHFLOW CRUD ===
+  const addCashflow = (cf) => {
+    const newCf = { ...cf, id: generateId(), createdAt: new Date().toISOString() };
+    const updated = [newCf, ...cashflows];
+    setCashflows(updated);
+    setItem('cashflows', updated);
+    showToast('Transaksi kas berhasil dicatat');
+  };
+
+  const deleteCashflow = (id) => {
+    const updated = cashflows.filter(c => c.id !== id);
+    setCashflows(updated);
+    setItem('cashflows', updated);
+    showToast('Transaksi kas dibatalkan');
+  };
+
+  // === DIVIDENDS CRUD ===
+  const addDividend = (div) => {
+    const newDiv = { ...div, id: generateId(), createdAt: new Date().toISOString() };
+    const updated = [newDiv, ...dividends];
+    setDividends(updated);
+    setItem('dividends', updated);
+    showToast('Catatan dividen ditambahkan');
+  };
+
+  const deleteDividend = (id) => {
+    const updated = dividends.filter(d => d.id !== id);
+    setDividends(updated);
+    setItem('dividends', updated);
+    showToast('Catatan dividen dihapus');
+  };
+
   // === SETTINGS ===
   const updateSettings = (updates) => {
     const newSettings = { ...settings, ...updates };
@@ -119,6 +155,8 @@ export function DataProvider({ children }) {
       trades, addTrade, updateTrade, deleteTrade, getTradeById,
       watchlist, addWatchlistItem, updateWatchlistItem, deleteWatchlistItem,
       notes, addNote, updateNote, deleteNote,
+      cashflows, addCashflow, deleteCashflow,
+      dividends, addDividend, deleteDividend,
       settings, updateSettings,
       toasts,
       showToast,

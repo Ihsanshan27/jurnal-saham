@@ -8,6 +8,7 @@ const TABS = [
   { id: 'avg', label: '📊 Average', icon: '📊' },
   { id: 'position', label: '📐 Position Sizing', icon: '📐' },
   { id: 'target', label: '🎯 Target Harga', icon: '🎯' },
+  { id: 'compound', label: '🔮 Compounding', icon: '🔮' },
 ];
 
 function ResultRow({ label, value, className, big }) {
@@ -274,6 +275,56 @@ function TargetPriceCalculator() {
   );
 }
 
+function CompoundingCalculator() {
+  const [principal, setPrincipal] = useState('10000000');
+  const [rate, setRate] = useState('5');
+  const [months, setMonths] = useState('12');
+
+  const p = parseFloat(principal) || 0;
+  const r = parseFloat(rate) || 0;
+  const m = parseInt(months) || 0;
+
+  const calculate = () => {
+    if (p <= 0 || m <= 0) return null;
+    let current = p;
+    for (let i = 0; i < m; i++) {
+      current *= (1 + r / 100);
+    }
+    return {
+      finalValue: current,
+      totalProfit: current - p
+    };
+  };
+
+  const result = calculate();
+
+  return (
+    <div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Modal Awal (Rp)</label>
+          <input type="number" className="form-input" value={principal} onChange={e => setPrincipal(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Target Profit / Bulan (%)</label>
+          <input type="number" className="form-input" step="0.1" value={rate} onChange={e => setRate(e.target.value)} />
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Durasi (Bulan)</label>
+        <input type="number" className="form-input" value={months} onChange={e => setMonths(e.target.value)} />
+      </div>
+
+      {result && (
+        <div className="calc-result">
+          <ResultRow label={`Nilai Akhir (Setelah ${m} Bulan)`} value={formatRupiah(result.finalValue)} className="text-profit" big />
+          <ResultRow label="Total Profit Bersih" value={`+${formatRupiah(result.totalProfit)}`} className="text-profit" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CalculatorPage() {
   const [activeTab, setActiveTab] = useState('pnl');
 
@@ -305,6 +356,7 @@ export default function CalculatorPage() {
           {activeTab === 'avg' && <AverageCalculator />}
           {activeTab === 'position' && <PositionSizeCalculator />}
           {activeTab === 'target' && <TargetPriceCalculator />}
+          {activeTab === 'compound' && <CompoundingCalculator />}
         </div>
       </div>
     </div>

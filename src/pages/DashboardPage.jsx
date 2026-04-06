@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { calculateStats, calculateTradePnL, calculateEquityCurve, calculateMonthlyPnL, calculateDailyPnL } from '../utils/calculations';
+import { calculateStats, calculateTradePnL, calculateEquityCurve, calculateMonthlyPnL, calculateDailyPnL, calculatePortfolioBalance, calculateAchievements } from '../utils/calculations';
 import { formatRupiah, formatPercent, formatDate, formatNumber } from '../utils/formatters';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
@@ -37,12 +37,14 @@ function CustomTooltip({ active, payload, label, formatValue }) {
 }
 
 export default function DashboardPage() {
-  const { trades, settings } = useData();
+  const { trades, cashflows, dividends, settings } = useData();
 
   const stats = useMemo(() => calculateStats(trades), [trades]);
   const equityCurve = useMemo(() => calculateEquityCurve(trades, settings.initialCapital), [trades, settings.initialCapital]);
   const monthlyPnL = useMemo(() => calculateMonthlyPnL(trades), [trades]);
   const dailyPnL = useMemo(() => calculateDailyPnL(trades), [trades]);
+  const balance = useMemo(() => calculatePortfolioBalance(trades, cashflows, dividends, settings.initialCapital), [trades, cashflows, dividends, settings]);
+  const achievements = useMemo(() => calculateAchievements(trades, dividends), [trades, dividends]);
 
   const openTrades = trades.filter(t => !t.sellPrice || !t.dateSell);
   const recentTrades = trades
@@ -68,7 +70,7 @@ export default function DashboardPage() {
     return days;
   }, [dailyPnL]);
 
-  const portfolioValue = settings.initialCapital + stats.totalPnL;
+
 
   if (trades.length === 0) {
     return (
@@ -91,15 +93,24 @@ export default function DashboardPage() {
       <div className="grid-stats">
         <StatCard
           icon="💰"
-          label="Total Portfolio"
-          value={formatRupiah(portfolioValue)}
+          label="Total Portfolio (Equity)"
+          value={formatRupiah(balance.realizedEquity)}
+          subValue={`Modal Aktif: ${formatRupiah(balance.totalCapital)}`}
           bgColor="var(--accent-blue-dim)"
         />
         <StatCard
+          icon="💵"
+          label="Buying Power"
+          value={formatRupiah(balance.buyingPower)}
+          subValue={`Posisi Terbuka: ${balance.openPositionsCount}`}
+          colorClass="text-profit"
+          bgColor="rgba(16, 185, 129, 0.1)"
+        />
+        <StatCard
           icon={stats.totalPnL >= 0 ? '📈' : '📉'}
-          label="Total Profit/Loss"
+          label="Total Akumulasi P/L"
           value={formatRupiah(stats.totalPnL)}
-          subValue={formatPercent(stats.totalPnL / settings.initialCapital * 100)}
+          subValue={balance.totalCapital > 0 ? formatPercent(stats.totalPnL / balance.totalCapital * 100) : '0%'}
           colorClass={stats.totalPnL >= 0 ? 'text-profit' : 'text-loss'}
           bgColor={stats.totalPnL >= 0 ? 'var(--accent-green-dim)' : 'var(--accent-red-dim)'}
         />
@@ -118,6 +129,31 @@ export default function DashboardPage() {
           subValue={`${openTrades.length} posisi terbuka`}
           bgColor="var(--accent-yellow-dim)"
         />
+      </div>
+
+      {/* Achievements Horizontal Scroll */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: '1rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>🏅</span> Pencapaian Anda
+        </h3>
+        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+          {achievements.map(ach => (
+            <div key={ach.id} className="card" style={{ 
+              minWidth: 200, 
+              flex: '0 0 auto', 
+              padding: 16, 
+              opacity: ach.unlocked ? 1 : 0.4,
+              border: ach.unlocked ? '1px solid var(--accent-green)' : '1px solid var(--border-color)',
+              background: ach.unlocked ? 'rgba(16, 185, 129, 0.05)' : 'var(--bg-secondary)',
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: 8, filter: ach.unlocked ? 'none' : 'grayscale(100%)' }}>{ach.icon}</div>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>{ach.name}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{ach.desc}</div>
+              {ach.unlocked && <div style={{ fontSize: '0.65rem', color: 'var(--accent-green)', marginTop: 8, fontWeight: 700 }}>✓ TERBUKA</div>}
+              {!ach.unlocked && <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 8, fontWeight: 600 }}>🔒 TERKUNCI</div>}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Charts Row */}

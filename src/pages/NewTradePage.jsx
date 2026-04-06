@@ -21,6 +21,7 @@ export default function NewTradePage() {
     reasonExit: '',
     emotion: '',
     rating: 0,
+    tags: '',
     notes: '',
   });
 
@@ -41,6 +42,7 @@ export default function NewTradePage() {
       buyFee: parseFloat(form.buyFee),
       sellFee: parseFloat(form.sellFee),
       rating: form.rating,
+      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
     });
     navigate('/trades');
   };
@@ -174,6 +176,11 @@ export default function NewTradePage() {
                       >★</span>
                     ))}
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Custom Tags</label>
+                  <input className="form-input" placeholder="Pisahkan dengan koma (contoh: bca, dividend)" value={form.tags} onChange={e => set('tags', e.target.value)} />
                 </div>
 
                 <div className="form-group">

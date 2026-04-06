@@ -15,6 +15,8 @@ import CalculatorPage from './pages/CalculatorPage';
 import WatchlistPage from './pages/WatchlistPage';
 import NotesPage from './pages/NotesPage';
 import SettingsPage from './pages/SettingsPage';
+import CashflowPage from './pages/CashflowPage';
+import DividendPage from './pages/DividendPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -41,6 +43,8 @@ function AppRoutes() {
       <Route path="/trades/:id" element={<ProtectedRoute><TradeDetailPage /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       <Route path="/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
+      <Route path="/cashflow" element={<ProtectedRoute><CashflowPage /></ProtectedRoute>} />
+      <Route path="/dividends" element={<ProtectedRoute><DividendPage /></ProtectedRoute>} />
       <Route path="/calculator" element={<ProtectedRoute><CalculatorPage /></ProtectedRoute>} />
       <Route path="/watchlist" element={<ProtectedRoute><WatchlistPage /></ProtectedRoute>} />
       <Route path="/notes" element={<ProtectedRoute><NotesPage /></ProtectedRoute>} />
