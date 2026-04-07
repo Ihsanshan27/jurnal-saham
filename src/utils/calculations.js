@@ -472,3 +472,145 @@ export function calculateAchievements(trades, dividends = []) {
 
   return achievements;
 }
+
+// === Pension Fund Calculator ===
+
+export function calcPensionFund({
+  currentAge,
+  retireAge,
+  monthlyExpense,
+  inflationPercent = 4,
+  returnPercent = 10,
+  swrPercent = 4,
+  currentSavings = 0
+}) {
+  const yearsToRetire = retireAge - currentAge;
+  
+  if (yearsToRetire <= 0) return null;
+
+  // Hitung inflasi untuk pengeluaran bulanan di masa depan
+  const i = inflationPercent / 100;
+  const futureMonthlyExpense = monthlyExpense * Math.pow(1 + i, yearsToRetire);
+  const futureAnnualExpense = futureMonthlyExpense * 12;
+
+  // 4% rule: Target Dana = Pengeluaran Tahunan / SWR
+  const swr = swrPercent / 100;
+  const totalFundNeeded = futureAnnualExpense / swr;
+
+  // Future value dari modal/tabungan yang sudah ada saat ini
+  const rAnnual = returnPercent / 100;
+  const currentSavingsFV = currentSavings * Math.pow(1 + rAnnual, yearsToRetire);
+
+  const shortfall = Math.max(0, totalFundNeeded - currentSavingsFV);
+
+  // Hitung tabungan bulanan yang dibutuhkan (Anuitas)
+  const rMonthly = rAnnual / 12;
+  const months = yearsToRetire * 12;
+  
+  let monthlySavingsNeeded = 0;
+  if (shortfall > 0 && rMonthly > 0) {
+    monthlySavingsNeeded = (shortfall * rMonthly) / (Math.pow(1 + rMonthly, months) - 1);
+  } else if (shortfall > 0) {
+    monthlySavingsNeeded = shortfall / months;
+  }
+
+  // FIRE Number di nilai uang saat ini (Present Value)
+  const currentFireNumber = (monthlyExpense * 12) / swr;
+
+  // Coast FIRE: berapa dana yang dibutuhkan SEKARANG agar bisa diendapkan tanpa nabung lagi
+  // coastFireNumber = totalFundNeeded / (1 + r)^yearsToRetire
+  const coastFireNumber = totalFundNeeded / Math.pow(1 + rAnnual, yearsToRetire);
+  const isCoastFIRE = currentSavings >= coastFireNumber;
+
+  return {
+    yearsToRetire,
+    futureMonthlyExpense,
+    totalFundNeeded,
+    currentSavingsFV,
+    shortfall,
+    monthlySavingsNeeded,
+    currentFireNumber,
+    coastFireNumber,
+    isCoastFIRE,
+  };
+}
+
+// === Average Down Calculator ===
+
+export function calcAverageDown({
+  currentAvg,
+  currentLots,
+  targetAvg,
+  currentPrice,
+}) {
+  // Validasi: target average harus di bawah current average
+  if (targetAvg >= currentAvg || currentPrice >= currentAvg) return null;
+
+  const currentShares = currentLots * 100;
+  const totalCurrentCost = currentAvg * currentShares;
+
+  // Aljabar: (totalCurrentCost + newLots*100*currentPrice) / (currentShares + newLots*100) = targetAvg
+  // => newShares = (targetAvg * currentShares - totalCurrentCost) / (currentPrice - targetAvg)
+  const newShares = (targetAvg * currentShares - totalCurrentCost) / (currentPrice - targetAvg);
+  const newLots = Math.ceil(newShares / 100);
+  const actualNewShares = newLots * 100;
+  const additionalCapital = actualNewShares * currentPrice;
+
+  const totalShares = currentShares + actualNewShares;
+  const totalCost = totalCurrentCost + additionalCapital;
+  const actualNewAvg = totalCost / totalShares;
+
+  const currentLoss = (currentPrice - currentAvg) * currentShares;
+  const newLossIfCutNow = (currentPrice - actualNewAvg) * totalShares;
+
+  return {
+    newLots,
+    additionalCapital,
+    totalLots: currentLots + newLots,
+    totalShares,
+    actualNewAvg,
+    totalCost,
+    currentLoss,
+    newLossIfCutNow,
+  };
+}
+
+// === Risk/Reward Calculator ===
+
+export function calcRiskReward({
+  entryPrice,
+  stopLoss,
+  takeProfit,
+  lots = 1,
+}) {
+  if (entryPrice <= 0 || stopLoss <= 0 || takeProfit <= 0) return null;
+  if (stopLoss >= entryPrice || takeProfit <= entryPrice) return null;
+
+  const shares = lots * 100;
+  const riskPerShare = entryPrice - stopLoss;
+  const rewardPerShare = takeProfit - entryPrice;
+
+  const riskAmount = riskPerShare * shares;
+  const rewardAmount = rewardPerShare * shares;
+
+  const rrRatio = rewardPerShare / riskPerShare;
+
+  // Minimal win rate agar Expected Value >= 0
+  // EV = winRate * reward - (1 - winRate) * risk = 0
+  // winRate = risk / (risk + reward)
+  const minWinRate = (riskPerShare / (riskPerShare + rewardPerShare)) * 100;
+
+  const riskPercent = ((entryPrice - stopLoss) / entryPrice) * 100;
+  const rewardPercent = ((takeProfit - entryPrice) / entryPrice) * 100;
+
+  return {
+    riskPerShare,
+    rewardPerShare,
+    riskAmount,
+    rewardAmount,
+    rrRatio,
+    minWinRate,
+    riskPercent,
+    rewardPercent,
+  };
+}

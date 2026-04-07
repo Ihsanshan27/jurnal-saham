@@ -1,14 +1,19 @@
 import { useState } from 'react';
-import { calcProfitLoss, calcBrokerFee, calcAveragePrice, calcPositionSize, calcTargetPrice } from '../utils/calculations';
+import { calcProfitLoss, calcBrokerFee, calcAveragePrice, calcPositionSize, calcTargetPrice, calcPensionFund, calcAverageDown, calcRiskReward } from '../utils/calculations';
+import { calculatePortfolioBalance } from '../utils/calculations';
 import { formatRupiah } from '../utils/formatters';
+import { useData } from '../context/DataContext';
 
 const TABS = [
   { id: 'pnl', label: '💰 Profit/Loss', icon: '💰' },
   { id: 'fee', label: '🏦 Fee Broker', icon: '🏦' },
   { id: 'avg', label: '📊 Average', icon: '📊' },
+  { id: 'avgdown', label: '🛟 Avg Down', icon: '🛟' },
+  { id: 'rr', label: '⚖️ Risk/Reward', icon: '⚖️' },
   { id: 'position', label: '📐 Position Sizing', icon: '📐' },
   { id: 'target', label: '🎯 Target Harga', icon: '🎯' },
   { id: 'compound', label: '🔮 Compounding', icon: '🔮' },
+  { id: 'pension', label: '🥥 Pensiun', icon: '🥥' },
 ];
 
 function ResultRow({ label, value, className, big }) {
@@ -16,6 +21,31 @@ function ResultRow({ label, value, className, big }) {
     <div className="calc-result-row">
       <span className="calc-result-label">{label}</span>
       <span className={`calc-result-value ${big ? 'big' : ''} ${className || ''}`}>{value}</span>
+    </div>
+  );
+}
+
+function CurrencyInput({ value, onChange, placeholder, className, prefix = 'Rp' }) {
+  const cleanValue = value ? value.toString().replace(/\D/g, '') : '';
+  const displayValue = cleanValue ? parseInt(cleanValue, 10).toLocaleString('id-ID') : '';
+
+  const handleChange = (e) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    if (onChange) onChange({ target: { value: rawValue } });
+  };
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+      {prefix && <span style={{ position: 'absolute', left: 12, color: 'var(--text-muted)' }}>{prefix}</span>}
+      <input
+        type="text"
+        inputMode="numeric"
+        className={className}
+        placeholder={placeholder}
+        value={displayValue}
+        onChange={handleChange}
+        style={prefix ? { paddingLeft: 36, width: '100%' } : { width: '100%' }}
+      />
     </div>
   );
 }
@@ -41,11 +71,11 @@ function PnLCalculator() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Harga Beli (per lembar)</label>
-          <input type="number" className="form-input" placeholder="8500" value={buyPrice} onChange={e => setBuyPrice(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="8.500" value={buyPrice} onChange={e => setBuyPrice(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Harga Jual (per lembar)</label>
-          <input type="number" className="form-input" placeholder="9200" value={sellPrice} onChange={e => setSellPrice(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="9.200" value={sellPrice} onChange={e => setSellPrice(e.target.value)} />
         </div>
       </div>
       <div className="form-row">
@@ -95,7 +125,7 @@ function FeeCalculator() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Harga Saham</label>
-          <input type="number" className="form-input" placeholder="8500" value={price} onChange={e => setPrice(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="8.500" value={price} onChange={e => setPrice(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Jumlah Lot</label>
@@ -157,7 +187,7 @@ function AverageCalculator() {
         <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'end', marginBottom: 8 }}>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
             {i === 0 && <label className="form-label">Harga</label>}
-            <input type="number" className="form-input" placeholder="8500" value={p.price} onChange={e => updateRow(i, 'price', e.target.value)} />
+            <CurrencyInput className="form-input" placeholder="8.500" value={p.price} onChange={e => updateRow(i, 'price', e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
             {i === 0 && <label className="form-label">Lot</label>}
@@ -201,7 +231,7 @@ function PositionSizeCalculator() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Modal Tersedia (Rp)</label>
-          <input type="number" className="form-input" placeholder="10000000" value={capital} onChange={e => setCapital(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="10.000.000" value={capital} onChange={e => setCapital(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Risiko per Trade (%)</label>
@@ -211,11 +241,11 @@ function PositionSizeCalculator() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Harga Entry</label>
-          <input type="number" className="form-input" placeholder="8500" value={entry} onChange={e => setEntry(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="8.500" value={entry} onChange={e => setEntry(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Harga Stop Loss</label>
-          <input type="number" className="form-input" placeholder="8200" value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="8.200" value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
         </div>
       </div>
       {result && (
@@ -247,7 +277,7 @@ function TargetPriceCalculator() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Harga Beli</label>
-          <input type="number" className="form-input" placeholder="8500" value={buyPrice} onChange={e => setBuyPrice(e.target.value)} />
+          <CurrencyInput className="form-input" placeholder="8.500" value={buyPrice} onChange={e => setBuyPrice(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Target Profit (%)</label>
@@ -303,7 +333,7 @@ function CompoundingCalculator() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Modal Awal (Rp)</label>
-          <input type="number" className="form-input" value={principal} onChange={e => setPrincipal(e.target.value)} />
+          <CurrencyInput className="form-input" value={principal} onChange={e => setPrincipal(e.target.value)} />
         </div>
         <div className="form-group">
           <label className="form-label">Target Profit / Bulan (%)</label>
@@ -319,6 +349,304 @@ function CompoundingCalculator() {
         <div className="calc-result">
           <ResultRow label={`Nilai Akhir (Setelah ${m} Bulan)`} value={formatRupiah(result.finalValue)} className="text-profit" big />
           <ResultRow label="Total Profit Bersih" value={`+${formatRupiah(result.totalProfit)}`} className="text-profit" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PensionCalculator() {
+  const { trades, cashflows, dividends, settings } = useData();
+  const [currentAge, setCurrentAge] = useState('25');
+  const [retireAge, setRetireAge] = useState('55');
+  const [monthlyExpense, setMonthlyExpense] = useState('5000000');
+  const [currentSavings, setCurrentSavings] = useState('10000000');
+  
+  // Default assumptions (adjustable)
+  const [inflationPercent, setInflationPercent] = useState('4');
+  const [returnPercent, setReturnPercent] = useState('10');
+  const [swrPercent, setSwrPercent] = useState('4');
+
+  const fillFromPortfolio = () => {
+    const balance = calculatePortfolioBalance(trades, cashflows, dividends, settings.initialCapital);
+    setCurrentSavings(Math.round(balance.realizedEquity).toString());
+  };
+
+  const cAge = parseInt(currentAge) || 0;
+  const rAge = parseInt(retireAge) || 0;
+  const expense = parseFloat(monthlyExpense) || 0;
+  const savings = parseFloat(currentSavings) || 0;
+  
+  const inflation = parseFloat(inflationPercent) || 0;
+  const returnRate = parseFloat(returnPercent) || 0;
+  const swr = parseFloat(swrPercent) || 0;
+
+  const result = (cAge > 0 && rAge > cAge && expense > 0 && swr > 0)
+    ? calcPensionFund({
+        currentAge: cAge,
+        retireAge: rAge,
+        monthlyExpense: expense,
+        inflationPercent: inflation,
+        returnPercent: returnRate,
+        swrPercent: swr,
+        currentSavings: savings
+      })
+    : null;
+
+  return (
+    <div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Usia Saat Ini</label>
+          <input type="number" className="form-input" placeholder="25" value={currentAge} onChange={e => setCurrentAge(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Target Usia Pensiun</label>
+          <input type="number" className="form-input" placeholder="55" value={retireAge} onChange={e => setRetireAge(e.target.value)} />
+        </div>
+      </div>
+      
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Pengeluaran Bulanan (Saat Ini)</label>
+          <CurrencyInput className="form-input" placeholder="5.000.000" value={monthlyExpense} onChange={e => setMonthlyExpense(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Tabungan/Investasi Saat Ini</span>
+            <button
+              onClick={fillFromPortfolio}
+              style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+            >
+              🔄 Pakai Saldo Jurnal
+            </button>
+          </label>
+          <CurrencyInput className="form-input" placeholder="10.000.000" value={currentSavings} onChange={e => setCurrentSavings(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ padding: '16px 0', borderTop: '1px solid var(--border-color)', marginTop: 8 }}>
+        <h3 style={{ fontSize: '0.9rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          ⚙️ Asumsi & Variabel
+        </h3>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Inflasi Tahunan (%)</label>
+            <input type="number" className="form-input" step="0.5" value={inflationPercent} onChange={e => setInflationPercent(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Imbal Hasil/Return per Tahun (%)</label>
+            <input type="number" className="form-input" step="0.5" value={returnPercent} onChange={e => setReturnPercent(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label" title="Safe Withdrawal Rate (Berapa % diambil per tahun saat pensiun)">SWR (%)</label>
+            <input type="number" className="form-input" step="0.5" value={swrPercent} onChange={e => setSwrPercent(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {result && (
+        <div className="calc-result" style={{ marginTop: 8 }}>
+          <ResultRow label={`Sisa Waktu Menabung`} value={`${result.yearsToRetire} Tahun`} />
+          <div style={{ padding: '8px 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            Nilai Uang Saat Pensiun Nanti
+          </div>
+          <ResultRow label="Pengeluaran Bulanan (Efek Inflasi)" value={formatRupiah(result.futureMonthlyExpense)} />
+          <ResultRow label={`Target Dana Pensiun (${result.yearsToRetire} tahun lagi)`} value={formatRupiah(result.totalFundNeeded)} className="text-profit" big />
+          <ResultRow label="Proyeksi Tabungan Saat Ini nanti" value={formatRupiah(result.currentSavingsFV)} />
+          <ResultRow label="Sisa Dana yang Harus Dikejar" value={formatRupiah(result.shortfall)} className={result.shortfall > 0 ? "text-loss" : "text-profit"} />
+
+          <div style={{ padding: '8px 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 8 }}>
+            Coast FIRE
+          </div>
+          <ResultRow label="Target Coast FIRE Saat Ini" value={formatRupiah(result.coastFireNumber)} />
+          {result.isCoastFIRE ? (
+            <div style={{ marginTop: 8, padding: '10px 14px', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 8, color: 'var(--color-profit, #22c55e)', fontSize: '0.85rem', fontWeight: 600 }}>
+              🎉 Selamat! Anda sudah mencapai Coast FIRE! Tabungan Anda cukup untuk tumbuh sendiri hingga pensiun tanpa perlu investasi tambahan.
+            </div>
+          ) : (
+            <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--bg-card)', borderRadius: 8, fontSize: '0.85rem' }}>
+              Kurang <strong>{formatRupiah(result.coastFireNumber - parseFloat(currentSavings || 0))}</strong> lagi agar bisa Coast FIRE — setelah tercapai, Anda tidak perlu menabung lagi!
+            </div>
+          )}
+
+          <div style={{ padding: '8px 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 8 }}>
+            Action Plan
+          </div>
+          <ResultRow
+            label="Nabung & Investasi Bulanan"
+            value={result.monthlySavingsNeeded > 0 ? formatRupiah(result.monthlySavingsNeeded) : 'Rp 0 (Sudah Cukup 🥥)'}
+            className="text-profit"
+            big
+          />
+
+          <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-card)', borderRadius: 8, fontSize: '0.85rem' }}>
+            <strong>💡 FIRE Number Saat Ini: {formatRupiah(result.currentFireNumber)}</strong><br/>
+            Jika Anda ingin pensiun <em>hari ini</em> dengan gaya hidup tersebut, inilah target dana kasarnya (SWR {swrPercent}%).
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AverageDownCalculator() {
+  const [currentAvg, setCurrentAvg] = useState('');
+  const [currentLots, setCurrentLots] = useState('');
+  const [currentPrice, setCurrentPrice] = useState('');
+  const [targetAvg, setTargetAvg] = useState('');
+
+  const cAvg = parseFloat(currentAvg) || 0;
+  const cLots = parseInt(currentLots) || 0;
+  const cPrice = parseFloat(currentPrice) || 0;
+  const tAvg = parseFloat(targetAvg) || 0;
+
+  const result = cAvg > 0 && cLots > 0 && cPrice > 0 && tAvg > 0
+    ? calcAverageDown({ currentAvg: cAvg, currentLots: cLots, currentPrice: cPrice, targetAvg: tAvg })
+    : null;
+
+  const showInvalid = cAvg > 0 && cLots > 0 && cPrice > 0 && tAvg > 0 && !result;
+
+  const reset = () => { setCurrentAvg(''); setCurrentLots(''); setCurrentPrice(''); setTargetAvg(''); };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 12, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+        Hitung berapa lot yang perlu ditambah agar harga rata-rata turun ke target yang diinginkan.
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Harga Average Beli Saat Ini</label>
+          <CurrencyInput className="form-input" placeholder="1.000" value={currentAvg} onChange={e => setCurrentAvg(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Harga Saham Sekarang</label>
+          <CurrencyInput className="form-input" placeholder="500" value={currentPrice} onChange={e => setCurrentPrice(e.target.value)} />
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Lot yang Sudah Dipegang</label>
+          <input type="number" className="form-input" placeholder="100" value={currentLots} onChange={e => setCurrentLots(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Target Average Baru</label>
+          <CurrencyInput className="form-input" placeholder="600" value={targetAvg} onChange={e => setTargetAvg(e.target.value)} />
+        </div>
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={reset} style={{ marginBottom: 16 }}>🔄 Reset</button>
+
+      {showInvalid && (
+        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: '0.85rem', marginBottom: 12 }}>
+          ⚠️ Tidak valid! Target average harus lebih kecil dari harga beli dan harga sekarang harus lebih rendah dari harga rata-rata.
+        </div>
+      )}
+
+      {result && (
+        <div className="calc-result">
+          <div style={{ padding: '4px 0 8px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Amunisi yang Dibutuhkan</div>
+          <ResultRow label="Lot yang Harus Dibeli" value={`${result.newLots} lot (${result.newLots * 100} lembar)`} className="text-profit" big />
+          <ResultRow label="Modal Tambahan yang Diperlukan" value={formatRupiah(result.additionalCapital)} className="text-profit" />
+          <div style={{ padding: '8px 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 4 }}>Setelah Averaging Down</div>
+          <ResultRow label="Total Lot Dipegang" value={`${result.totalLots} lot`} />
+          <ResultRow label="Harga Average Baru" value={`Rp ${Math.round(result.actualNewAvg).toLocaleString('id-ID')}`} />
+          <ResultRow label="Total Modal Tertanam" value={formatRupiah(result.totalCost)} />
+          <div style={{ padding: '8px 0 4px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: 4 }}>Perbandingan Kerugian</div>
+          <ResultRow label="Kerugian Sebelum Averaging" value={formatRupiah(result.currentLoss)} className="text-loss" />
+          <ResultRow label="Kerugian Setelah Averaging" value={formatRupiah(result.newLossIfCutNow)} className="text-loss" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RiskRewardCalculator() {
+  const [entry, setEntry] = useState('');
+  const [stopLoss, setStopLoss] = useState('');
+  const [takeProfit, setTakeProfit] = useState('');
+  const [lots, setLots] = useState('1');
+
+  const ep = parseFloat(entry) || 0;
+  const sl = parseFloat(stopLoss) || 0;
+  const tp = parseFloat(takeProfit) || 0;
+  const l = parseInt(lots) || 1;
+
+  const result = ep > 0 && sl > 0 && tp > 0
+    ? calcRiskReward({ entryPrice: ep, stopLoss: sl, takeProfit: tp, lots: l })
+    : null;
+
+  const showInvalid = ep > 0 && sl > 0 && tp > 0 && !result;
+
+  const reset = () => { setEntry(''); setStopLoss(''); setTakeProfit(''); setLots('1'); };
+
+  const getRRClass = (rr) => rr >= 3 ? 'text-profit' : rr >= 2 ? '' : 'text-loss';
+  const getRRLabel = (rr) => rr >= 3 ? '🔥 Excellent!' : rr >= 2 ? '✅ Baik' : '⚠️ Kurang Ideal';
+
+  return (
+    <div>
+      <div style={{ marginBottom: 12, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+        Analisa kelayakan trading plan sebelum eksekusi.
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Harga Entry Beli</label>
+          <CurrencyInput className="form-input" placeholder="8.500" value={entry} onChange={e => setEntry(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Jumlah Lot</label>
+          <input type="number" className="form-input" placeholder="1" value={lots} onChange={e => setLots(e.target.value)} />
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Harga Stop Loss / Cut Loss</label>
+          <CurrencyInput className="form-input" placeholder="8.000" value={stopLoss} onChange={e => setStopLoss(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Harga Take Profit</label>
+          <CurrencyInput className="form-input" placeholder="9.500" value={takeProfit} onChange={e => setTakeProfit(e.target.value)} />
+        </div>
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={reset} style={{ marginBottom: 16 }}>🔄 Reset</button>
+
+      {showInvalid && (
+        <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, color: '#ef4444', fontSize: '0.85rem', marginBottom: 12 }}>
+          ⚠️ Tidak valid! Stop Loss harus lebih rendah dari Entry, dan Take Profit harus lebih tinggi dari Entry.
+        </div>
+      )}
+
+      {result && (
+        <div className="calc-result">
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12, marginTop: 4 }}>
+            <div style={{ flex: 1, padding: '12px 16px', background: 'rgba(239,68,68,0.1)', borderRadius: 8, textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>RISIKO</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#ef4444' }}>-{result.riskPercent.toFixed(2)}%</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatRupiah(result.riskAmount)}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-muted)' }}>vs</div>
+            <div style={{ flex: 1, padding: '12px 16px', background: 'rgba(34,197,94,0.1)', borderRadius: 8, textAlign: 'center' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>POTENSI CUAN</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#22c55e' }}>+{result.rewardPercent.toFixed(2)}%</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatRupiah(result.rewardAmount)}</div>
+            </div>
+          </div>
+          <ResultRow
+            label={`Rasio Risk : Reward ${result.rrRatio >= 2 ? getRRLabel(result.rrRatio) : ''}`}
+            value={`1 : ${result.rrRatio.toFixed(2)} ${getRRLabel(result.rrRatio)}`}
+            className={getRRClass(result.rrRatio)}
+            big
+          />
+          <ResultRow label="Risiko per Lembar" value={formatRupiah(result.riskPerShare)} className="text-loss" />
+          <ResultRow label="Potensi Cuan per Lembar" value={formatRupiah(result.rewardPerShare)} className="text-profit" />
+          <div style={{ marginTop: 12, padding: '12px 16px', background: result.minWinRate <= 40 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.08)', borderRadius: 8 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>MINIMAL WIN-RATE AGAR TIDAK RUGI JANGKA PANJANG</div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: result.minWinRate <= 40 ? '#22c55e' : '#ef4444' }}>{result.minWinRate.toFixed(1)}%</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+              {result.minWinRate <= 40
+                ? `✅ Dengan setup ini kamu boleh salah hingga ${(100 - result.minWinRate).toFixed(0)}% dari semua trade dan tetap profit secara keseluruhan!`
+                : `⚠️ Setup ini butuh tingkat kebenaran analisa yang cukup tinggi. Pertimbangkan memperlebar Take Profit.`}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -354,9 +682,12 @@ export default function CalculatorPage() {
           {activeTab === 'pnl' && <PnLCalculator />}
           {activeTab === 'fee' && <FeeCalculator />}
           {activeTab === 'avg' && <AverageCalculator />}
+          {activeTab === 'avgdown' && <AverageDownCalculator />}
+          {activeTab === 'rr' && <RiskRewardCalculator />}
           {activeTab === 'position' && <PositionSizeCalculator />}
           {activeTab === 'target' && <TargetPriceCalculator />}
           {activeTab === 'compound' && <CompoundingCalculator />}
+          {activeTab === 'pension' && <PensionCalculator />}
         </div>
       </div>
     </div>
