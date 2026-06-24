@@ -801,6 +801,309 @@
   padding-bottom: 6px;
 }
 
+/* ===== IPO Accounts ===== */
+.ipo-accounts-page .page-header {
+  gap: 20px;
+}
+
+.ipo-accounts-stat-card {
+  min-height: 118px;
+}
+
+.ipo-accounts-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ipo-accounts-list-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ipo-accounts-filter-bar {
+  margin-bottom: 0;
+}
+
+.ipo-view-toggle {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ipo-view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-weight: 600;
+}
+
+.ipo-view-toggle-btn:hover {
+  border-color: var(--border-color-hover);
+  color: var(--text-primary);
+}
+
+.ipo-view-toggle-btn.active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--accent-green);
+}
+
+.ipo-accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.ipo-accounts-grid.list-mode {
+  grid-template-columns: 1fr;
+}
+
+.ipo-account-table-wrap {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  background: var(--bg-card);
+}
+
+.ipo-account-table {
+  min-width: 1180px;
+}
+
+.ipo-account-table thead th {
+  white-space: nowrap;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ipo-account-table tbody td {
+  vertical-align: middle;
+}
+
+.ipo-account-table-account {
+  min-width: 140px;
+}
+
+.ipo-account-table-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ipo-account-table-sub {
+  margin-top: 4px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.ipo-account-table-notes {
+  min-width: 180px;
+  color: var(--text-secondary);
+}
+
+.ipo-account-table-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.ipo-account-table-tools .btn {
+  min-width: 30px;
+  padding-inline: 8px;
+}
+
+.ipo-account-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 28%),
+    var(--gradient-card);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.ipo-account-card:hover {
+  border-color: var(--border-color-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.ipo-account-card.list-mode {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px;
+}
+
+.ipo-account-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ipo-account-card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ipo-account-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ipo-account-card-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.ipo-account-card-metrics {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ipo-account-metric {
+  min-width: 68px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.ipo-account-metric strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.ipo-account-metric-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.ipo-account-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ipo-account-info-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.03);
+  padding: 14px;
+  min-height: 92px;
+}
+
+.ipo-account-info-kicker {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ipo-account-info-main {
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.ipo-account-info-sub {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  word-break: break-word;
+}
+
+.ipo-account-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ipo-account-meta-item {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.ipo-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.ipo-account-card.list-mode .ipo-account-card-header {
+  flex-direction: column;
+}
+
+.ipo-account-card.list-mode .ipo-account-card-metrics {
+  width: 100%;
+}
+
+.ipo-account-card.list-mode .ipo-account-info-grid {
+  grid-template-columns: 1fr;
+  align-self: stretch;
+}
+
+.ipo-account-card.list-mode .ipo-account-actions {
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 170px;
+}
+
+.ipo-account-card.list-mode .ipo-account-actions .btn {
+  justify-content: center;
+}
+
+.ipo-account-card.list-mode .ipo-account-meta-row {
+  grid-column: 1 / -1;
+  padding-top: 0;
+}
+
+.ipo-account-delete-btn {
+  color: var(--accent-red);
+}
+
+.ipo-account-delete-btn:disabled {
+  color: var(--text-muted);
+}
+
 /* ===== Bento Grid Informasi Emiten ===== */
 .ipo-emiten-bento-grid {
   display: grid;
@@ -968,6 +1271,34 @@
 @media (max-width: 900px) {
   .ipo-filter-bar {
     grid-template-columns: 1fr;
+  }
+
+  .ipo-account-card-header {
+    flex-direction: column;
+  }
+
+  .ipo-account-card-metrics {
+    width: 100%;
+  }
+
+  .ipo-account-metric {
+    flex: 1;
+  }
+
+  .ipo-account-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ipo-account-card.list-mode {
+    grid-template-columns: 1fr;
+  }
+
+  .ipo-account-card.list-mode .ipo-account-actions {
+    min-width: 0;
+  }
+
+  .ipo-account-table {
+    min-width: 980px;
   }
 
   .ipo-timeline-steps {

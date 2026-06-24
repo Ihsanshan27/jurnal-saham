@@ -39,6 +39,7 @@ const FinanceAccountDetailPage = lazy(() => import('@/modules/finance/pages/Fina
 const IpoListPage = lazy(() => import('@/modules/ipo/pages/IpoListPage'));
 const IpoDetailPage = lazy(() => import('@/modules/ipo/pages/IpoDetailPage'));
 const IpoSummaryPage = lazy(() => import('@/modules/ipo/pages/IpoSummaryPage'));
+const IpoAccountsPage = lazy(() => import('@/modules/ipo/pages/IpoAccountsPage'));
 const AdminUsersPage = lazy(() => import('@/modules/admin/pages/AdminUsersPage'));
 const AdminWorkspacesPage = lazy(() => import('@/modules/admin/pages/AdminWorkspacesPage'));
 const AdminAuditLogsPage = lazy(() => import('@/modules/admin/pages/AdminAuditLogsPage'));
@@ -170,6 +171,7 @@ function AppRoutes() {
         <Route path="/profile" element={<LazyPage><ProfilePage /></LazyPage>} />
         <Route path="/plans" element={<LazyPage><TradingPlansPage /></LazyPage>} />
         <Route path="/ipo" element={<LazyPage><IpoListPage /></LazyPage>} />
+        <Route path="/ipo/accounts" element={<LazyPage><IpoAccountsPage /></LazyPage>} />
         <Route path="/ipo/summary" element={<LazyPage><IpoSummaryPage /></LazyPage>} />
         <Route path="/ipo/:id" element={<LazyPage><IpoDetailPage /></LazyPage>} />
         <Route path="/admin/users" element={<AdminRoute><LazyPage><AdminUsersPage /></LazyPage></AdminRoute>} />

@@ -30,6 +30,7 @@ function diffDaysFromToday(dateStr?: string): number | null {
 }
 
 const EMPTY_FORM = {
+  ipoAccountId: '',
   accountName: '',
   email: '',
   lots: '',
@@ -207,15 +208,32 @@ export default function IpoDetailPage() {
   const knownIpoAccounts = useMemo(() => {
     return [...ipoAccounts].sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [ipoAccounts]);
+  const ipoAccountById = useMemo(() => {
+    return new Map(
+      knownIpoAccounts.map((account: any) => [account.id, account])
+    );
+  }, [knownIpoAccounts]);
   const ipoAccountByName = useMemo(() => {
     return new Map(
       knownIpoAccounts.map((account: any) => [account.name.trim().toLowerCase(), account])
     );
   }, [knownIpoAccounts]);
+  const setSelectedIpoAccount = (value: string) => setFormState((prev: typeof EMPTY_FORM) => {
+    const matchedAccount = ipoAccountById.get(value);
+    const next = {
+      ...prev,
+      ipoAccountId: value,
+      accountName: matchedAccount?.name || prev.accountName,
+      email: matchedAccount?.email || prev.email,
+    };
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
+    return next;
+  });
   const setAccountName = (value: string) => setFormState((prev: typeof EMPTY_FORM) => {
     const matchedAccount = ipoAccountByName.get(value.trim().toLowerCase());
     const next = {
       ...prev,
+      ipoAccountId: matchedAccount?.id || '',
       accountName: value,
       email: matchedAccount?.email || prev.email,
     };
@@ -425,6 +443,7 @@ export default function IpoDetailPage() {
 
     const payload = {
       ipoEventId: id,
+      ipoAccountId: form.ipoAccountId || undefined,
       accountName: form.accountName,
       email: form.email,
       buyPrice: event?.offeringPrice || 0,
@@ -445,6 +464,7 @@ export default function IpoDetailPage() {
 
   const handleEdit = (entry: IpoEntryCalc) => {
     const draft = {
+      ipoAccountId: entry.ipoAccountId || '',
       accountName: entry.accountName,
       email: entry.email,
       lots: String(entry.lots),
@@ -471,6 +491,7 @@ export default function IpoDetailPage() {
   const handleDuplicate = (entry: IpoEntryCalc) => {
     addIpoEntry({
       ipoEventId: id,
+      ipoAccountId: undefined,
       accountName: `${entry.accountName} (Kopi)`,
       email: entry.email,
       buyPrice: event?.offeringPrice ?? entry.buyPrice,
@@ -567,6 +588,32 @@ export default function IpoDetailPage() {
     <form onSubmit={handleSubmit} noValidate>
       <div className="form-row">
         <div className="form-group">
+          <label className="form-label" htmlFor={`ipo-master-account-${isInline ? 'inline' : 'main'}`}>Pilih Master Akun</label>
+          <select
+            id={`ipo-master-account-${isInline ? 'inline' : 'main'}`}
+            className="form-select"
+            value={form.ipoAccountId}
+            onChange={e => setSelectedIpoAccount(e.target.value)}
+          >
+            <option value="">-- Input manual / pilih nanti --</option>
+            {knownIpoAccounts.map((account: any) => (
+              <option key={account.id} value={account.id}>
+                {account.name}{account.isActive === false ? ' (Nonaktif)' : ''}{account.email ? ` • ${account.email}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group" style={{ display: 'flex', alignItems: 'end' }}>
+          <div className="ipo-flex-wrap">
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/ipo/accounts')}>
+              <Icons.Users size={15} />
+              Kelola Master Akun
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
           <label className="form-label" htmlFor={`ipo-account-name-${isInline ? 'inline' : 'main'}`}>Nama Akun *</label>
           <input
             id={`ipo-account-name-${isInline ? 'inline' : 'main'}`}
@@ -602,7 +649,7 @@ export default function IpoDetailPage() {
             ))}
           </datalist>
           <div className="ipo-form-hint ipo-margin-b16">
-            Pilih akun yang sudah pernah dipakai agar ringkasan modal IPO tetap tergroup rapi.
+            Pilih master account agar email dan grouping ringkasan IPO tetap konsisten. Input manual tetap bisa dipakai untuk kasus khusus.
           </div>
         </>
       )}

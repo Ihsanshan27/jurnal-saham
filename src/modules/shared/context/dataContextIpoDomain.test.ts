@@ -98,4 +98,57 @@ describe('buildIpoDomain', () => {
       }),
     ]);
   });
+
+  it('updates linked entries when master ipo account is renamed', () => {
+    const persistData = vi.fn();
+    const setIpoEntries = vi.fn();
+    const setIpoAccounts = vi.fn();
+
+    const existingAccounts: IpoAccount[] = [
+      {
+        id: 'acc-1',
+        name: 'Akun Alpha',
+        email: 'alpha@example.com',
+        normalizedKey: 'akun alpha',
+        createdAt: '2026-06-01T00:00:00.000Z',
+        lastUsedAt: '2026-06-01T00:00:00.000Z',
+        isActive: true,
+      },
+    ];
+
+    const existingEntries: IpoEntry[] = [
+      createEntry({
+        ipoAccountId: 'acc-1',
+        accountName: 'Akun Alpha',
+        email: 'alpha@example.com',
+      }),
+    ];
+
+    const domain = buildIpoDomain({
+      ensureWritable: () => true,
+      ipoAccounts: existingAccounts,
+      ipoEntries: existingEntries,
+      ipoEvents: [createEvent()],
+      logUserActivity: vi.fn(),
+      persistData,
+      setIpoAccounts,
+      setIpoEntries,
+      setIpoEvents: vi.fn(),
+      showToast: vi.fn(),
+    });
+
+    domain.updateIpoAccount('acc-1', {
+      name: 'Akun Alpha Prime',
+      email: 'prime@example.com',
+    });
+
+    expect(setIpoEntries).toHaveBeenCalledWith([
+      expect.objectContaining({
+        ipoAccountId: 'acc-1',
+        accountName: 'Akun Alpha Prime',
+        email: 'prime@example.com',
+      }),
+    ]);
+    expect(persistData).toHaveBeenCalledWith('ipoAccounts', expect.any(Array));
+  });
 });

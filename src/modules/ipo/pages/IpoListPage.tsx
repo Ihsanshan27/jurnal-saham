@@ -636,6 +636,13 @@ export default function IpoListPage() {
              <div className="ipo-actions-row">
                 <button
                    className="btn btn-secondary"
+                   onClick={() => navigate("/ipo/accounts")}
+                >
+                  <Icons.Users size={16} />
+                  Master Akun
+               </button>
+               <button
+                   className="btn btn-secondary"
                    onClick={() => navigate("/ipo/summary")}
                 >
                   <Icons.BarChart3 size={16} />

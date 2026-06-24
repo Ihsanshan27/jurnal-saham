@@ -37,6 +37,12 @@ export function buildIpoDomain({
     return event?.offeringPrice;
   };
 
+  const saveIpoAccounts = (nextAccounts: IpoAccount[]) => {
+    setIpoAccounts(nextAccounts);
+    persistData('ipoAccounts', nextAccounts);
+    return nextAccounts;
+  };
+
   const syncIpoCollections = (nextEntries: IpoEntry[], nextAccounts = ipoAccounts) => {
     const normalizedIpo = normalizeIpoCollections(nextEntries, nextAccounts);
     setIpoEntries(normalizedIpo.entries);
@@ -187,15 +193,151 @@ export function buildIpoDomain({
     showToast(`${ids.length} entry berhasil diperbarui`);
   };
 
+  const addIpoAccount = (account: Omit<IpoAccount, 'id' | 'normalizedKey' | 'createdAt' | 'lastUsedAt' | 'updatedAt'>) => {
+    if (!ensureWritable()) return null;
+    const normalizedName = account.name?.trim().replace(/\s+/g, ' ') || '';
+    const normalizedEmail = account.email?.trim().toLowerCase() || '';
+    const normalizedKey = normalizedName.toLowerCase();
+    if (!normalizedKey) {
+      showToast('Nama akun IPO wajib diisi', 'error');
+      return null;
+    }
+    const duplicate = ipoAccounts.find((item) => item.normalizedKey === normalizedKey);
+    if (duplicate) {
+      showToast('Nama akun IPO sudah ada. Gunakan nama lain atau edit akun existing.', 'error');
+      return null;
+    }
+
+    const timestamp = new Date().toISOString();
+    const nextAccount: IpoAccount = {
+      id: generateId(),
+      name: normalizedName,
+      email: normalizedEmail,
+      rdnBankName: account.rdnBankName?.trim() || '',
+      rdnAccountNumber: account.rdnAccountNumber?.trim() || '',
+      withdrawBankName: account.withdrawBankName?.trim() || '',
+      withdrawAccountNumber: account.withdrawAccountNumber?.trim() || '',
+      withdrawAccountHolderName: account.withdrawAccountHolderName?.trim() || '',
+      normalizedKey,
+      createdAt: timestamp,
+      lastUsedAt: timestamp,
+      notes: account.notes?.trim() || '',
+      isActive: account.isActive !== false,
+      updatedAt: timestamp,
+    };
+
+    const normalizedIpo = syncIpoCollections(ipoEntries, [nextAccount, ...ipoAccounts]);
+    const finalAccount = normalizedIpo.accounts.find((item) => item.id === nextAccount.id) || nextAccount;
+    logUserActivity('ipo_account.created', 'ipo_account', finalAccount.id, {
+      normalizedKey: finalAccount.normalizedKey,
+      isActive: finalAccount.isActive !== false,
+    });
+    showToast('Master akun IPO berhasil ditambahkan');
+    return finalAccount;
+  };
+
+  const updateIpoAccount = (id: string, updates: Partial<IpoAccount>) => {
+    if (!ensureWritable()) return null;
+    const existingAccount = ipoAccounts.find((item) => item.id === id);
+    if (!existingAccount) return null;
+
+    const nextName = (updates.name ?? existingAccount.name)?.trim().replace(/\s+/g, ' ') || '';
+    const nextEmail = (updates.email ?? existingAccount.email)?.trim().toLowerCase() || '';
+    const nextNormalizedKey = nextName.toLowerCase();
+    if (!nextNormalizedKey) {
+      showToast('Nama akun IPO wajib diisi', 'error');
+      return null;
+    }
+    const duplicate = ipoAccounts.find((item) => item.id !== id && item.normalizedKey === nextNormalizedKey);
+    if (duplicate) {
+      showToast('Nama akun IPO bentrok dengan master account lain.', 'error');
+      return null;
+    }
+
+    const timestamp = new Date().toISOString();
+    const updatedAccounts = ipoAccounts.map((item) => (
+      item.id === id
+        ? {
+            ...item,
+            ...updates,
+            name: nextName,
+            email: nextEmail,
+            rdnBankName: typeof updates.rdnBankName === 'string' ? updates.rdnBankName.trim() : item.rdnBankName || '',
+            rdnAccountNumber: typeof updates.rdnAccountNumber === 'string' ? updates.rdnAccountNumber.trim() : item.rdnAccountNumber || '',
+            withdrawBankName: typeof updates.withdrawBankName === 'string' ? updates.withdrawBankName.trim() : item.withdrawBankName || '',
+            withdrawAccountNumber: typeof updates.withdrawAccountNumber === 'string' ? updates.withdrawAccountNumber.trim() : item.withdrawAccountNumber || '',
+            withdrawAccountHolderName: typeof updates.withdrawAccountHolderName === 'string' ? updates.withdrawAccountHolderName.trim() : item.withdrawAccountHolderName || '',
+            normalizedKey: nextNormalizedKey,
+            notes: typeof updates.notes === 'string' ? updates.notes.trim() : item.notes || '',
+            isActive: updates.isActive ?? item.isActive ?? true,
+            updatedAt: timestamp,
+          }
+        : item
+    ));
+
+    const updatedEntries = ipoEntries.map((entry) => {
+      const shouldLink = entry.ipoAccountId === id || (!entry.ipoAccountId && entry.accountName?.trim().toLowerCase() === existingAccount.normalizedKey);
+      if (!shouldLink) return entry;
+      return {
+        ...entry,
+        ipoAccountId: id,
+        accountName: nextName,
+        email: nextEmail,
+      };
+    });
+
+    const normalizedIpo = syncIpoCollections(updatedEntries, updatedAccounts);
+    const finalAccount = normalizedIpo.accounts.find((item) => item.id === id) || null;
+    logUserActivity('ipo_account.updated', 'ipo_account', id, {
+      fieldsUpdated: Object.keys(updates || {}),
+      normalizedKey: nextNormalizedKey,
+    });
+    showToast('Master akun IPO berhasil diperbarui');
+    return finalAccount;
+  };
+
+  const toggleIpoAccountActive = (id: string) => {
+    if (!ensureWritable()) return null;
+    const existingAccount = ipoAccounts.find((item) => item.id === id);
+    if (!existingAccount) return null;
+    return updateIpoAccount(id, { isActive: existingAccount.isActive === false });
+  };
+
+  const deleteIpoAccount = (id: string) => {
+    if (!ensureWritable()) return null;
+    const existingAccount = ipoAccounts.find((item) => item.id === id);
+    if (!existingAccount) return null;
+
+    const linkedEntries = ipoEntries.filter((entry) => (
+      entry.ipoAccountId === id || (!entry.ipoAccountId && entry.accountName?.trim().toLowerCase() === existingAccount.normalizedKey)
+    ));
+    if (linkedEntries.length > 0) {
+      showToast('Akun IPO masih dipakai di entry. Nonaktifkan dulu jika tidak ingin dipilih lagi.', 'error');
+      return null;
+    }
+
+    const updatedAccounts = ipoAccounts.filter((item) => item.id !== id);
+    saveIpoAccounts(updatedAccounts);
+    logUserActivity('ipo_account.deleted', 'ipo_account', id, {
+      normalizedKey: existingAccount.normalizedKey,
+    });
+    showToast('Master akun IPO berhasil dihapus');
+    return existingAccount;
+  };
+
   return {
     addIpoEntry,
     addIpoEvent,
+    addIpoAccount,
     batchAddIpoEntries,
     deleteIpoEntry,
     deleteIpoEvent,
+    deleteIpoAccount,
     updateIpoEntry,
     updateIpoEvent,
+    updateIpoAccount,
     batchDeleteIpoEntries,
     batchUpdateIpoEntries,
+    toggleIpoAccountActive,
   };
 }

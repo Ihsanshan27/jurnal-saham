@@ -40,9 +40,17 @@ export interface IpoAccount {
   id: string;
   name: string;
   email: string;
+  rdnBankName?: string;
+  rdnAccountNumber?: string;
+  withdrawBankName?: string;
+  withdrawAccountNumber?: string;
+  withdrawAccountHolderName?: string;
   normalizedKey: string;
   createdAt: string;
   lastUsedAt: string;
+  notes?: string;
+  isActive?: boolean;
+  updatedAt?: string;
 }
 
 export interface IpoEntryCalc extends IpoEntry {
