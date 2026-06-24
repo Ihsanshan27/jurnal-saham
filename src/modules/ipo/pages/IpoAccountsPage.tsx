@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
@@ -36,6 +36,8 @@ export default function IpoAccountsPage() {
   } = useData();
   const { confirm } = useDialog();
   const blurStyle = usePrivacyStyle();
+  const formCardRef = useRef<HTMLDivElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(createInitialForm());
@@ -147,6 +149,17 @@ export default function IpoAccountsPage() {
     });
   };
 
+  useEffect(() => {
+    if (!showForm) return;
+
+    const timer = window.setTimeout(() => {
+      formCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      nameInputRef.current?.focus();
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [showForm, editingId]);
+
   const handleDelete = async (account: any) => {
     const isConfirmed = await confirm(
       `Master akun "${account.name}" akan dihapus permanen.\n\nAkun yang masih terhubung ke entry IPO tidak bisa dihapus. Lanjutkan penghapusan?`,
@@ -211,7 +224,7 @@ export default function IpoAccountsPage() {
       </div>
 
       {showForm && canWrite && (
-        <div className="card ipo-margin-b16">
+        <div ref={formCardRef} className="card ipo-margin-b16">
           <div className="card-header">
             <div>
               <h3 className="card-title">{editingId ? 'Edit Master Akun IPO' : 'Tambah Master Akun IPO'}</h3>
@@ -225,6 +238,7 @@ export default function IpoAccountsPage() {
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-name">Nama Akun *</label>
                 <input
+                  ref={nameInputRef}
                   id="ipo-master-name"
                   className="form-input"
                   placeholder="Contoh: Akun Pribadi Utama"
