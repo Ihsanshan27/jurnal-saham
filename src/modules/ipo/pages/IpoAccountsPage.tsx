@@ -7,6 +7,8 @@ import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { formatDate } from '@/modules/shared/utils/formatters';
 import '@/modules/ipo/ipo.css';
 
+const SELECTED_ACCOUNTS_STORAGE_KEY = 'ipo_accounts_selected_ids';
+
 function createInitialForm() {
   return {
     name: '',
@@ -44,7 +46,16 @@ export default function IpoAccountsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(SELECTED_ACCOUNTS_STORAGE_KEY);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
 
   const accountsWithStats = useMemo(() => {
     return [...ipoAccounts]
@@ -168,6 +179,18 @@ export default function IpoAccountsPage() {
 
     return () => window.clearTimeout(timer);
   }, [showForm, editingId]);
+
+  useEffect(() => {
+    sessionStorage.setItem(SELECTED_ACCOUNTS_STORAGE_KEY, JSON.stringify(selectedAccountIds));
+  }, [selectedAccountIds]);
+
+  useEffect(() => {
+    const validAccountIds = new Set(accountsWithStats.map((account: any) => account.id));
+    setSelectedAccountIds((prev) => {
+      const next = prev.filter((accountId) => validAccountIds.has(accountId));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [accountsWithStats]);
 
   const handleDelete = async (account: any) => {
     const isConfirmed = await confirm(
