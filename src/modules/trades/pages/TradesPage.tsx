@@ -214,6 +214,18 @@ export default function TradesPage() {
     URL.revokeObjectURL(url);
   };
 
+  const renderSelectionCheckbox = (checked: boolean, onToggle: () => void, label: string) => (
+    <button
+      type="button"
+      className={`trade-select-checkbox ${checked ? 'checked' : ''}`}
+      aria-pressed={checked}
+      aria-label={label}
+      onClick={onToggle}
+    >
+      <Icons.Check size={13} />
+    </button>
+  );
+
   return (
     <div>
       <div className="page-header">
@@ -271,13 +283,12 @@ export default function TradesPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ width: 40, textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={handleSelectAll}
-                      style={{ cursor: 'pointer' }}
-                    />
+                  <th className="trade-select-col">
+                    {renderSelectionCheckbox(
+                      isAllSelected,
+                      handleSelectAll,
+                      isAllSelected ? 'Batalkan pilih semua transaksi pada halaman ini' : 'Pilih semua transaksi pada halaman ini',
+                    )}
                   </th>
                   <th><SortableTableHeader label="Kode" sortKey="stockCode" sortConfig={{ key: sortBy as any, direction: sortDir as any }} onSort={requestSort as any} /></th>
                   <th><SortableTableHeader label="Tgl Beli" sortKey="dateBuy" sortConfig={{ key: sortBy as any, direction: sortDir as any }} onSort={requestSort as any} /></th>
@@ -319,20 +330,19 @@ export default function TradesPage() {
                   const isRowChecked = selectedIds.includes(trade.id);
 
                   return (
-                    <tr key={trade.id} style={isRowChecked ? { background: 'rgba(59, 130, 246, 0.05)' } : undefined}>
-                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                        <input
-                          type="checkbox"
-                          checked={isRowChecked}
-                          onChange={() => {
+                    <tr key={trade.id} className={isRowChecked ? 'trade-row-selected' : undefined}>
+                      <td className="trade-select-col">
+                        {renderSelectionCheckbox(
+                          isRowChecked,
+                          () => {
                             setSelectedIds(prev =>
                               prev.includes(trade.id)
                                 ? prev.filter(id => id !== trade.id)
                                 : [...prev, trade.id]
                             );
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        />
+                          },
+                          `${isRowChecked ? 'Batalkan pilihan' : 'Pilih'} transaksi ${trade.stockCode}`,
+                        )}
                       </td>
                       <td>
                         <strong>{trade.stockCode}</strong> {isUS && <span style={{fontSize: '0.8em'}}>🇺🇸</span>}

@@ -534,8 +534,10 @@ export default function SettingsPage() {
                 disabled={disabled}
                 style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
               >
-                <Icon size={16} />
-                <span>{tab.label}</span>
+                <span className="settings-tab-icon">
+                  <Icon size={16} />
+                </span>
+                <span className="settings-tab-label">{tab.label}</span>
               </button>
             );
           })}

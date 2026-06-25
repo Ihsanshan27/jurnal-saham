@@ -176,6 +176,18 @@ export default function IpoDetailPage() {
     setSelectedEntryIds([]);
   };
 
+  const renderEntrySelectionCheckbox = (checked: boolean, onToggle: () => void, label: string) => (
+    <button
+      type="button"
+      className={`ipo-entry-select-checkbox ${checked ? 'checked' : ''}`}
+      aria-pressed={checked}
+      aria-label={label}
+      onClick={onToggle}
+    >
+      <Icons.Check size={13} />
+    </button>
+  );
+
   const [showForm, setShowFormState] = useState<boolean>(
     () => sessionStorage.getItem(OPEN_KEY) === 'true'
   );
@@ -1052,13 +1064,12 @@ export default function IpoDetailPage() {
             <table className="table ipo-table-fixed">
               <thead>
                 <tr>
-                  <th style={{ ...compactHeaderStyle, width: 36, textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={isAllEntriesSelected}
-                      onChange={handleSelectAllEntries}
-                      style={{ cursor: 'pointer' }}
-                    />
+                  <th className="ipo-entry-select-col" style={{ ...compactHeaderStyle, width: 40, textAlign: 'center' }}>
+                    {renderEntrySelectionCheckbox(
+                      isAllEntriesSelected,
+                      handleSelectAllEntries,
+                      isAllEntriesSelected ? 'Batalkan pilih semua akun IPO' : 'Pilih semua akun IPO',
+                    )}
                   </th>
                   <th style={{ ...compactHeaderStyle, width: 36 }}>{renderSortableHeader('No', 'no')}</th>
                   <th style={{ ...compactHeaderStyle, width: 58 }}>{renderSortableHeader('Saham', 'stockCode')}</th>
@@ -1086,33 +1097,35 @@ export default function IpoDetailPage() {
 
                   return (
                     <Fragment key={entry.id}>
-                      <tr style={{
-                        background: isEditingThisRow
-                          ? 'rgba(59, 130, 246, 0.08)'
-                          : isRowChecked
-                          ? 'rgba(59, 130, 246, 0.05)'
-                          : isKeep
-                          ? 'rgba(234, 179, 8, 0.04)'
-                          : isProfit
-                          ? 'rgba(16, 185, 129, 0.04)'
-                          : isLoss
-                          ? 'rgba(239, 68, 68, 0.04)'
-                          : undefined,
-                        boxShadow: isEditingThisRow ? 'inset 3px 0 0 var(--accent-blue-light)' : undefined,
-                      }}>
-                        <td style={{ ...compactCellStyle, textAlign: 'center', verticalAlign: 'middle' }}>
-                          <input
-                            type="checkbox"
-                            checked={isRowChecked}
-                            onChange={() => {
+                      <tr
+                        className={`${isRowChecked ? 'ipo-entry-row-selected' : ''} ${isEditingThisRow ? 'ipo-entry-row-editing' : ''}`.trim()}
+                        style={{
+                          background: isEditingThisRow
+                            ? 'rgba(59, 130, 246, 0.08)'
+                            : isRowChecked
+                            ? undefined
+                            : isKeep
+                            ? 'rgba(234, 179, 8, 0.04)'
+                            : isProfit
+                            ? 'rgba(16, 185, 129, 0.04)'
+                            : isLoss
+                            ? 'rgba(239, 68, 68, 0.04)'
+                            : undefined,
+                          boxShadow: isEditingThisRow ? 'inset 3px 0 0 var(--accent-blue-light)' : undefined,
+                        }}
+                      >
+                        <td className="ipo-entry-select-col" style={{ ...compactCellStyle, textAlign: 'center', verticalAlign: 'middle' }}>
+                          {renderEntrySelectionCheckbox(
+                            isRowChecked,
+                            () => {
                               setSelectedEntryIds(prev =>
                                 prev.includes(entry.id)
                                   ? prev.filter(id => id !== entry.id)
                                   : [...prev, entry.id]
                               );
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          />
+                            },
+                            `${isRowChecked ? 'Batalkan pilihan' : 'Pilih'} akun ${entry.accountName}`,
+                          )}
                         </td>
                         <td style={{ ...compactCellStyle, color: 'var(--text-muted)', fontSize: '0.75rem' }}>{entry.no}</td>
                         <td style={compactCellStyle}><strong>{event.stockCode}</strong></td>

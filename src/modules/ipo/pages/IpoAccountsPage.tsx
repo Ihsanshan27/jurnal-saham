@@ -44,6 +44,7 @@ export default function IpoAccountsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('card');
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
 
   const accountsWithStats = useMemo(() => {
     return [...ipoAccounts]
@@ -99,10 +100,18 @@ export default function IpoAccountsPage() {
     });
   }, [accountsWithStats, searchQuery, statusFilter]);
 
+  const selectedAccountsCount = selectedAccountIds.length;
+
   const resetForm = () => {
     setForm(createInitialForm());
     setShowForm(false);
     setEditingId(null);
+  };
+
+  const toggleSelectedAccount = (accountId: string) => {
+    setSelectedAccountIds((prev) =>
+      prev.includes(accountId) ? prev.filter((id) => id !== accountId) : [...prev, accountId],
+    );
   };
 
   const setValue = (key: string, value: string | boolean) => {
@@ -177,24 +186,25 @@ export default function IpoAccountsPage() {
   return (
     <div className="ipo-accounts-page">
       <div className="page-header">
-        <div>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Icons.Users size={26} style={{ color: 'var(--accent-green)' }} />
+        <div className="ipo-accounts-hero">
+          <div className="ipo-accounts-hero-kicker">IPO Workspace</div>
+          <h1 className="page-title ipo-accounts-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Icons.Users size={24} style={{ color: 'var(--accent-green)' }} />
             Master IPO Accounts
           </h1>
-          <p className="page-subtitle">
+          <p className="page-subtitle ipo-accounts-subtitle">
             Kelola akun partisipan IPO agar entry tetap konsisten, mudah dipilih, dan rapi di ringkasan.
           </p>
         </div>
         <div className="ipo-actions-row">
-          <Link className="btn btn-secondary" to="/ipo">
+          <Link className="btn btn-secondary ipo-accounts-secondary-action" to="/ipo">
             <Icons.Rocket size={16} />
             IPO Journey
           </Link>
           {canWrite && (
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary ipo-accounts-primary-action"
               onClick={() => (showForm ? resetForm() : setShowForm(true))}
             >
               {showForm ? <Icons.X size={16} /> : <Icons.Plus size={16} />}
@@ -208,18 +218,22 @@ export default function IpoAccountsPage() {
         <div className="stat-card ipo-accounts-stat-card">
           <div className="stat-card-label">Total Master Akun</div>
           <div className="stat-card-value">{summary.total}</div>
+          <div className="ipo-accounts-stat-foot">Seluruh akun yang tersimpan</div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
           <div className="stat-card-label">Akun Aktif</div>
           <div className="stat-card-value">{summary.active}</div>
+          <div className="ipo-accounts-stat-foot">Siap dipakai untuk entry baru</div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
           <div className="stat-card-label">Akun Nonaktif</div>
           <div className="stat-card-value">{summary.inactive}</div>
+          <div className="ipo-accounts-stat-foot">Tetap aman untuk histori lama</div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
           <div className="stat-card-label">Entry Tertaut</div>
           <div className="stat-card-value">{summary.linkedEntries}</div>
+          <div className="ipo-accounts-stat-foot">Total pemakaian lintas event IPO</div>
         </div>
       </div>
 
@@ -366,7 +380,7 @@ export default function IpoAccountsPage() {
         <div className="card-header">
           <div>
             <h3 className="card-title">Daftar Master Akun</h3>
-            <p className="page-subtitle" style={{ marginTop: 6 }}>
+            <p className="page-subtitle ipo-accounts-section-subtitle" style={{ marginTop: 6 }}>
               Akun nonaktif tidak muncul sebagai pilihan utama saat input entry baru, tapi histori lama tetap aman.
             </p>
           </div>
@@ -424,6 +438,23 @@ export default function IpoAccountsPage() {
             </div>
           </div>
 
+          {selectedAccountsCount > 0 && (
+            <div className="ipo-accounts-selection-bar" aria-live="polite">
+              <div className="ipo-accounts-selection-copy">
+                <span className="ipo-accounts-selection-badge">{selectedAccountsCount}</span>
+                <span>{selectedAccountsCount} akun dipilih</span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm ipo-accounts-selection-clear"
+                onClick={() => setSelectedAccountIds([])}
+              >
+                <Icons.X size={14} />
+                Bersihkan pilihan
+              </button>
+            </div>
+          )}
+
           {accountsWithStats.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">
@@ -449,6 +480,7 @@ export default function IpoAccountsPage() {
               <table className="table ipo-account-table">
                 <thead>
                   <tr>
+                    <th className="ipo-account-table-check-col">Pilih</th>
                     <th>Akun</th>
                     <th>Email</th>
                     <th>RDN</th>
@@ -463,44 +495,61 @@ export default function IpoAccountsPage() {
                 </thead>
                 <tbody>
                   {filteredAccounts.map((account: any) => (
-                    <tr key={account.id}>
+                    <tr key={account.id} className={selectedAccountIds.includes(account.id) ? 'is-selected' : ''}>
+                      <td className="ipo-account-table-check-col">
+                        <button
+                          type="button"
+                          className={`ipo-account-select-checkbox ${selectedAccountIds.includes(account.id) ? 'checked' : ''}`}
+                          onClick={() => toggleSelectedAccount(account.id)}
+                          aria-pressed={selectedAccountIds.includes(account.id)}
+                          aria-label={`${selectedAccountIds.includes(account.id) ? 'Batalkan pilihan akun' : 'Pilih akun'} ${account.name}`}
+                          title={selectedAccountIds.includes(account.id) ? 'Batalkan pilihan' : 'Pilih akun'}
+                        >
+                          <Icons.Check size={14} />
+                        </button>
+                      </td>
                       <td>
                         <div className="ipo-account-table-account">
                           <div className="ipo-account-table-name">{account.name}</div>
+                          <div className="ipo-account-table-status-line">
+                            <span className={`status-badge ${account.isActive === false ? 'upcoming' : 'active'}`}>
+                              {account.isActive === false ? 'Nonaktif' : 'Aktif'}
+                            </span>
+                          </div>
                           {account.withdrawAccountHolderName && (
                             <div className="ipo-account-table-sub">{account.withdrawAccountHolderName}</div>
                           )}
                         </div>
                       </td>
-                      <td style={blurStyle}>{account.email || '-'}</td>
+                      <td style={blurStyle} className="ipo-account-table-secondary">{account.email || '-'}</td>
                       <td style={blurStyle}>
                         {account.rdnBankName || account.rdnAccountNumber
                           ? [account.rdnBankName, account.rdnAccountNumber].filter(Boolean).join(' / ')
                           : '-'}
                       </td>
-                      <td style={blurStyle}>
+                      <td style={blurStyle} className="ipo-account-table-secondary">
                         {account.withdrawBankName || account.withdrawAccountNumber
                           ? [account.withdrawBankName, account.withdrawAccountNumber].filter(Boolean).join(' / ')
                           : '-'}
                       </td>
-                      <td>
+                      <td className="ipo-account-table-status-cell">
                         <span className={`status-badge ${account.isActive === false ? 'upcoming' : 'active'}`}>
                           {account.isActive === false ? 'Nonaktif' : 'Aktif'}
                         </span>
                       </td>
-                      <td>{account.linkedEntriesCount}</td>
-                      <td>{account.eventCount}</td>
-                      <td>{account.lastUsedAt ? formatDate(account.lastUsedAt) : '-'}</td>
+                      <td className="ipo-account-table-metric-cell">{account.linkedEntriesCount}</td>
+                      <td className="ipo-account-table-metric-cell">{account.eventCount}</td>
+                      <td className="ipo-account-table-secondary">{account.lastUsedAt ? formatDate(account.lastUsedAt) : '-'}</td>
                       <td className="ipo-account-table-notes">{account.notes || '-'}</td>
                       {canWrite && (
-                        <td>
+                        <td className="ipo-account-table-tools-cell">
                           <div className="ipo-account-table-tools">
-                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => handleEdit(account)} title="Edit akun">
+                            <button type="button" className="btn btn-ghost btn-sm ipo-account-table-edit-btn" onClick={() => handleEdit(account)} title="Edit akun">
                               <Icons.Pencil size={14} />
                             </button>
                             <button
                               type="button"
-                              className="btn btn-ghost btn-sm"
+                              className="btn btn-ghost btn-sm ipo-account-table-action-btn"
                               onClick={() => toggleIpoAccountActive(account.id)}
                               title={account.isActive === false ? 'Aktifkan akun' : 'Nonaktifkan akun'}
                             >
@@ -526,9 +575,12 @@ export default function IpoAccountsPage() {
           ) : (
             <div className={`ipo-accounts-grid ${viewMode === 'list' ? 'list-mode' : 'card-mode'}`}>
               {filteredAccounts.map((account: any) => (
-                <article key={account.id} className={`ipo-account-card ${viewMode === 'list' ? 'list-mode' : 'card-mode'}`}>
+                <article
+                  key={account.id}
+                  className={`ipo-account-card ${viewMode === 'list' ? 'list-mode' : 'card-mode'} ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''}`}
+                >
                   <div className="ipo-account-card-header">
-                    <div>
+                    <div className="ipo-account-card-header-main">
                       <div className="ipo-account-card-title-row">
                         <h4 className="ipo-account-card-title">{account.name}</h4>
                         <span className={`status-badge ${account.isActive === false ? 'upcoming' : 'active'}`}>
@@ -540,15 +592,26 @@ export default function IpoAccountsPage() {
                         <span>{account.email || 'Tanpa email'}</span>
                       </div>
                     </div>
-                    <div className="ipo-account-card-metrics">
-                      <div className="ipo-account-metric">
-                        <span className="ipo-account-metric-label">Entry</span>
-                        <strong>{account.linkedEntriesCount}</strong>
-                      </div>
-                      <div className="ipo-account-metric">
-                        <span className="ipo-account-metric-label">Event</span>
-                        <strong>{account.eventCount}</strong>
-                      </div>
+                    <button
+                      type="button"
+                      className={`ipo-account-select-checkbox ${selectedAccountIds.includes(account.id) ? 'checked' : ''}`}
+                      onClick={() => toggleSelectedAccount(account.id)}
+                      aria-pressed={selectedAccountIds.includes(account.id)}
+                      aria-label={`${selectedAccountIds.includes(account.id) ? 'Batalkan pilihan akun' : 'Pilih akun'} ${account.name}`}
+                      title={selectedAccountIds.includes(account.id) ? 'Batalkan pilihan' : 'Pilih akun'}
+                    >
+                      <Icons.Check size={14} />
+                    </button>
+                  </div>
+
+                  <div className="ipo-account-card-metrics">
+                    <div className="ipo-account-metric">
+                      <span className="ipo-account-metric-label">Entry</span>
+                      <strong>{account.linkedEntriesCount}</strong>
+                    </div>
+                    <div className="ipo-account-metric">
+                      <span className="ipo-account-metric-label">Event</span>
+                      <strong>{account.eventCount}</strong>
                     </div>
                   </div>
 
@@ -589,17 +652,17 @@ export default function IpoAccountsPage() {
 
                   {canWrite && (
                     <div className="ipo-account-actions">
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEdit(account)}>
+                      <button type="button" className="btn btn-secondary btn-sm ipo-account-edit-btn" onClick={() => handleEdit(account)}>
                         <Icons.Pencil size={14} />
                         Edit
                       </button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => toggleIpoAccountActive(account.id)}>
+                      <button type="button" className="btn btn-ghost btn-sm ipo-account-inline-action" onClick={() => toggleIpoAccountActive(account.id)}>
                         {account.isActive === false ? <Icons.Power size={14} /> : <Icons.PowerOff size={14} />}
                         {account.isActive === false ? 'Aktifkan' : 'Nonaktifkan'}
                       </button>
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm ipo-account-delete-btn"
+                        className="btn btn-ghost btn-sm ipo-account-delete-btn ipo-account-inline-action"
                         disabled={account.linkedEntriesCount > 0}
                         onClick={() => handleDelete(account)}
                         title={account.linkedEntriesCount > 0 ? 'Akun yang masih dipakai tidak bisa dihapus' : 'Hapus akun'}
