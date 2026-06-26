@@ -125,7 +125,7 @@ export default function IpoSummaryPage() {
       const simulatedLots = lots * allotmentRatio;
       const totalCapitalBase = (event.offeringPrice || entry.buyPrice || 0) * lots * 100;
       const simulatedCapital = (event.offeringPrice || entry.buyPrice || 0) * simulatedLots * 100;
-      const breakdownLabel = `${event.stockCode} (${formatLotValue(simulatedLots)} lot simulasi)`;
+      const breakdownLabel = `${event.stockCode} (${formatLotValue(simulatedLots)} lot)`;
 
       if (!groupedAccounts.has(accountKey)) {
         groupedAccounts.set(accountKey, {
@@ -269,7 +269,7 @@ export default function IpoSummaryPage() {
       ['Simulasi Allotment', `${Math.round(allotmentRatio * 100)}%`],
       ['Diekspor Pada', new Date().toLocaleString('id-ID')],
     ];
-    const accountHeaders = ['Nama Akun', 'Email', 'Total IPO', 'Total Lot Awal', 'Lot Simulasi', 'Rincian IPO', 'Modal Simulasi'];
+    const accountHeaders = ['Nama Akun', 'Email', 'Total IPO', 'Lot Awal', 'Lot', 'Rincian IPO', 'Modal'];
     const accountRows = sortedAccountCapitalSummaries.map((account: any) => ([
       account.accountName,
       account.email || '-',
@@ -558,7 +558,7 @@ export default function IpoSummaryPage() {
       {chartData.length > 0 && (
         <div className="card" style={{ marginBottom: 28 }}>
           <div className="card-header">
-            <h3 className="card-title">📊 Analisis Profitabilitas Per Emiten</h3>
+            <h3 className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}><Icons.BarChart3 size={18} style={{ color: "var(--accent-blue-light)" }} />Analisis Profitabilitas Per Emiten</h3>
           </div>
           <div className="card-body">
             <div style={{ width: '100%', height: 300 }}>
@@ -583,13 +583,13 @@ export default function IpoSummaryPage() {
       {/* Detailed Table */}
       <div className="card" style={{ marginBottom: 28 }}>
         <div className="card-header">
-          <h3 className="card-title">💼 Estimasi Modal Total Per Akun IPO</h3>
+          <h3 className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}><Icons.Wallet size={18} style={{ color: "var(--accent-yellow)" }} />Estimasi Modal Total Per Akun IPO</h3>
         </div>
         <div className="card-body" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div className="bento-card" style={{ padding: '16px 18px' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 10 }}>
-                Grand Total Modal Simulasi
+                Grand Total Modal
               </div>
               <div className="font-mono" style={{ fontSize: '1.45rem', fontWeight: 800, ...blurStyle }}>
                 {formatRupiah(accountCapitalGrandTotal)}
@@ -617,9 +617,9 @@ export default function IpoSummaryPage() {
                   <th><SortableTableHeader label="Email" sortKey="email" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
                   <th><SortableTableHeader label="Total IPO" sortKey="eventCount" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
                   <th><SortableTableHeader label="Lot Awal" sortKey="totalLots" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
-                  <th><SortableTableHeader label="Lot Simulasi" sortKey="simulatedLots" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
+                  <th><SortableTableHeader label="Lot" sortKey="simulatedLots" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
                   <th><SortableTableHeader label="Rincian IPO" sortKey="breakdown" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
-                  <th><SortableTableHeader label="Modal Simulasi" sortKey="simulatedCapital" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
+                  <th><SortableTableHeader label="Modal" sortKey="simulatedCapital" sortConfig={accountSortConfig} onSort={requestAccountSort} /></th>
                 </tr>
               </thead>
               <tbody>
@@ -674,7 +674,7 @@ export default function IpoSummaryPage() {
                 <tfoot>
                   <tr>
                     <td colSpan={6} style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Total Kebutuhan Modal Simulasi
+                      Total Kebutuhan Modal
                     </td>
                     <td className="font-mono" style={{ fontWeight: 900, ...blurStyle }}>
                       {formatRupiah(accountCapitalGrandTotal)}
@@ -689,7 +689,7 @@ export default function IpoSummaryPage() {
 
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">📋 Rincian Performa Saham IPO</h3>
+          <h3 className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}><Icons.FileText size={18} style={{ color: "var(--accent-green)" }} />Rincian Performa Saham IPO</h3>
         </div>
         <div className="card-body" style={{ padding: 0 }}>
           <div className="table-container" style={{ border: 'none', margin: 0 }}>
@@ -789,7 +789,7 @@ export default function IpoSummaryPage() {
       ) : (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">🏆 Statistik Performa Underwriter</h3>
+            <h3 className="card-title" style={{ display: "flex", alignItems: "center", gap: 8 }}><Icons.Award size={18} style={{ color: "var(--accent-yellow)" }} />Statistik Performa Underwriter</h3>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             <div className="table-container" style={{ border: 'none', margin: 0 }}>

@@ -788,7 +788,10 @@ export default function IpoDetailPage() {
       <div className="empty-state">
         <div className="empty-state-icon"><Icons.AlertTriangle size={48} style={{ color: 'var(--accent-red)' }} /></div>
         <div className="empty-state-title">IPO Event tidak ditemukan</div>
-        <button className="btn btn-primary" onClick={() => navigate('/ipo')}>← Kembali</button>
+        <button className="btn btn-primary" onClick={() => navigate('/ipo')}>
+          <Icons.ChevronLeft size={16} />
+          Kembali
+        </button>
       </div>
     );
   }
@@ -861,7 +864,7 @@ export default function IpoDetailPage() {
               const daysToOffering = diffDaysFromToday(event.offeringDate);
               const daysToIpo = diffDaysFromToday(event.ipoDate);
               if (daysToIpo === 0) {
-                return <span className="ipo-countdown today-label" style={{ marginLeft: 8 }}><Icons.Timer size={12} />🔥 IPO Hari Ini!</span>;
+                return <span className="ipo-countdown today-label" style={{ marginLeft: 8 }}><Icons.Zap size={12} />IPO Hari Ini!</span>;
               }
               if (daysToOffering !== null && daysToOffering > 0) {
                 return <span className="ipo-countdown" style={{ marginLeft: 8 }}><Icons.Timer size={12} />{daysToOffering} hari lagi penawaran</span>;

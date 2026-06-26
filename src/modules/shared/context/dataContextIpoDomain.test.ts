@@ -151,4 +151,36 @@ describe('buildIpoDomain', () => {
     ]);
     expect(persistData).toHaveBeenCalledWith('ipoAccounts', expect.any(Array));
   });
+
+  it('reorders ipo events based on visible card order', () => {
+    const persistData = vi.fn();
+    const setIpoEvents = vi.fn();
+
+    const domain = buildIpoDomain({
+      ensureWritable: () => true,
+      ipoAccounts: [],
+      ipoEntries: [],
+      ipoEvents: [
+        createEvent({ id: 'event-1', stockCode: 'AAA' }),
+        createEvent({ id: 'event-2', stockCode: 'BBB' }),
+        createEvent({ id: 'event-3', stockCode: 'CCC' }),
+      ],
+      logUserActivity: vi.fn(),
+      persistData,
+      setIpoAccounts: vi.fn(),
+      setIpoEntries: vi.fn(),
+      setIpoEvents,
+      showToast: vi.fn(),
+    });
+
+    const reordered = domain.reorderIpoEvents(['event-3', 'event-1', 'event-2']);
+
+    expect(reordered?.map((event) => event.id)).toEqual(['event-3', 'event-1', 'event-2']);
+    expect(setIpoEvents).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'event-3' }),
+      expect.objectContaining({ id: 'event-1' }),
+      expect.objectContaining({ id: 'event-2' }),
+    ]);
+    expect(persistData).toHaveBeenCalledWith('ipoEvents', expect.any(Array));
+  });
 });

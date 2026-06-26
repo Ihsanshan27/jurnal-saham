@@ -39,6 +39,12 @@ const EMPTY_ERRORS = {
    bookbuildingStartDate: "",
 };
 
+function stripLeadingEmojiLabel(value: string) {
+   return value
+      .replace(/^[^\p{L}\p{N}]+/u, "")
+      .trim();
+}
+
 /** Hitung countdown label menuju offeringDate atau ipoDate */
 function getCountdownInfo(event: IpoEvent): { label: string; cls: string } | null {
    const today = new Date();
@@ -58,12 +64,12 @@ function getCountdownInfo(event: IpoEvent): { label: string; cls: string } | nul
 
    // Cek apakah IPO hari ini
    if (ipoDate.getTime() === today.getTime()) {
-      return { label: "🔥 IPO Hari Ini!", cls: "today-label" };
+      return { label: "IPO Hari Ini!", cls: "today-label" };
    }
 
    // Cek apakah penawaran hari ini
    if (offeringDate && offeringDate.getTime() === today.getTime()) {
-      return { label: "⚡ Penawaran Hari Ini", cls: "urgent" };
+      return { label: "Penawaran Hari Ini", cls: "urgent" };
    }
 
    // Hitung countdown penawaran (jika belum lewat) atau IPO
@@ -94,6 +100,7 @@ export default function IpoListPage() {
       updateIpoEvent,
       batchAddIpoEntries,
       deleteIpoEvent,
+      reorderIpoEvents,
       canWrite,
    } = useData();
    const navigate = useNavigate();
@@ -127,6 +134,8 @@ export default function IpoListPage() {
    const [statusFilter, setStatusFilter] = useState("all");
    const [underwriterFilter, setUnderwriterFilter] = useState("all");
    const [yearFilter, setYearFilter] = useState("all");
+   const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
+   const [dragOverEventId, setDragOverEventId] = useState<string | null>(null);
 
    // Get unique list of underwriters
    const uniqueUnderwriters = useMemo(() => {
@@ -346,12 +355,7 @@ export default function IpoListPage() {
       };
    };
 
-   const sorted = useMemo(() => {
-      return [...ipoEvents].sort(
-         (a: IpoEvent, b: IpoEvent) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-   }, [ipoEvents]);
+   const sorted = useMemo(() => [...ipoEvents], [ipoEvents]);
 
    const filteredEvents = useMemo(() => {
       return sorted.filter((event) => {
@@ -379,6 +383,24 @@ export default function IpoListPage() {
          return matchQuery && matchStatus && matchUnderwriter && matchYear;
       });
    }, [sorted, searchQuery, statusFilter, underwriterFilter, yearFilter]);
+
+   const moveEventCard = (sourceId: string, targetId: string) => {
+      if (!sourceId || !targetId || sourceId === targetId) return;
+      const visibleIds = filteredEvents.map((event) => event.id);
+      const sourceIndex = visibleIds.indexOf(sourceId);
+      const targetIndex = visibleIds.indexOf(targetId);
+      if (sourceIndex < 0 || targetIndex < 0) return;
+
+      const nextVisibleIds = [...visibleIds];
+      const [movedId] = nextVisibleIds.splice(sourceIndex, 1);
+      nextVisibleIds.splice(targetIndex, 0, movedId);
+
+      const remainingIds = ipoEvents
+         .map((event) => event.id)
+         .filter((eventId) => !nextVisibleIds.includes(eventId));
+
+      reorderIpoEvents([...nextVisibleIds, ...remainingIds]);
+   };
 
    const renderEventForm = (submitLabel: string, submitIcon: ReactNode, mode: "inline" | "modal" = "inline") => (
       <form onSubmit={handleSubmit} noValidate>
@@ -802,8 +824,32 @@ export default function IpoListPage() {
                   return (
                      <div
                         key={event.id}
-                        className={`bento-card ipo-list-card${todayHighlight ? " today-highlight" : ""}`}
+                        className={`bento-card ipo-list-card${todayHighlight ? " today-highlight" : ""} ${draggedEventId === event.id ? "is-dragging" : ""} ${dragOverEventId === event.id ? "is-drag-over" : ""}`}
                         style={{ borderLeft: borderColor }}
+                        draggable={canWrite}
+                        onDragStart={() => {
+                           if (!canWrite) return;
+                           setDraggedEventId(event.id);
+                           setDragOverEventId(event.id);
+                        }}
+                        onDragOver={(dragEvent) => {
+                           if (!canWrite) return;
+                           dragEvent.preventDefault();
+                           if (draggedEventId && draggedEventId !== event.id) {
+                              setDragOverEventId(event.id);
+                           }
+                        }}
+                        onDrop={(dragEvent) => {
+                           if (!canWrite) return;
+                           dragEvent.preventDefault();
+                           moveEventCard(draggedEventId || "", event.id);
+                           setDraggedEventId(null);
+                           setDragOverEventId(null);
+                        }}
+                        onDragEnd={() => {
+                           setDraggedEventId(null);
+                           setDragOverEventId(null);
+                        }}
                         onClick={() => navigate(`/ipo/${event.id}`)}
                      >
                         <div className="ipo-list-head">
@@ -837,12 +883,24 @@ export default function IpoListPage() {
                               </div>
                               {countdown && (
                                  <div className={`ipo-countdown ${countdown.cls}`}>
-                                    <Icons.Timer size={11} />
-                                    {countdown.label}
+                                    {countdown.cls === "today-label" || countdown.cls === "urgent" && /Hari Ini/i.test(countdown.label)
+                                       ? <Icons.Zap size={11} />
+                                       : <Icons.Timer size={11} />}
+                                    {stripLeadingEmojiLabel(countdown.label)}
                                  </div>
                               )}
                            </div>
                            <div className="ipo-list-tools" onClick={(e) => e.stopPropagation()}>
+                              {canWrite && (
+                                 <button
+                                    type="button"
+                                    className="ipo-drag-handle"
+                                    title="Geser untuk mengatur posisi card"
+                                    aria-label={`Geser posisi card IPO ${event.stockCode}`}
+                                 >
+                                    <Icons.ArrowRightLeft size={14} />
+                                 </button>
+                              )}
                               {canWrite && (
                                  <>
                                     <button
@@ -1008,9 +1066,13 @@ export default function IpoListPage() {
                                  color: "var(--text-secondary)",
                                  borderTop: "1px solid var(--border-color)",
                                  paddingTop: 8,
+                                 display: "flex",
+                                 alignItems: "flex-start",
+                                 gap: 6,
                               }}
                            >
-                              📝 {event.notes}
+                              <Icons.NotebookPen size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                              <span>{event.notes}</span>
                            </div>
                         )}
 

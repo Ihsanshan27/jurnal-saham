@@ -111,6 +111,23 @@ export function buildIpoDomain({
     showToast('IPO event dihapus');
   };
 
+  const reorderIpoEvents = (orderedIds: string[]) => {
+    if (!ensureWritable()) return null;
+    const orderMap = new Map(orderedIds.map((itemId, index) => [itemId, index]));
+    const updatedEvents = [...ipoEvents].sort((left, right) => {
+      const leftIndex = orderMap.get(left.id);
+      const rightIndex = orderMap.get(right.id);
+      if (leftIndex == null && rightIndex == null) return 0;
+      if (leftIndex == null) return 1;
+      if (rightIndex == null) return -1;
+      return leftIndex - rightIndex;
+    });
+    setIpoEvents(updatedEvents);
+    persistData('ipoEvents', updatedEvents);
+    showToast('Urutan IPO Journey berhasil diperbarui');
+    return updatedEvents;
+  };
+
   const addIpoEntry = (entry: Omit<IpoEntry, 'id' | 'createdAt' | 'buyPrice'> & { buyPrice?: number }) => {
     if (!ensureWritable()) return;
     const newEntry = normalizeIpoEntryBuyPrice({
@@ -339,5 +356,6 @@ export function buildIpoDomain({
     batchDeleteIpoEntries,
     batchUpdateIpoEntries,
     toggleIpoAccountActive,
+    reorderIpoEvents,
   };
 }

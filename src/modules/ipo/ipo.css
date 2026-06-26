@@ -516,6 +516,16 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+.ipo-list-card.is-dragging {
+  opacity: 0.72;
+  transform: scale(0.985);
+}
+
+.ipo-list-card.is-drag-over {
+  border-color: var(--accent-blue-light);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
 .ipo-list-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -536,6 +546,30 @@
 .ipo-list-tools {
   display: flex;
   gap: 4px;
+}
+
+.ipo-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-muted);
+  cursor: grab;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.ipo-drag-handle:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--accent-blue-light);
+  border-color: rgba(59, 130, 246, 0.26);
+}
+
+.ipo-drag-handle:active {
+  cursor: grabbing;
 }
 
 .ipo-list-meta {
