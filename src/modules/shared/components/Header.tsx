@@ -4,10 +4,11 @@ import { useAuth } from '@/modules/auth/AuthContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import { useWorkspace } from '@/modules/shared/context/WorkspaceContext';
 import { useData } from '@/modules/shared/context/DataContext';
+import { useNotifications } from '@/modules/shared/context/NotificationContext';
 import * as Icons from 'lucide-react';
 import { useTheme } from '@/modules/shared/context/ThemeContext';
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
-import { formatRupiah } from '@/modules/shared/utils/formatters';
+import { formatDateTime, formatRupiah } from '@/modules/shared/utils/formatters';
 
 export default function Header({ pageTitle, onMenuToggle }) {
   const { user, logout } = useAuth();
@@ -15,10 +16,13 @@ export default function Header({ pageTitle, onMenuToggle }) {
   useWorkspace();
   const { theme, toggleTheme } = useTheme();
   const { portfolios, activePortfolioId: activePortId, selectPortfolio, allTrades, allCashflows, allDividends, settings } = useData();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [profileOpen, setProfileOpen] = useState(false);
   const [portfolioOpen, setPortfolioOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const menuRef = useRef(null);
   const portfolioMenuRef = useRef(null);
+  const notificationMenuRef = useRef(null);
   const displayName = profile?.displayName || user?.username || 'User';
   const email = profile?.email || user?.email || '';
   const getPortfolioTotalAsset = (portfolioId) => {
@@ -54,6 +58,9 @@ export default function Header({ pageTitle, onMenuToggle }) {
       }
       if (!portfolioMenuRef.current?.contains(event.target)) {
         setPortfolioOpen(false);
+      }
+      if (!notificationMenuRef.current?.contains(event.target)) {
+        setNotificationOpen(false);
       }
     };
 
@@ -138,6 +145,92 @@ export default function Header({ pageTitle, onMenuToggle }) {
           {roleLabel}
         </span>
 
+        <div className="notification-menu-wrap" ref={notificationMenuRef}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon notification-bell-btn"
+            onClick={() => setNotificationOpen((open) => !open)}
+            title="Buka notifikasi"
+            aria-label={`Buka notifikasi${unreadCount > 0 ? `, ${unreadCount} belum dibaca` : ''}`}
+          >
+            <Icons.Bell size={18} />
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+          </button>
+
+          {notificationOpen && (
+            <div className="notification-menu">
+              <div className="notification-menu-head">
+                <div>
+                  <div className="notification-menu-title">Notifikasi</div>
+                  <div className="notification-menu-subtitle">
+                    {unreadCount > 0 ? `${unreadCount} belum dibaca` : 'Semua notifikasi sudah dibaca'}
+                  </div>
+                </div>
+                {notifications.length > 0 && (
+                  <button type="button" className="btn btn-ghost btn-sm notification-mark-all" onClick={markAllAsRead}>
+                    Tandai semua
+                  </button>
+                )}
+              </div>
+
+              <div className="notification-menu-list">
+                {notifications.length === 0 ? (
+                  <div className="notification-empty-state">
+                    <Icons.BellRing size={18} />
+                    <span>Belum ada notifikasi aktif.</span>
+                  </div>
+                ) : (
+                  notifications.map((notification) => {
+                    const severityIcon = notification.severity === 'danger'
+                      ? <Icons.AlertTriangle size={16} />
+                      : notification.severity === 'warning'
+                        ? <Icons.Clock3 size={16} />
+                        : <Icons.Info size={16} />;
+                    return (
+                      <div
+                        key={notification.key}
+                        className={`notification-item notification-${notification.severity} ${notification.isRead ? 'is-read' : 'is-unread'}`}
+                      >
+                        <div className="notification-item-icon">{severityIcon}</div>
+                        <div className="notification-item-body">
+                          <div className="notification-item-meta">
+                            <span className="notification-item-module">{notification.module}</span>
+                            {!notification.isRead && <span className="notification-item-dot" />}
+                            <span className="notification-item-date">{formatDateTime(notification.createdAt)}</span>
+                          </div>
+                          <div className="notification-item-title">{notification.title}</div>
+                          <div className="notification-item-message">{notification.message}</div>
+                          <div className="notification-item-actions">
+                            <Link
+                              to={notification.ctaTarget}
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                markAsRead(notification);
+                                setNotificationOpen(false);
+                              }}
+                            >
+                              {notification.ctaLabel}
+                            </Link>
+                            {!notification.isRead && (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => markAsRead(notification)}
+                              >
+                                Tandai dibaca
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
           className="btn btn-ghost btn-icon"
@@ -198,6 +291,9 @@ export default function Header({ pageTitle, onMenuToggle }) {
           display: none;
         }
         .profile-menu-wrap {
+          position: relative;
+        }
+        .notification-menu-wrap {
           position: relative;
         }
         .header-left {
@@ -398,6 +494,157 @@ export default function Header({ pageTitle, onMenuToggle }) {
           color: var(--accent-blue-light);
           background: var(--accent-blue-dim);
         }
+        .notification-bell-btn {
+          position: relative;
+        }
+        .notification-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 5px;
+          border-radius: 999px;
+          background: var(--accent-red);
+          color: #fff;
+          font-size: 0.66rem;
+          font-weight: 800;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 0 2px var(--bg-primary);
+        }
+        .notification-menu {
+          position: absolute;
+          top: calc(100% + 10px);
+          right: 0;
+          width: min(420px, calc(100vw - 24px));
+          max-height: 70vh;
+          overflow: hidden;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-lg);
+          z-index: 260;
+          display: flex;
+          flex-direction: column;
+        }
+        .notification-menu-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 14px 12px;
+          border-bottom: 1px solid var(--border-color);
+        }
+        .notification-menu-title {
+          font-weight: 800;
+          color: var(--text-primary);
+        }
+        .notification-menu-subtitle {
+          margin-top: 4px;
+          font-size: 0.78rem;
+          color: var(--text-muted);
+        }
+        .notification-mark-all {
+          flex-shrink: 0;
+        }
+        .notification-menu-list {
+          overflow-y: auto;
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .notification-empty-state {
+          min-height: 96px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          color: var(--text-muted);
+          text-align: center;
+          font-size: 0.84rem;
+        }
+        .notification-item {
+          display: flex;
+          gap: 10px;
+          padding: 12px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-color);
+          background: var(--bg-card);
+        }
+        .notification-item.is-read {
+          opacity: 0.82;
+        }
+        .notification-item-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .notification-danger .notification-item-icon {
+          background: var(--accent-red-dim);
+          color: var(--accent-red-light);
+        }
+        .notification-warning .notification-item-icon {
+          background: rgba(234, 179, 8, 0.14);
+          color: var(--accent-yellow);
+        }
+        .notification-info .notification-item-icon {
+          background: var(--accent-blue-dim);
+          color: var(--accent-blue-light);
+        }
+        .notification-item-body {
+          min-width: 0;
+          flex: 1;
+        }
+        .notification-item-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 6px;
+        }
+        .notification-item-module {
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+        }
+        .notification-item-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: var(--accent-green);
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+        }
+        .notification-item-date {
+          margin-left: auto;
+          font-size: 0.72rem;
+          color: var(--text-muted);
+        }
+        .notification-item-title {
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 4px;
+        }
+        .notification-item-message {
+          color: var(--text-secondary);
+          font-size: 0.82rem;
+          line-height: 1.5;
+        }
+        .notification-item-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 10px;
+        }
         @media (max-width: 768px) {
           .mobile-menu-btn {
             display: flex !important;
@@ -426,6 +673,9 @@ export default function Header({ pageTitle, onMenuToggle }) {
           }
           .header-right > .role-badge {
             display: none;
+          }
+          .notification-menu {
+            right: -48px;
           }
           .header-user-name,
           .profile-chevron {

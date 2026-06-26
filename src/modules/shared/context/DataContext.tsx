@@ -130,6 +130,7 @@ export function DataProvider({ children }) {
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState('');
   const [databaseSetupError, setDatabaseSetupError] = useState('');
+  const [usedLocalCacheFallback, setUsedLocalCacheFallback] = useState(false);
 
   const applyData = useCallback((data) => {
     const normalizedIpo = normalizeIpoCollections(data.ipoEntries || [], data.ipoAccounts || []);
@@ -216,6 +217,7 @@ export function DataProvider({ children }) {
       setBsjpTrades([]);
       setFinanceAccounts([]);
       setFinanceTransactions([]);
+      setUsedLocalCacheFallback(false);
       setDataLoading(false);
       return;
     }
@@ -232,6 +234,7 @@ export function DataProvider({ children }) {
       setDataLoading(true);
       setDataError('');
       setDatabaseSetupError('');
+      setUsedLocalCacheFallback(false);
       try {
         if (isSupabaseConfigured) {
           if (hasCachedLocalData) {
@@ -243,6 +246,7 @@ export function DataProvider({ children }) {
           if (cancelled) return;
           applyData(nextData);
           cacheLocalData(userId, nextData, LOCAL_DATA_KEYS);
+          setUsedLocalCacheFallback(false);
         } else {
           migrateGlobalToUser(userId);
           migrateWorkspaceScopeToUserScope(userId);
@@ -251,6 +255,7 @@ export function DataProvider({ children }) {
             defaultSettings: DEFAULT_SETTINGS,
           });
           applyData(localData);
+          setUsedLocalCacheFallback(false);
         }
       } catch (error) {
         if (isMissingDatabaseSetupError(error)) {
@@ -258,9 +263,12 @@ export function DataProvider({ children }) {
         } else {
           if (hasCachedLocalData) {
             showToast(`Koneksi ke server gagal, memakai cache lokal: ${error.message}`, 'error');
+            applyData(cachedLocalData);
+            setUsedLocalCacheFallback(true);
           } else {
             setDataError(error.message);
             showToast(`Gagal memuat data: ${error.message}`, 'error');
+            setUsedLocalCacheFallback(false);
           }
         }
       } finally {
@@ -1515,6 +1523,7 @@ export function DataProvider({ children }) {
       dataLoading,
       dataError,
       databaseSetupError,
+      usedLocalCacheFallback,
       exportData,
       importData,
       clearData,

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/modules/auth/AuthContext';
 import { DataProvider, useData } from '@/modules/shared/context/DataContext';
 import { PermissionProvider, usePermissions } from '@/modules/shared/context/PermissionContext';
 import { WorkspaceProvider, useWorkspace } from '@/modules/shared/context/WorkspaceContext';
+import { NotificationProvider } from '@/modules/shared/context/NotificationContext';
 import Layout from '@/modules/shared/components/Layout';
 import { ThemeProvider } from '@/modules/shared/context/ThemeContext';
 import { DialogProvider } from '@/modules/shared/context/DialogContext';
@@ -64,11 +65,13 @@ function ProtectedRoute() {
     <PermissionProvider>
       <WorkspaceProvider>
         <DataProvider>
-          <Layout>
-            <AppLoadingGate>
-              <Outlet />
-            </AppLoadingGate>
-          </Layout>
+          <NotificationProvider>
+            <Layout>
+              <AppLoadingGate>
+                <Outlet />
+              </AppLoadingGate>
+            </Layout>
+          </NotificationProvider>
         </DataProvider>
       </WorkspaceProvider>
     </PermissionProvider>
