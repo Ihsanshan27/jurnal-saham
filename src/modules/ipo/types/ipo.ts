@@ -2,7 +2,9 @@ export interface IpoEvent {
   id: string;
   stockCode: string;       // e.g. "WBSA"
   underwriter?: string;    // nama underwriter / penjamin emisi
-  offeringDate?: string;   // ISO date string "2024-05-28"
+  offeringDate?: string;   // ISO date string legacy / start penawaran
+  offeringStartDate?: string; // ISO date string mulai penawaran umum
+  offeringEndDate?: string;   // ISO date string akhir penawaran umum
   ipoDate: string;         // ISO date string "2024-06-01"
   offeringPrice: number;   // Harga penawaran resmi (Rp)
   notes?: string;

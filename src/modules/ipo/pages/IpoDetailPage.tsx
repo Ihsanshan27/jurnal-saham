@@ -5,7 +5,7 @@ import { useDialog } from '@/modules/shared/context/DialogContext';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { formatRupiah, formatDate } from '@/modules/shared/utils/formatters';
 import type { IpoEntry, IpoEntryCalc } from '@/modules/ipo/types/ipo';
-import { getIpoEventStatus, parseDateOnly } from '@/modules/ipo/utils/ipoStatus';
+import { getIpoEventStatus, getIpoOfferingStartDate, parseDateOnly } from '@/modules/ipo/utils/ipoStatus';
 import * as Icons from 'lucide-react';
 import '@/modules/ipo/ipo.css';
 
@@ -17,6 +17,14 @@ const formatLongDate = (date?: string) => (
     ? new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
     : '-'
 );
+
+const formatOfferingRange = (start?: string, end?: string) => {
+  if (!start && !end) return '-';
+  if (start && end && start !== end) {
+    return `${formatLongDate(start)} - ${formatLongDate(end)}`;
+  }
+  return formatLongDate(start || end);
+};
 
 /** Hitung sisa hari menuju tanggal target */
 function diffDaysFromToday(dateStr?: string): number | null {
@@ -303,6 +311,8 @@ export default function IpoDetailPage() {
     stockCode: '',
     underwriter: '',
     offeringDate: '',
+    offeringStartDate: '',
+    offeringEndDate: '',
     ipoDate: '',
     offeringPrice: '',
     notes: '',
@@ -322,7 +332,9 @@ export default function IpoDetailPage() {
       setEventForm({
         stockCode: event.stockCode,
         underwriter: event.underwriter || '',
-        offeringDate: event.offeringDate || '',
+        offeringDate: event.offeringStartDate || event.offeringDate || '',
+        offeringStartDate: event.offeringStartDate || event.offeringDate || '',
+        offeringEndDate: event.offeringEndDate || event.offeringStartDate || event.offeringDate || '',
         ipoDate: event.ipoDate,
         offeringPrice: String(event.offeringPrice),
         notes: event.notes || '',
@@ -356,8 +368,22 @@ export default function IpoDetailPage() {
       });
       return;
     }
-    if (eventForm.offeringDate && eventForm.ipoDate && eventForm.offeringDate >= eventForm.ipoDate) {
-      await alert('Tanggal penawaran harus sebelum tanggal IPO.', {
+    if (eventForm.offeringStartDate && eventForm.offeringEndDate && eventForm.offeringStartDate > eventForm.offeringEndDate) {
+      await alert('Tanggal mulai penawaran harus sebelum tanggal akhir penawaran.', {
+        title: 'Tanggal Tidak Valid',
+        severity: 'warning'
+      });
+      return;
+    }
+    if (eventForm.offeringStartDate && eventForm.ipoDate && eventForm.offeringStartDate >= eventForm.ipoDate) {
+      await alert('Tanggal mulai penawaran harus sebelum tanggal IPO.', {
+        title: 'Tanggal Tidak Valid',
+        severity: 'warning'
+      });
+      return;
+    }
+    if (eventForm.offeringEndDate && eventForm.ipoDate && eventForm.offeringEndDate >= eventForm.ipoDate) {
+      await alert('Tanggal akhir penawaran harus sebelum tanggal IPO.', {
         title: 'Tanggal Tidak Valid',
         severity: 'warning'
       });
@@ -367,7 +393,9 @@ export default function IpoDetailPage() {
     updateIpoEvent(id, {
       stockCode: eventForm.stockCode.toUpperCase(),
       underwriter: eventForm.underwriter.trim() || undefined,
-      offeringDate: eventForm.offeringDate || undefined,
+      offeringDate: eventForm.offeringStartDate || eventForm.offeringDate || undefined,
+      offeringStartDate: eventForm.offeringStartDate || eventForm.offeringDate || undefined,
+      offeringEndDate: eventForm.offeringEndDate || undefined,
       ipoDate: eventForm.ipoDate,
       offeringPrice: parseFloat(eventForm.offeringPrice) || 0,
       notes: eventForm.notes,
@@ -844,7 +872,7 @@ export default function IpoDetailPage() {
             <span className="ipo-subtitle">IPO Journey</span>
             {(() => {
               const status = getIpoEventStatus(event);
-              const daysToOffering = diffDaysFromToday(event.offeringDate);
+              const daysToOffering = diffDaysFromToday(event.offeringStartDate || event.offeringDate);
               const daysToIpo = diffDaysFromToday(event.ipoDate);
               const isToday = daysToIpo === 0;
               const badgeClass = isToday ? 'today' : status;
@@ -880,9 +908,9 @@ export default function IpoDetailPage() {
                 &nbsp;·&nbsp;
               </>
             )}
-            {event.offeringDate && (
+            {(event.offeringStartDate || event.offeringEndDate || event.offeringDate) && (
               <>
-                Tanggal Penawaran: <strong>{formatLongDate(event.offeringDate)}</strong>
+                Tanggal Penawaran: <strong>{formatOfferingRange(event.offeringStartDate || event.offeringDate, event.offeringEndDate || event.offeringDate)}</strong>
                 &nbsp;·&nbsp;
               </>
             )}
@@ -890,13 +918,22 @@ export default function IpoDetailPage() {
             &nbsp;·&nbsp; Tanggal IPO: <strong>{formatLongDate(event.ipoDate)}</strong>
             {event.notes && <>&nbsp;·&nbsp; {event.notes}</>}
             {(() => {
-              const daysToOffering = diffDaysFromToday(event.offeringDate);
+              const daysToOffering = diffDaysFromToday(event.offeringStartDate || event.offeringDate);
               const daysToIpo = diffDaysFromToday(event.ipoDate);
+              const offeringStart = parseDateOnly(event.offeringStartDate || event.offeringDate);
+              const offeringEnd = parseDateOnly(event.offeringEndDate || event.offeringDate);
+              if (offeringStart) offeringStart.setHours(0, 0, 0, 0);
+              if (offeringEnd) offeringEnd.setHours(0, 0, 0, 0);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
               if (daysToIpo === 0) {
                 return <span className="ipo-countdown today-label" style={{ marginLeft: 8 }}><Icons.Zap size={12} />IPO Hari Ini!</span>;
               }
+              if (offeringStart && offeringEnd && today >= offeringStart && today <= offeringEnd) {
+                return <span className="ipo-countdown urgent" style={{ marginLeft: 8 }}><Icons.Timer size={12} />Penawaran berlangsung ({formatOfferingRange(event.offeringStartDate || event.offeringDate, event.offeringEndDate || event.offeringDate)})</span>;
+              }
               if (daysToOffering !== null && daysToOffering > 0) {
-                return <span className="ipo-countdown" style={{ marginLeft: 8 }}><Icons.Timer size={12} />{daysToOffering} hari lagi penawaran</span>;
+                return <span className="ipo-countdown" style={{ marginLeft: 8 }}><Icons.Timer size={12} />{daysToOffering} hari lagi penawaran ({formatOfferingRange(event.offeringStartDate || event.offeringDate, event.offeringEndDate || event.offeringDate)})</span>;
               }
               if (daysToIpo !== null && daysToIpo > 0) {
                 return <span className="ipo-countdown" style={{ marginLeft: 8 }}><Icons.Timer size={12} />{daysToIpo} hari lagi listing</span>;
@@ -939,7 +976,7 @@ export default function IpoDetailPage() {
       {(() => {
         const timelineStages = [
           { label: 'Bookbuilding', dateStr: event.bookbuildingStartDate && event.bookbuildingEndDate ? `${formatDate(event.bookbuildingStartDate)} - ${formatDate(event.bookbuildingEndDate)}` : (event.bookbuildingStartDate ? formatDate(event.bookbuildingStartDate) : '—'), icon: Icons.FileText },
-          { label: 'Offering', dateStr: event.offeringDate ? formatDate(event.offeringDate) : '—', icon: Icons.Tag },
+          { label: 'Offering', dateStr: formatOfferingRange(event.offeringStartDate || event.offeringDate, event.offeringEndDate || event.offeringDate), icon: Icons.Tag },
           { label: 'Allotment', dateStr: event.allotmentDate ? formatDate(event.allotmentDate) : '—', icon: Icons.PieChart },
           { label: 'Refund', dateStr: event.refundDate ? formatDate(event.refundDate) : '—', icon: Icons.RotateCcw },
           { label: 'Distribution', dateStr: event.distributionDate ? formatDate(event.distributionDate) : '—', icon: Icons.Share },
@@ -954,7 +991,7 @@ export default function IpoDetailPage() {
           const dist = parseDateOnly(evt.distributionDate);
           const refund = parseDateOnly(evt.refundDate);
           const allotment = parseDateOnly(evt.allotmentDate);
-          const offering = parseDateOnly(evt.offeringDate);
+          const offering = parseDateOnly(evt.offeringStartDate || evt.offeringDate);
           const bbStart = parseDateOnly(evt.bookbuildingStartDate);
           const bbEnd = parseDateOnly(evt.bookbuildingEndDate);
 
@@ -1542,13 +1579,23 @@ export default function IpoDetailPage() {
                          />
                       </div>
                       <div className="form-group">
-                         <label className="form-label" htmlFor="ipo-event-offering-date">Tanggal Penawaran</label>
+                         <label className="form-label" htmlFor="ipo-event-offering-start-date">Tanggal Mulai Penawaran</label>
                          <input
-                            id="ipo-event-offering-date"
+                            id="ipo-event-offering-start-date"
                             type="date"
                             className="form-input"
-                            value={eventForm.offeringDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, offeringDate: e.target.value }))}
+                            value={eventForm.offeringStartDate}
+                            onChange={e => setEventForm(prev => ({ ...prev, offeringStartDate: e.target.value, offeringDate: e.target.value }))}
+                         />
+                      </div>
+                      <div className="form-group">
+                         <label className="form-label" htmlFor="ipo-event-offering-end-date">Tanggal Akhir Penawaran</label>
+                         <input
+                            id="ipo-event-offering-end-date"
+                            type="date"
+                            className="form-input"
+                            value={eventForm.offeringEndDate}
+                            onChange={e => setEventForm(prev => ({ ...prev, offeringEndDate: e.target.value }))}
                          />
                       </div>
                       <div className="form-group">

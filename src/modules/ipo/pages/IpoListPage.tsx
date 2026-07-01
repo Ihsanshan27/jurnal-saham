@@ -5,7 +5,7 @@ import { useDialog } from "@/modules/shared/context/DialogContext";
 import { usePrivacyStyle } from "@/modules/shared/hooks/usePrivacyStyle";
 import { formatRupiah, formatDate } from "@/modules/shared/utils/formatters";
 import type { IpoEvent, IpoSummary } from "@/modules/ipo/types/ipo";
-import { getIpoEventStatus, parseDateOnly } from "@/modules/ipo/utils/ipoStatus";
+import { getIpoEventStatus, getIpoOfferingStartDate, getIpoOfferingEndDate, parseDateOnly } from "@/modules/ipo/utils/ipoStatus";
 import * as Icons from "lucide-react";
 import "@/modules/ipo/ipo.css";
 
@@ -45,16 +45,26 @@ function stripLeadingEmojiLabel(value: string) {
       .trim();
 }
 
+function formatOfferingRange(start?: string, end?: string) {
+   if (!start && !end) return "—";
+   if (start && end && start !== end) {
+      return `${formatDate(start)} - ${formatDate(end)}`;
+   }
+   return formatDate(start || end);
+}
+
 /** Hitung countdown label menuju offeringDate atau ipoDate */
 function getCountdownInfo(event: IpoEvent): { label: string; cls: string } | null {
    const today = new Date();
    today.setHours(0, 0, 0, 0);
 
    const ipoDate = parseDateOnly(event.ipoDate);
-   const offeringDate = parseDateOnly(event.offeringDate);
+   const offeringStartDate = getIpoOfferingStartDate(event);
+   const offeringEndDate = getIpoOfferingEndDate(event);
    if (!ipoDate) return null;
    ipoDate.setHours(0, 0, 0, 0);
-   if (offeringDate) offeringDate.setHours(0, 0, 0, 0);
+   if (offeringStartDate) offeringStartDate.setHours(0, 0, 0, 0);
+   if (offeringEndDate) offeringEndDate.setHours(0, 0, 0, 0);
 
    const diffMs = (d: Date) => d.getTime() - today.getTime();
    const diffDays = (d: Date) => Math.round(diffMs(d) / 86400000);
@@ -68,14 +78,26 @@ function getCountdownInfo(event: IpoEvent): { label: string; cls: string } | nul
    }
 
    // Cek apakah penawaran hari ini
-   if (offeringDate && offeringDate.getTime() === today.getTime()) {
+   if (offeringStartDate && offeringStartDate.getTime() === today.getTime()) {
       return { label: "Penawaran Hari Ini", cls: "urgent" };
    }
 
+   if (offeringStartDate && offeringEndDate && today >= offeringStartDate && today <= offeringEndDate) {
+      const offeringRange = formatOfferingRange(
+         event.offeringStartDate || event.offeringDate,
+         event.offeringEndDate || event.offeringDate,
+      );
+      return { label: `Penawaran berlangsung (${offeringRange})`, cls: "urgent" };
+   }
+
    // Hitung countdown penawaran (jika belum lewat) atau IPO
-   if (offeringDate && today < offeringDate) {
-      const days = diffDays(offeringDate);
-      return { label: `${days} hari lagi penawaran`, cls: days <= 3 ? "urgent" : "" };
+   if (offeringStartDate && today < offeringStartDate) {
+      const days = diffDays(offeringStartDate);
+      const offeringRange = formatOfferingRange(
+         event.offeringStartDate || event.offeringDate,
+         event.offeringEndDate || event.offeringDate,
+      );
+      return { label: `${days} hari lagi penawaran (${offeringRange})`, cls: days <= 3 ? "urgent" : "" };
    }
 
    const days = diffDays(ipoDate);
@@ -290,13 +312,15 @@ export default function IpoListPage() {
    };
 
    const handleDuplicateEvent = (event: IpoEvent) => {
-      const newEvent = addIpoEvent({
-         stockCode: `${event.stockCode}`,
-         underwriter: event.underwriter,
-         offeringDate: event.offeringDate,
-         ipoDate: event.ipoDate,
-         offeringPrice: event.offeringPrice,
-         notes: event.notes ? `${event.notes} (Kopi)` : "(Kopi)",
+         const newEvent = addIpoEvent({
+            stockCode: `${event.stockCode}`,
+            underwriter: event.underwriter,
+            offeringDate: event.offeringDate,
+            offeringStartDate: event.offeringStartDate,
+            offeringEndDate: event.offeringEndDate,
+            ipoDate: event.ipoDate,
+            offeringPrice: event.offeringPrice,
+            notes: event.notes ? `${event.notes} (Kopi)` : "(Kopi)",
          sector: event.sector,
          registrar: event.registrar,
          targetBoard: event.targetBoard,
@@ -875,8 +899,8 @@ export default function IpoListPage() {
                                  {event.underwriter
                                     ? `UW: ${event.underwriter} · `
                                     : ""}
-                                 {event.offeringDate
-                                    ? `Penawaran: ${formatDate(event.offeringDate)} · `
+                                 {(event.offeringStartDate || event.offeringEndDate || event.offeringDate)
+                                    ? `Penawaran: ${formatOfferingRange(event.offeringStartDate || event.offeringDate, event.offeringEndDate || event.offeringDate)} · `
                                     : ""}
                                  IPO: {formatDate(event.ipoDate)} &nbsp;·&nbsp; Harga:{" "}
                                  <strong>{formatRupiah(event.offeringPrice)}</strong>
