@@ -1,0 +1,361 @@
+/* 
+  Neobrutalism Theme for IPO Accounts Page
+*/
+
+.neobrutal-theme {
+  --neo-border: 3px solid #000;
+  --neo-shadow: 4px 4px 0px 0px #000;
+  --neo-shadow-hover: 2px 2px 0px 0px #000;
+  --neo-shadow-active: 0px 0px 0px 0px #000;
+  
+  --neo-bg-main: #ffffff;
+  --neo-bg-yellow: #ffde59;
+  --neo-bg-cyan: #00ffff;
+  --neo-bg-pink: #ff66c4;
+  --neo-bg-green: #00bf63;
+  --neo-bg-blue: #5ce1e6;
+  --neo-bg-red: #ff3131;
+  
+  --neo-text-primary: #000000;
+  --neo-text-secondary: #333333;
+  
+  --neo-radius: 12px; /* Lebih rounded */
+  
+  /* Override global theme variables to ensure contrast in neobrutalism */
+  --text-primary: #000000 !important;
+  --text-secondary: #333333 !important;
+  --text-muted: #555555 !important;
+  --border-color: #000000 !important;
+  --bg-card: #ffffff !important;
+  --bg-input: #ffffff !important;
+  
+  /* Override accent colors for better contrast against bright backgrounds */
+  --accent-green: #008040;
+  --accent-red: #cc0000;
+  --accent-yellow: #d49a00;
+  
+  font-family: 'Space Mono', 'Courier New', Courier, monospace;
+  color: var(--neo-text-primary);
+}
+
+.neobrutal-theme .page-header {
+  background-color: var(--neo-bg-yellow);
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  padding: 24px;
+  margin-bottom: 32px;
+  border-radius: var(--neo-radius);
+}
+
+.neobrutal-theme .ipo-accounts-hero-kicker {
+  color: var(--neo-text-primary);
+  font-weight: 900;
+  background: var(--neo-bg-pink);
+  display: inline-block;
+  padding: 4px 8px;
+  border: 2px solid #000;
+  margin-bottom: 12px;
+}
+
+.neobrutal-theme .page-title,
+.neobrutal-theme .page-subtitle,
+.neobrutal-theme .card-title,
+.neobrutal-theme .stat-card-label,
+.neobrutal-theme .stat-card-value {
+  color: var(--neo-text-primary) !important;
+  font-weight: 800;
+}
+
+.neobrutal-theme .page-subtitle {
+  font-weight: 600;
+}
+
+/* Neobrutal Buttons */
+.neobrutal-theme .btn {
+  background: var(--neo-bg-main);
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  color: var(--neo-text-primary);
+  font-weight: 800;
+  border-radius: var(--neo-radius);
+  transition: all 0.1s ease-in-out;
+  text-transform: uppercase;
+}
+
+.neobrutal-theme .btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: var(--neo-shadow-hover);
+  background: var(--neo-bg-main);
+  border-color: #000;
+  color: #000;
+}
+
+.neobrutal-theme .btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: var(--neo-shadow-active);
+}
+
+.neobrutal-theme .btn-primary {
+  background: var(--neo-bg-cyan);
+}
+.neobrutal-theme .btn-primary:hover {
+  background: #00e5e5;
+}
+
+.neobrutal-theme .btn-secondary {
+  background: var(--neo-bg-pink);
+}
+.neobrutal-theme .btn-secondary:hover {
+  background: #e65bb0;
+}
+
+/* Cards */
+.neobrutal-theme .card,
+.neobrutal-theme .stat-card,
+.neobrutal-theme .ipo-account-card {
+  background: var(--neo-bg-main);
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  border-radius: var(--neo-radius);
+  color: var(--neo-text-primary);
+}
+
+.neobrutal-theme .ipo-accounts-stat-card {
+  background: var(--neo-bg-main);
+}
+.neobrutal-theme .ipo-accounts-stat-card:nth-child(1) { background: var(--neo-bg-yellow); }
+.neobrutal-theme .ipo-accounts-stat-card:nth-child(2) { background: var(--neo-bg-cyan); }
+.neobrutal-theme .ipo-accounts-stat-card:nth-child(3) { background: var(--neo-bg-pink); }
+.neobrutal-theme .ipo-accounts-stat-card:nth-child(4) { background: var(--neo-bg-green); }
+.neobrutal-theme .ipo-accounts-stat-card:nth-child(5) { background: var(--neo-bg-red); }
+.neobrutal-theme .ipo-accounts-stat-card:nth-child(6) { background: var(--neo-bg-blue); }
+
+.neobrutal-theme .ipo-accounts-stat-foot {
+  color: var(--neo-text-secondary);
+  font-weight: 600;
+}
+
+/* Inputs and Forms */
+.neobrutal-theme .form-input,
+.neobrutal-theme .form-select {
+  background: var(--neo-bg-main);
+  border: var(--neo-border);
+  box-shadow: 2px 2px 0px 0px #000;
+  border-radius: var(--neo-radius);
+  color: var(--neo-text-primary);
+  font-weight: 600;
+  height: 46px;
+  padding: 0 12px;
+}
+
+.neobrutal-theme .form-input:focus,
+.neobrutal-theme .form-select:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 4px 4px 0px 0px #000;
+}
+
+.neobrutal-theme .form-label {
+  color: var(--neo-text-primary);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* Table */
+.neobrutal-theme .ipo-account-table-wrap {
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  background: var(--neo-bg-main);
+  border-radius: var(--neo-radius);
+}
+
+.neobrutal-theme .ipo-account-table th {
+  background: var(--neo-bg-yellow);
+  color: var(--neo-text-primary);
+  font-weight: 900;
+  border-bottom: var(--neo-border);
+  border-right: 2px solid #000;
+}
+
+.neobrutal-theme .ipo-account-table td {
+  border-bottom: 2px solid #000;
+  border-right: 2px solid #000;
+  color: var(--neo-text-primary);
+  font-weight: 600;
+}
+
+.neobrutal-theme .ipo-account-table-metric-cell,
+.neobrutal-theme .ipo-account-table-name {
+  color: var(--neo-text-primary);
+  font-weight: 800;
+}
+
+.neobrutal-theme .ipo-account-table-secondary,
+.neobrutal-theme .ipo-account-table-notes {
+  color: var(--neo-text-secondary);
+}
+
+.neobrutal-theme .ipo-account-table tbody tr:hover {
+  background: #f0f0f0;
+}
+
+.neobrutal-theme .ipo-account-table tbody tr.is-selected {
+  background: var(--neo-bg-pink);
+}
+
+.neobrutal-theme .ipo-account-table-tools {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.neobrutal-theme .ipo-account-table-tools .btn {
+  border: 2px solid #000;
+  background: var(--neo-bg-main);
+  box-shadow: 2px 2px 0px #000;
+}
+
+.neobrutal-theme .ipo-account-table-tools .btn:hover {
+  background: var(--neo-bg-cyan);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+/* Filter Bar */
+.neobrutal-theme .ipo-accounts-filter-bar {
+  background: var(--neo-bg-main);
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  border-radius: var(--neo-radius);
+}
+
+.neobrutal-theme .ipo-view-toggle-btn {
+  background: var(--neo-bg-main);
+  border: 2px solid #000;
+  color: var(--neo-text-primary);
+  box-shadow: 2px 2px 0px #000;
+  border-radius: var(--neo-radius);
+}
+
+.neobrutal-theme .ipo-view-toggle-btn.active {
+  background: var(--neo-bg-cyan);
+  color: var(--neo-text-primary);
+  box-shadow: 1px 1px 0px #000;
+  transform: translate(1px, 1px);
+}
+
+/* Badges */
+.neobrutal-theme .status-badge {
+  border: 2px solid #000;
+  background: var(--neo-bg-yellow);
+  color: var(--neo-text-primary);
+  font-weight: 900;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.neobrutal-theme .status-badge.active {
+  background: var(--neo-bg-green);
+}
+
+.neobrutal-theme .status-badge.upcoming {
+  background: var(--neo-bg-red);
+}
+
+/* Grid Cards */
+.neobrutal-theme .ipo-account-card {
+  transition: all 0.1s ease-in-out;
+}
+.neobrutal-theme .ipo-account-card:hover {
+  transform: translate(2px, 2px);
+  box-shadow: var(--neo-shadow-hover);
+}
+
+.neobrutal-theme .ipo-account-card.is-selected {
+  background: var(--neo-bg-pink);
+}
+
+.neobrutal-theme .ipo-account-card-title,
+.neobrutal-theme .ipo-account-info-main {
+  color: var(--neo-text-primary);
+  font-weight: 800;
+}
+
+.neobrutal-theme .ipo-account-card-email,
+.neobrutal-theme .ipo-account-info-sub,
+.neobrutal-theme .ipo-account-meta-item,
+.neobrutal-theme .ipo-account-info-kicker {
+  color: var(--neo-text-secondary);
+  font-weight: 700;
+}
+
+.neobrutal-theme .ipo-account-inline-action {
+  color: var(--neo-text-primary);
+  font-weight: 800;
+}
+.neobrutal-theme .ipo-account-inline-action:hover {
+  color: var(--neo-bg-blue);
+  background: var(--neo-text-primary);
+}
+
+.neobrutal-theme .ipo-account-metric {
+  background: var(--neo-bg-main);
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.neobrutal-theme .ipo-account-metric-label {
+  color: var(--neo-text-primary);
+}
+
+.neobrutal-theme .ipo-account-info-card {
+  background: var(--neo-bg-main);
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0px #000;
+  border-radius: 0;
+}
+
+.neobrutal-theme .ipo-account-select-checkbox {
+  border: 2px solid #000;
+  background: var(--neo-bg-main);
+  box-shadow: 2px 2px 0px #000;
+  border-radius: 0;
+}
+
+.neobrutal-theme .ipo-account-select-checkbox.checked {
+  background: var(--neo-bg-cyan);
+  box-shadow: 1px 1px 0px #000;
+  transform: translate(1px, 1px);
+}
+
+.neobrutal-theme .empty-state {
+  background: var(--neo-bg-main);
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  padding: 40px;
+  color: var(--neo-text-primary);
+}
+
+.neobrutal-theme .empty-state-title {
+  color: var(--neo-text-primary);
+  font-weight: 900;
+}
+
+.neobrutal-theme .empty-state-desc {
+  color: var(--neo-text-secondary);
+}
+
+.neobrutal-theme .ipo-accounts-selection-bar {
+  background: var(--neo-bg-yellow);
+  border: var(--neo-border);
+  box-shadow: var(--neo-shadow);
+  border-radius: var(--neo-radius);
+  color: var(--neo-text-primary);
+}
+
+.neobrutal-theme .ipo-accounts-selection-badge {
+  background: var(--neo-bg-main);
+  border: 2px solid #000;
+  color: var(--neo-text-primary);
+  box-shadow: 2px 2px 0px #000;
+  border-radius: 0;
+}

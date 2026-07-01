@@ -7,6 +7,7 @@ import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
 import '@/modules/ipo/ipo.css';
+import '@/modules/ipo/ipo-neobrutalism.css';
 
 const SELECTED_ACCOUNTS_STORAGE_KEY = 'ipo_accounts_selected_ids';
 
@@ -47,7 +48,22 @@ export default function IpoAccountsPage() {
   const [form, setForm] = useState(createInitialForm());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem('ipo_accounts_view_mode');
+      return (saved === 'card' || saved === 'list') ? saved : 'list';
+    } catch {
+      return 'list';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ipo_accounts_view_mode', viewMode);
+    } catch (e) {
+      // ignore
+    }
+  }, [viewMode]);
   const [sortField, setSortField] = useState<string>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
@@ -60,6 +76,19 @@ export default function IpoAccountsPage() {
       return [];
     }
   });
+
+  const [isNeobrutalism, setIsNeobrutalism] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('ipo_accounts_neobrutalism_theme');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ipo_accounts_neobrutalism_theme', JSON.stringify(isNeobrutalism));
+  }, [isNeobrutalism]);
 
   const accountsWithStats = useMemo(() => {
     return [...ipoAccounts]
@@ -289,7 +318,7 @@ export default function IpoAccountsPage() {
   };
 
   return (
-    <div className="ipo-accounts-page">
+    <div className={`ipo-accounts-page ${isNeobrutalism ? 'neobrutal-theme' : ''}`}>
       <div className="page-header">
         <div className="ipo-accounts-hero">
           <div className="ipo-accounts-hero-kicker">IPO Workspace</div>
@@ -302,6 +331,15 @@ export default function IpoAccountsPage() {
           </p>
         </div>
         <div className="ipo-actions-row">
+          <button 
+            type="button" 
+            className="btn btn-secondary ipo-accounts-secondary-action"
+            onClick={() => setIsNeobrutalism(!isNeobrutalism)}
+            title="Toggle Neobrutalism Theme"
+          >
+            {isNeobrutalism ? <Icons.Moon size={16} /> : <Icons.Palette size={16} />}
+            {isNeobrutalism ? 'Dark Mode' : 'Neo Mode'}
+          </button>
           <Link className="btn btn-secondary ipo-accounts-secondary-action" to="/ipo">
             <Icons.Rocket size={16} />
             IPO Journey
@@ -733,21 +771,25 @@ export default function IpoAccountsPage() {
               {filteredAccounts.map((account: any) => (
                 <article
                   key={account.id}
-                  className={`ipo-account-card card-mode ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''}`}
+                  className={`bento-card ipo-account-card card-mode ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''}`}
+                  style={{ borderLeft: account.isActive === false ? '4px solid var(--border-color)' : '4px solid var(--accent-green)' }}
                 >
-                  <div className="ipo-account-card-header">
-                    <div className="ipo-account-card-header-main">
-                      <div className="ipo-account-card-title-row">
-                        <h4 className="ipo-account-card-title">{account.name}</h4>
-                        <span className={`status-badge ${account.isActive === false ? 'upcoming' : 'active'}`}>
-                          {account.isActive === false ? 'Nonaktif' : 'Aktif'}
+                  <div className="ipo-list-head" style={{ marginBottom: 16 }}>
+                    <div>
+                      <div className="ipo-list-meta-row" style={{ marginBottom: 8 }}>
+                        <span className="ipo-badge-pill ipo-badge-stock ipo-badge-stock-sm" style={{ backgroundColor: 'transparent', border: '1px solid var(--border-color)' }}>
+                          {account.name}
+                        </span>
+                        <span className={`ipo-event-status-badge ${account.isActive === false ? 'upcoming' : 'active'}`}>
+                          {account.isActive === false ? <><Icons.Clock size={9} />Nonaktif</> : <><Icons.CheckCircle size={9} />Aktif</>}
                         </span>
                       </div>
-                      <div className="ipo-account-card-email" style={blurStyle}>
-                        <Icons.Mail size={14} />
-                        <span>{account.email || 'Tanpa email'}</span>
+                      <div className="ipo-list-submeta" style={blurStyle}>
+                        <Icons.Mail size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }} />
+                        {account.email || 'Tanpa email'}
                       </div>
                     </div>
+
                     <button
                       type="button"
                       className={`ipo-account-select-checkbox ${selectedAccountIds.includes(account.id) ? 'checked' : ''}`}
@@ -760,51 +802,46 @@ export default function IpoAccountsPage() {
                     </button>
                   </div>
 
-                  <div className="ipo-account-card-metrics">
-                    <div className="ipo-account-metric">
-                      <span className="ipo-account-metric-label">Entry</span>
-                      <strong>{account.linkedEntriesCount}</strong>
+                  <div className="ipo-profit-block" style={{ marginTop: 0, marginBottom: 16 }}>
+                    <div className="ipo-profit-title">Sisa Saldo</div>
+                    <div
+                      className={`font-mono ${account.remainingBalance >= 0 ? 'text-profit' : 'text-loss'}`}
+                      style={{
+                        fontSize: '1.7rem',
+                        fontWeight: 800,
+                        letterSpacing: '-0.03em',
+                        ...blurStyle,
+                      }}
+                    >
+                      {formatRupiah(account.remainingBalance || 0)}
                     </div>
-                    <div className="ipo-account-metric">
-                      <span className="ipo-account-metric-label">Event</span>
-                      <strong>{account.eventCount}</strong>
-                    </div>
-                    <div className="ipo-account-metric">
-                      <span className="ipo-account-metric-label">Saldo</span>
-                      <strong style={blurStyle}>{formatRupiah(account.balance || 0)}</strong>
-                    </div>
-                    <div className="ipo-account-metric">
-                      <span className="ipo-account-metric-label">Terpakai</span>
-                      <strong style={blurStyle}>{formatRupiah(account.usedBalance || 0)}</strong>
-                    </div>
-                    <div className="ipo-account-metric">
-                      <span className="ipo-account-metric-label">Sisa</span>
-                      <strong style={{ ...blurStyle, color: account.remainingBalance >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                        {formatRupiah(account.remainingBalance || 0)}
-                      </strong>
+                    <div className="ipo-profit-avg" style={{ color: 'var(--text-secondary)', ...blurStyle }}>
+                      Total Modal {formatRupiah(account.balance || 0)}
                     </div>
                   </div>
 
-                  <div className="ipo-account-info-grid">
-                    <section className="ipo-account-info-card" style={blurStyle}>
-                      <div className="ipo-account-info-kicker">RDN</div>
-                      <div className="ipo-account-info-main">
-                        {account.rdnBankName || account.rdnAccountNumber
-                          ? [account.rdnBankName, account.rdnAccountNumber].filter(Boolean).join(' / ')
-                          : 'Belum diisi'}
-                      </div>
-                    </section>
-                    <section className="ipo-account-info-card" style={blurStyle}>
-                      <div className="ipo-account-info-kicker">Rekening Withdraw</div>
-                      <div className="ipo-account-info-main">
-                        {account.withdrawBankName || account.withdrawAccountNumber
-                          ? [account.withdrawBankName, account.withdrawAccountNumber].filter(Boolean).join(' / ')
-                          : 'Belum diisi'}
-                      </div>
-                      {account.withdrawAccountHolderName && (
-                        <div className="ipo-account-info-sub">{account.withdrawAccountHolderName}</div>
-                      )}
-                    </section>
+                  <div style={{ display: 'flex', gap: 12, borderTop: '1px solid var(--border-color)', paddingTop: 12, paddingBottom: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 16 }}>
+                    <div style={{ textAlign: 'center', flex: 1 }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{account.linkedEntriesCount}</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Entry</div>
+                    </div>
+                    <div style={{ textAlign: 'center', flex: 1 }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800 }}>{account.eventCount}</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Event</div>
+                    </div>
+                    <div style={{ textAlign: 'center', flex: 1 }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 800, ...blurStyle }}>{formatRupiah(account.usedBalance || 0).replace('Rp', '').trim()}</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Terpakai</div>
+                    </div>
+                  </div>
+
+                  <div className="ipo-list-submeta" style={{ display: 'flex', flexDirection: 'column', gap: 6, ...blurStyle }}>
+                    <div>
+                      <strong>RDN:</strong> {account.rdnBankName || account.rdnAccountNumber ? [account.rdnBankName, account.rdnAccountNumber].filter(Boolean).join(' / ') : '-'}
+                    </div>
+                    <div>
+                      <strong>WD:</strong> {account.withdrawBankName || account.withdrawAccountNumber ? [account.withdrawBankName, account.withdrawAccountNumber].filter(Boolean).join(' / ') : '-'}
+                    </div>
                   </div>
 
                   <div className="ipo-account-meta-row">

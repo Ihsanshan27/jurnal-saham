@@ -541,14 +541,14 @@
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35), 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
-.ipo-list-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
 .ipo-list-card.editing {
   box-shadow: 0 0 0 1px var(--accent-blue-light), 0 12px 30px rgba(59, 130, 246, 0.12);
   background: linear-gradient(180deg, rgba(59, 130, 246, 0.06), transparent 28%);
+}
+
+.ipo-list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .ipo-list-head {
@@ -958,14 +958,10 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background:
-    radial-gradient(circle at top right, rgba(57, 211, 140, 0.08), transparent 34%),
-    linear-gradient(180deg, rgba(255,255,255,0.028), transparent 34%),
-    linear-gradient(180deg, rgba(30, 33, 41, 0.98), rgba(20, 23, 29, 0.99));
-  border-color: rgba(255, 255, 255, 0.065);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.025),
-    0 10px 24px rgba(0, 0, 0, 0.16);
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
 }
 
 .ipo-accounts-stat-card .stat-card-value {
@@ -999,15 +995,10 @@
   margin-bottom: 0;
   grid-template-columns: minmax(320px, 1.7fr) minmax(180px, 0.8fr) auto;
   align-items: end;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: calc(var(--radius-lg) + 2px);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.024), transparent 78%),
-    linear-gradient(180deg, rgba(35, 39, 47, 0.98), rgba(22, 25, 32, 0.99));
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.02),
-    0 12px 28px rgba(0, 0, 0, 0.12);
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
   gap: 16px;
 }
 
@@ -1021,12 +1012,11 @@
 
 .ipo-accounts-filter-bar .form-input,
 .ipo-accounts-filter-bar .form-select {
-  height: 46px;
-  border-radius: 15px;
-  background: rgba(18, 21, 27, 0.92);
-  border-color: rgba(255, 255, 255, 0.07);
-  color: #edf2fb;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.015);
+  height: 42px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
 }
 
 .ipo-view-toggle {
@@ -1114,15 +1104,11 @@
 }
 
 .ipo-account-table-wrap {
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 22px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
   overflow-x: auto;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.022), transparent 15%),
-    linear-gradient(180deg, rgba(33, 37, 45, 0.99), rgba(20, 23, 29, 1));
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.018),
-    0 14px 30px rgba(0, 0, 0, 0.14);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .ipo-account-table {
@@ -1137,23 +1123,21 @@
 }
 
 .ipo-account-table thead th {
-  white-space: normal;
-  font-size: 0.69rem;
+  white-space: nowrap;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #818ca2;
-  padding-top: 15px;
-  padding-bottom: 15px;
-  background: rgba(255,255,255,0.025);
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  padding: 16px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .ipo-account-table tbody td {
   vertical-align: middle;
-  padding-top: 15px;
-  padding-bottom: 15px;
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-  overflow-wrap: anywhere;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
 }
 
 .ipo-account-table tbody tr:hover {
@@ -1275,32 +1259,28 @@
 }
 
 .ipo-account-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top right, rgba(127, 220, 164, 0.08), transparent 36%),
-    linear-gradient(180deg, rgba(255,255,255,0.028), transparent 28%),
-    linear-gradient(180deg, rgba(33, 37, 45, 0.99), rgba(20, 23, 29, 1));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
   padding: 18px 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .ipo-account-card:hover {
-  border-color: rgba(127, 220, 164, 0.18);
-  transform: translateY(-1px);
-  box-shadow: 0 16px 34px rgba(5, 10, 20, 0.22);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-color-hover);
 }
 
 .ipo-account-card.is-selected {
-  border-color: rgba(127, 220, 164, 0.26);
-  box-shadow: 0 0 0 1px rgba(127, 220, 164, 0.08), 0 12px 28px rgba(27, 72, 51, 0.14);
-  background:
-    radial-gradient(circle at top right, rgba(127, 220, 164, 0.12), transparent 34%),
-    linear-gradient(180deg, rgba(127, 220, 164, 0.05), transparent 32%),
-    linear-gradient(180deg, rgba(33, 37, 45, 0.99), rgba(20, 23, 29, 1));
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 1px rgba(78, 203, 126, 0.15), var(--shadow-md);
+  background: linear-gradient(180deg, rgba(78, 203, 126, 0.03), transparent 40%), var(--bg-card);
 }
 
 .ipo-account-card.list-mode {
