@@ -32,6 +32,7 @@ export interface IpoEntry {
   sellPrice: number;       // harga jual rata-rata; 0 jika KEEP
   slTl: 'SL' | 'TL' | '-'; // Stop Loss / Take Limit / tidak ada
   action: 'SELL' | 'KEEP';
+  isBought?: boolean;      // status apakah saham IPO sudah dibeli
   notes?: string;
   createdAt: string;
 }

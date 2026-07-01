@@ -359,6 +359,21 @@
   color: #d97706;
 }
 
+.ipo-badge-buy {
+  font-size: 0.66rem;
+  padding: 2px 6px;
+}
+
+.ipo-badge-buy.bought {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+
+.ipo-badge-buy.not-bought {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+
 .ipo-status-stack {
   display: flex;
   flex-direction: column;

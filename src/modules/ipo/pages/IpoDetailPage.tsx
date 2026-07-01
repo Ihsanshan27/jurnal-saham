@@ -37,6 +37,7 @@ const EMPTY_FORM = {
   sellPrice: '',
   slTl: '-' as '-' | 'SL' | 'TL',
   action: 'SELL' as 'SELL' | 'KEEP',
+  isBought: false,
   notes: '',
 };
 
@@ -58,6 +59,7 @@ type SortKey =
   | 'profitPct'
   | 'accountName'
   | 'email'
+  | 'isBought'
   | 'slTl'
   | 'action';
 
@@ -279,6 +281,15 @@ export default function IpoDetailPage() {
     return next;
   });
 
+  const setIsBought = (value: boolean) => setFormState((prev: typeof EMPTY_FORM) => {
+    const next = {
+      ...prev,
+      isBought: value,
+    };
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
+    return next;
+  });
+
   const clearDraft = () => {
     sessionStorage.removeItem(DRAFT_KEY);
     sessionStorage.removeItem(OPEN_KEY);
@@ -388,6 +399,8 @@ export default function IpoDetailPage() {
         case 'profitRp':
         case 'profitPct':
           return entry[key] ?? 0;
+        case 'isBought':
+          return entry.isBought ? 1 : 0;
         case 'accountName':
         case 'email':
         case 'slTl':
@@ -463,6 +476,7 @@ export default function IpoDetailPage() {
       sellPrice: parseFloat(form.sellPrice) || 0,
       slTl: form.slTl,
       action: form.action,
+      isBought: form.isBought,
       notes: form.notes,
     };
     if (editId) {
@@ -483,6 +497,7 @@ export default function IpoDetailPage() {
       sellPrice: String(entry.sellPrice || ''),
       slTl: entry.slTl,
       action: entry.action,
+      isBought: entry.isBought ?? false,
       notes: entry.notes || '',
     };
     setFormState(draft);
@@ -511,6 +526,7 @@ export default function IpoDetailPage() {
       sellPrice: entry.sellPrice,
       slTl: entry.slTl,
       action: entry.action,
+      isBought: entry.isBought,
       notes: entry.notes,
     });
   };
@@ -536,7 +552,7 @@ export default function IpoDetailPage() {
     const headers = [
       'No', 'Saham', 'Harga Beli', 'Total Lot', 'Total Harga (Rp)',
       'Harga Sekarang / Jual AVG', 'Total Nilai (Rp)', 'Profit (Rp)', 'Profit (%)',
-      'Akun', 'Email (Google)', 'SL/TL', 'SELL/KEEP', 'Catatan'
+      'Akun', 'Email (Google)', 'Sudah Buy?', 'SL/TL', 'SELL/KEEP', 'Catatan'
     ];
     const rows = sortedEntries.map(e => [
       e.no,
@@ -550,6 +566,7 @@ export default function IpoDetailPage() {
       e.totalSell > 0 ? `${e.profitPct.toFixed(2)}%` : '',
       e.accountName,
       e.email || '',
+      e.isBought ? 'Sudah' : 'Belum',
       e.slTl,
       e.action,
       e.notes || '',
@@ -714,6 +731,18 @@ export default function IpoDetailPage() {
           <label className="form-label" htmlFor={`ipo-action-${isInline ? 'inline' : 'main'}`}>Aksi</label>
           <select id={`ipo-action-${isInline ? 'inline' : 'main'}`} className="form-select" value={form.action} onChange={e => setAction(e.target.value as 'SELL' | 'KEEP')}>
             {ACTION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor={`ipo-is-bought-${isInline ? 'inline' : 'main'}`}>Status Buy</label>
+          <select
+            id={`ipo-is-bought-${isInline ? 'inline' : 'main'}`}
+            className="form-select"
+            value={form.isBought ? 'true' : 'false'}
+            onChange={e => setIsBought(e.target.value === 'true')}
+          >
+            <option value="false">Belum Buy</option>
+            <option value="true">Sudah Buy</option>
           </select>
         </div>
         <div className="form-group">
@@ -1085,6 +1114,7 @@ export default function IpoDetailPage() {
                   <th style={{ ...compactHeaderStyle, width: 70 }}>{renderSortableHeader('Profit %', 'profitPct')}</th>
                   <th style={{ ...compactHeaderStyle, width: 110 }}>{renderSortableHeader('Akun', 'accountName')}</th>
                   <th style={{ ...compactHeaderStyle, width: 140 }}>{renderSortableHeader('Email', 'email')}</th>
+                  <th style={{ ...compactHeaderStyle, width: 92 }}>{renderSortableHeader('Buy?', 'isBought')}</th>
                   <th style={{ ...compactHeaderStyle, width: 54 }}>{renderSortableHeader('SL/TL', 'slTl')}</th>
                   <th style={{ ...compactHeaderStyle, width: 88 }}>{renderSortableHeader('Status', 'action')}</th>
                   {canWrite && <th style={{ ...compactHeaderStyle, width: 132 }}>Tools</th>}
@@ -1159,6 +1189,11 @@ export default function IpoDetailPage() {
                           {entry.email || '—'}
                         </td>
                         <td style={compactCellStyle}>
+                          <span className={`ipo-badge-pill ipo-badge-buy ${entry.isBought ? 'bought' : 'not-bought'}`}>
+                            {entry.isBought ? 'Sudah Buy' : 'Belum Buy'}
+                          </span>
+                        </td>
+                        <td style={compactCellStyle}>
                           <span className={`ipo-badge-pill ipo-badge-sltl ${entry.slTl === 'SL' ? 'sl' : entry.slTl === 'TL' ? 'tl' : 'neutral'}`}>
                             {entry.slTl}
                           </span>
@@ -1227,7 +1262,7 @@ export default function IpoDetailPage() {
                       </tr>
                       {isEditingThisRow && canWrite && (
                         <tr>
-                          <td colSpan={canWrite ? 15 : 14} style={{ padding: 0, background: 'rgba(59, 130, 246, 0.04)' }}>
+                          <td colSpan={canWrite ? 16 : 15} style={{ padding: 0, background: 'rgba(59, 130, 246, 0.04)' }}>
                             <div style={{ padding: 16, borderTop: '1px solid var(--border-color)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: 'var(--accent-blue-light)' }}>
                                 <Icons.Edit3 size={15} />
@@ -1257,7 +1292,7 @@ export default function IpoDetailPage() {
                   <td className={`font-mono ${summary.avgReturnPct >= 0 ? 'text-profit' : 'text-loss'}`} style={{ fontWeight: 800 }}>
                     {summary.avgReturnPct >= 0 ? '+' : ''}{summary.avgReturnPct.toFixed(2)}%
                   </td>
-                  <td colSpan={canWrite ? 5 : 4}></td>
+                  <td colSpan={canWrite ? 6 : 5}></td>
                 </tr>
               </tfoot>
             </table>
