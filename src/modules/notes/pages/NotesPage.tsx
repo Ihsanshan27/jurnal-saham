@@ -66,6 +66,7 @@ export default function NotesPage() {
     });
     setEditId(note.id);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {

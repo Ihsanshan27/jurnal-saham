@@ -230,13 +230,22 @@ export default function TradesPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">📝 Daftar Transaksi</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icons.ScrollText size={24} style={{ color: 'var(--accent-blue)' }} />
+            Daftar Transaksi
+          </h1>
           <p className="page-subtitle">{filtered.length} transaksi ditemukan</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setShowImportModal(true)}>📥 Impor CSV</button>
-          <button className="btn btn-secondary btn-sm" onClick={exportCSV}>📥 Export CSV</button>
-          <Link to="/trades/new" className="btn btn-primary">➕ Catat Transaksi</Link>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowImportModal(true)}>
+            <Icons.Import size={16} /> Impor CSV
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={exportCSV}>
+            <Icons.Download size={16} /> Export CSV
+          </button>
+          <Link to="/trades/new" className="btn btn-primary">
+            <Icons.Plus size={16} /> Catat Transaksi
+          </Link>
         </div>
       </div>
 
@@ -247,7 +256,7 @@ export default function TradesPage() {
       {/* Filters */}
       <div className="filter-bar">
         <div className="search-bar" style={{ flex: 1, minWidth: 200 }}>
-          <span className="search-bar-icon">🔍</span>
+          <span className="search-bar-icon"><Icons.Search size={16} /></span>
           <input placeholder="Cari kode saham..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <select className="form-select" style={{ width: 160 }} value={filterStrategy} onChange={e => { setFilterStrategy(e.target.value); setPage(1); }}>
@@ -272,10 +281,12 @@ export default function TradesPage() {
       {/* Table */}
       {paged.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon"><Icons.ClipboardList size={42} /></div>
           <div className="empty-state-title">Belum ada transaksi</div>
           <div className="empty-state-desc">Mulai catat transaksi saham atau reksadana Anda</div>
-          <Link to="/trades/new" className="btn btn-primary">➕ Catat Transaksi</Link>
+          <Link to="/trades/new" className="btn btn-primary">
+            <Icons.Plus size={16} /> Catat Transaksi
+          </Link>
         </div>
       ) : (
         <>
@@ -369,8 +380,12 @@ export default function TradesPage() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <Link to={`/trades/${trade.id}`} className="btn btn-ghost btn-sm" title="Detail">👁</Link>
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(trade.id, trade.stockCode)} title="Hapus">🗑</button>
+                          <Link to={`/trades/${trade.id}`} className="btn btn-ghost btn-sm" title="Detail">
+                            <Icons.Eye size={16} />
+                          </Link>
+                          <button className="btn btn-ghost btn-sm" onClick={() => handleDelete(trade.id, trade.stockCode)} title="Hapus">
+                            <Icons.Trash2 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>

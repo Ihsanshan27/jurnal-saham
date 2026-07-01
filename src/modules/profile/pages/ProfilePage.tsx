@@ -67,7 +67,8 @@ export default function ProfilePage() {
 
       openTrades.forEach((trade: any) => {
         const isUS = trade.market === 'US';
-        const shares = isUS ? trade.lots : trade.lots * 100;
+        const isMutualFund = trade.assetType === 'mutual_fund';
+        const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
         const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
 
         let positionValue = trade.buyPrice * shares;

@@ -179,7 +179,8 @@ export default function FinancePage() {
 
       openTrades.forEach((trade: any) => {
         const isUS = trade.market === 'US';
-        const shares = isUS ? trade.lots : trade.lots * 100;
+        const isMutualFund = trade.assetType === 'mutual_fund';
+        const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
         const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
 
         let positionValue = trade.buyPrice * shares;
@@ -240,6 +241,7 @@ export default function FinancePage() {
       notes: account.notes || '',
       isActive: account.isActive !== false,
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const moveAccountCard = (sourceId: string, targetId: string) => {

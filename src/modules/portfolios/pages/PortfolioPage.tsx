@@ -39,7 +39,8 @@ export default function PortfolioPage() {
       .filter((trade) => !isClosedTrade(trade) && (trade.market === activeTab || (activeTab === 'ID' && !trade.market)))
       .map((trade) => {
         const isUS = activeTab === 'US';
-        const shares = isUS ? trade.lots : trade.lots * 100;
+        const isMutualFund = trade.assetType === 'mutual_fund';
+        const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
         const totalBuy = trade.buyPrice * shares;
         const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
 

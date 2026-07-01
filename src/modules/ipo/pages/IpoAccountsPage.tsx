@@ -278,6 +278,7 @@ export default function IpoAccountsPage() {
       notes: account.notes || '',
       isActive: account.isActive !== false,
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {

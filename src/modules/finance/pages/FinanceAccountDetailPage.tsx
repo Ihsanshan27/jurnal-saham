@@ -228,6 +228,7 @@ export default function FinanceAccountDetailPage() {
       linkToCashflow: Boolean(transaction.linkedCashflowId),
       linkedPortfolioId: transaction.linkedPortfolioId || activePortfolioId || 'default',
     });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteTransaction = async (transaction: any) => {

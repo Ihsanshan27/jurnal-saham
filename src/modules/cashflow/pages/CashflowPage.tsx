@@ -109,6 +109,7 @@ export default function CashflowPage() {
       notes: cashflow.notes || '',
     });
     setActiveTab(cashflow.market || 'ID');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
