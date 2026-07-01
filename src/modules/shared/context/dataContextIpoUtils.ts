@@ -13,6 +13,7 @@ type IpoAccountLike = {
   id?: string;
   name?: string;
   email?: string;
+  balance?: number;
   rdnBankName?: string;
   rdnAccountNumber?: string;
   withdrawBankName?: string;
@@ -52,6 +53,7 @@ export function normalizeIpoCollections(entries: any[] = [], accounts: any[] = [
       id: account.id || generateId(),
       name: normalizedName || account.name || 'Tanpa nama akun',
       email: normalizedEmail,
+      balance: Number(account.balance) || 0,
       rdnBankName: normalizeIpoText(account.rdnBankName),
       rdnAccountNumber: normalizeIpoText(account.rdnAccountNumber),
       withdrawBankName: normalizeIpoText(account.withdrawBankName),
@@ -87,6 +89,7 @@ export function normalizeIpoCollections(entries: any[] = [], accounts: any[] = [
         id: entry.ipoAccountId || generateId(),
         name: normalizedName || entry.accountName || 'Tanpa nama akun',
         email: normalizedEmail,
+        balance: 0,
         rdnBankName: '',
         rdnAccountNumber: '',
         withdrawBankName: '',

@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
-import { formatDate } from '@/modules/shared/utils/formatters';
+import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
 import '@/modules/ipo/ipo.css';
 
 const SELECTED_ACCOUNTS_STORAGE_KEY = 'ipo_accounts_selected_ids';
@@ -13,6 +14,7 @@ function createInitialForm() {
   return {
     name: '',
     email: '',
+    balance: '',
     rdnBankName: '',
     rdnAccountNumber: '',
     withdrawBankName: '',
@@ -45,7 +47,9 @@ export default function IpoAccountsPage() {
   const [form, setForm] = useState(createInitialForm());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('card');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [sortField, setSortField] = useState<string>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
     try {
       const saved = sessionStorage.getItem(SELECTED_ACCOUNTS_STORAGE_KEY);
@@ -62,8 +66,17 @@ export default function IpoAccountsPage() {
       .map((account: any) => {
         const linkedEntries = ipoEntries.filter((entry: any) => entry.ipoAccountId === account.id);
         const eventCount = new Set(linkedEntries.map((entry: any) => entry.ipoEventId)).size;
+        const usedBalance = linkedEntries.filter((entry: any) => entry.isBought === true).reduce((sum: number, entry: any) => {
+          const lots = Number(entry.lots) || 0;
+          const buyPrice = Number(entry.buyPrice) || 0;
+          return sum + (buyPrice * lots * 100);
+        }, 0);
+        const balance = Number(account.balance) || 0;
         return {
           ...account,
+          balance,
+          usedBalance,
+          remainingBalance: balance - usedBalance,
           linkedEntriesCount: linkedEntries.length,
           eventCount,
         };
@@ -81,12 +94,15 @@ export default function IpoAccountsPage() {
     const active = ipoAccounts.filter((account: any) => account.isActive !== false).length;
     const inactive = total - active;
     const linkedEntries = ipoEntries.filter((entry: any) => entry.ipoAccountId).length;
-    return { total, active, inactive, linkedEntries };
-  }, [ipoAccounts, ipoEntries]);
+    const totalBalance = ipoAccounts.reduce((sum: number, account: any) => sum + (Number(account.balance) || 0), 0);
+    const totalUsedBalance = accountsWithStats.reduce((sum: number, account: any) => sum + (Number(account.usedBalance) || 0), 0);
+    const totalRemainingBalance = totalBalance - totalUsedBalance;
+    return { total, active, inactive, linkedEntries, totalBalance, totalUsedBalance, totalRemainingBalance };
+  }, [accountsWithStats, ipoAccounts, ipoEntries]);
 
   const filteredAccounts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return accountsWithStats.filter((account: any) => {
+    const filtered = accountsWithStats.filter((account: any) => {
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && account.isActive !== false) ||
@@ -95,6 +111,7 @@ export default function IpoAccountsPage() {
       const haystack = [
         account.name,
         account.email,
+        account.balance,
         account.rdnBankName,
         account.rdnAccountNumber,
         account.withdrawBankName,
@@ -109,9 +126,72 @@ export default function IpoAccountsPage() {
       const matchesQuery = !query || haystack.includes(query);
       return matchesStatus && matchesQuery;
     });
-  }, [accountsWithStats, searchQuery, statusFilter]);
+
+    return filtered.sort((a: any, b: any) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '', 'id', { sensitivity: 'base' });
+          break;
+        case 'email':
+          comparison = (a.email || '').localeCompare(b.email || '', 'id', { sensitivity: 'base' });
+          break;
+        case 'rdn':
+          const aRdn = [a.rdnBankName, a.rdnAccountNumber].filter(Boolean).join(' ');
+          const bRdn = [b.rdnBankName, b.rdnAccountNumber].filter(Boolean).join(' ');
+          comparison = aRdn.localeCompare(bRdn, 'id', { sensitivity: 'base' });
+          break;
+        case 'withdraw':
+          const aWd = [a.withdrawBankName, a.withdrawAccountNumber].filter(Boolean).join(' ');
+          const bWd = [b.withdrawBankName, b.withdrawAccountNumber].filter(Boolean).join(' ');
+          comparison = aWd.localeCompare(bWd, 'id', { sensitivity: 'base' });
+          break;
+        case 'balance':
+          comparison = (a.balance || 0) - (b.balance || 0);
+          break;
+        case 'usedBalance':
+          comparison = (a.usedBalance || 0) - (b.usedBalance || 0);
+          break;
+        case 'remainingBalance':
+          comparison = (a.remainingBalance || 0) - (b.remainingBalance || 0);
+          break;
+        case 'isActive':
+          comparison = (a.isActive === b.isActive) ? 0 : (a.isActive ? -1 : 1);
+          break;
+        case 'linkedEntriesCount':
+          comparison = (a.linkedEntriesCount || 0) - (b.linkedEntriesCount || 0);
+          break;
+        case 'eventCount':
+          comparison = (a.eventCount || 0) - (b.eventCount || 0);
+          break;
+        case 'lastUsedAt':
+          const aTime = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+          const bTime = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+          comparison = aTime - bTime;
+          break;
+        case 'notes':
+          comparison = (a.notes || '').localeCompare(b.notes || '', 'id', { sensitivity: 'base' });
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [accountsWithStats, searchQuery, statusFilter, sortField, sortDirection]);
 
   const selectedAccountsCount = selectedAccountIds.length;
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (field: string) => {
+    if (sortField !== field) return <Icons.ChevronsUpDown size={14} style={{ opacity: 0.3 }} />;
+    return sortDirection === 'asc' ? <Icons.ChevronUp size={14} /> : <Icons.ChevronDown size={14} />;
+  };
 
   const resetForm = () => {
     setForm(createInitialForm());
@@ -134,6 +214,7 @@ export default function IpoAccountsPage() {
     const payload = {
       name: form.name,
       email: form.email,
+      balance: Number(form.balance) || 0,
       rdnBankName: form.rdnBankName,
       rdnAccountNumber: form.rdnAccountNumber,
       withdrawBankName: form.withdrawBankName,
@@ -159,6 +240,7 @@ export default function IpoAccountsPage() {
     setForm({
       name: account.name || '',
       email: account.email || '',
+      balance: String(account.balance ?? ''),
       rdnBankName: account.rdnBankName || '',
       rdnAccountNumber: account.rdnAccountNumber || '',
       withdrawBankName: account.withdrawBankName || '',
@@ -254,9 +336,19 @@ export default function IpoAccountsPage() {
           <div className="ipo-accounts-stat-foot">Tetap aman untuk histori lama</div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Entry Tertaut</div>
-          <div className="stat-card-value">{summary.linkedEntries}</div>
-          <div className="ipo-accounts-stat-foot">Total pemakaian lintas event IPO</div>
+          <div className="stat-card-label">Saldo Total</div>
+          <div className="stat-card-value">{formatRupiah(summary.totalBalance)}</div>
+          <div className="ipo-accounts-stat-foot">Akumulasi saldo awal semua akun</div>
+        </div>
+        <div className="stat-card ipo-accounts-stat-card">
+          <div className="stat-card-label">Saldo Terpakai</div>
+          <div className="stat-card-value">{formatRupiah(summary.totalUsedBalance)}</div>
+          <div className="ipo-accounts-stat-foot">Total modal yang sudah dipakai entry IPO</div>
+        </div>
+        <div className="stat-card ipo-accounts-stat-card">
+          <div className="stat-card-label">Saldo Sisa</div>
+          <div className="stat-card-value">{formatRupiah(summary.totalRemainingBalance)}</div>
+          <div className="ipo-accounts-stat-foot">Sisa saldo yang masih bisa dipakai</div>
         </div>
       </div>
 
@@ -293,6 +385,15 @@ export default function IpoAccountsPage() {
                   placeholder="email@gmail.com"
                   value={form.email}
                   onChange={(event) => setValue('email', event.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="ipo-master-balance">Saldo Awal (Rp)</label>
+                <CurrencyInput
+                  id="ipo-master-balance"
+                  value={form.balance}
+                  onChange={(value) => setValue('balance', value)}
+                  placeholder="25.000.000"
                 />
               </div>
             </div>
@@ -504,15 +605,42 @@ export default function IpoAccountsPage() {
                 <thead>
                   <tr>
                     <th className="ipo-account-table-check-col">Pilih</th>
-                    <th>Akun</th>
-                    <th>Email</th>
-                    <th>RDN</th>
-                    <th>Withdraw</th>
-                    <th>Status</th>
-                    <th>Entry</th>
-                    <th>Event</th>
-                    <th>Terakhir</th>
-                    <th>Catatan</th>
+                    <th onClick={() => handleSort('name')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Akun {renderSortIcon('name')}</div>
+                    </th>
+                    <th onClick={() => handleSort('email')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Email {renderSortIcon('email')}</div>
+                    </th>
+                    <th onClick={() => handleSort('rdn')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>RDN {renderSortIcon('rdn')}</div>
+                    </th>
+                    <th onClick={() => handleSort('withdraw')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Withdraw {renderSortIcon('withdraw')}</div>
+                    </th>
+                    <th onClick={() => handleSort('balance')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Saldo Awal {renderSortIcon('balance')}</div>
+                    </th>
+                    <th onClick={() => handleSort('usedBalance')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Terpakai {renderSortIcon('usedBalance')}</div>
+                    </th>
+                    <th onClick={() => handleSort('remainingBalance')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Sisa {renderSortIcon('remainingBalance')}</div>
+                    </th>
+                    <th onClick={() => handleSort('isActive')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Status {renderSortIcon('isActive')}</div>
+                    </th>
+                    <th onClick={() => handleSort('linkedEntriesCount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Entry {renderSortIcon('linkedEntriesCount')}</div>
+                    </th>
+                    <th onClick={() => handleSort('eventCount')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Event {renderSortIcon('eventCount')}</div>
+                    </th>
+                    <th onClick={() => handleSort('lastUsedAt')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Terakhir {renderSortIcon('lastUsedAt')}</div>
+                    </th>
+                    <th onClick={() => handleSort('notes')} style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Catatan {renderSortIcon('notes')}</div>
+                    </th>
                     {canWrite && <th>Tools</th>}
                   </tr>
                 </thead>
@@ -555,6 +683,11 @@ export default function IpoAccountsPage() {
                           ? [account.withdrawBankName, account.withdrawAccountNumber].filter(Boolean).join(' / ')
                           : '-'}
                       </td>
+                      <td className="ipo-account-table-metric-cell" style={blurStyle}>{formatRupiah(account.balance || 0)}</td>
+                      <td className="ipo-account-table-metric-cell" style={blurStyle}>{formatRupiah(account.usedBalance || 0)}</td>
+                      <td className="ipo-account-table-metric-cell" style={{ ...blurStyle, color: account.remainingBalance >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        {formatRupiah(account.remainingBalance || 0)}
+                      </td>
                       <td className="ipo-account-table-status-cell">
                         <span className={`status-badge ${account.isActive === false ? 'upcoming' : 'active'}`}>
                           {account.isActive === false ? 'Nonaktif' : 'Aktif'}
@@ -596,11 +729,11 @@ export default function IpoAccountsPage() {
               </table>
             </div>
           ) : (
-            <div className={`ipo-accounts-grid ${viewMode === 'list' ? 'list-mode' : 'card-mode'}`}>
+            <div className={`ipo-accounts-grid card-mode`}>
               {filteredAccounts.map((account: any) => (
                 <article
                   key={account.id}
-                  className={`ipo-account-card ${viewMode === 'list' ? 'list-mode' : 'card-mode'} ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''}`}
+                  className={`ipo-account-card card-mode ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''}`}
                 >
                   <div className="ipo-account-card-header">
                     <div className="ipo-account-card-header-main">
@@ -635,6 +768,20 @@ export default function IpoAccountsPage() {
                     <div className="ipo-account-metric">
                       <span className="ipo-account-metric-label">Event</span>
                       <strong>{account.eventCount}</strong>
+                    </div>
+                    <div className="ipo-account-metric">
+                      <span className="ipo-account-metric-label">Saldo</span>
+                      <strong style={blurStyle}>{formatRupiah(account.balance || 0)}</strong>
+                    </div>
+                    <div className="ipo-account-metric">
+                      <span className="ipo-account-metric-label">Terpakai</span>
+                      <strong style={blurStyle}>{formatRupiah(account.usedBalance || 0)}</strong>
+                    </div>
+                    <div className="ipo-account-metric">
+                      <span className="ipo-account-metric-label">Sisa</span>
+                      <strong style={{ ...blurStyle, color: account.remainingBalance >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        {formatRupiah(account.remainingBalance || 0)}
+                      </strong>
                     </div>
                   </div>
 
