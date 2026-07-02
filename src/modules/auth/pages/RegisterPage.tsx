@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/modules/auth/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { getRegistrationEnabled } from '@/modules/shared/services/appSettingsService';
 import { setPendingVerificationEmail } from '@/modules/auth/verificationStorage';
 
@@ -11,6 +12,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loadingSetting, setLoadingSetting] = useState(true);
   const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const { register } = useAuth();
@@ -115,23 +118,71 @@ export default function RegisterPage() {
           </div>
           <div className="form-group">
             <label className="form-label">Password</label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="Buat password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-input"
+                placeholder="Buat password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary, #666)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
+                }}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Konfirmasi Password</label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="Ulangi password"
-              value={confirmPass}
-              onChange={e => setConfirmPass(e.target.value)}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirmPass ? "text" : "password"}
+                className="form-input"
+                placeholder="Ulangi password"
+                value={confirmPass}
+                onChange={e => setConfirmPass(e.target.value)}
+                style={{ paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPass(!showConfirmPass)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary, #666)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
+                }}
+                tabIndex={-1}
+              >
+                {showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           <button type="submit" className="btn btn-primary" disabled={submitting || loadingSetting || !registrationEnabled}>
             {submitting ? 'Memproses...' : 'Daftar'}

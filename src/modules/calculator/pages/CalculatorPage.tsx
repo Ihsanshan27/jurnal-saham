@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { calcProfitLoss, calcBrokerFee, calcAveragePrice, calcPositionSize, calcTargetPrice, calcPensionFund, calcAverageDown, calcRiskReward } from '@/modules/trades/calculations';
-import { calculatePortfolioBalance } from '@/modules/trades/calculations';
+import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/trades/calculations';
 import { formatRupiah } from '@/modules/shared/utils/formatters';
 import { useData } from '@/modules/shared/context/DataContext';
 import {
@@ -658,8 +659,27 @@ function CompoundingCalculator({ draft, setDraft }: CalcProps) {
 }
 
 function PensionCalculator({ draft, setDraft }: CalcProps) {
-  const { trades, cashflows, dividends, settings } = useData();
+  const { allTrades, allCashflows, allDividends, settings, marketPrices, financeAccounts, getFinanceAccountCurrentBalance, portfolios } = useData();
   const { currentAge, retireAge, monthlyExpense, currentSavings, inflationPercent, returnPercent, swrPercent } = draft;
+
+  const [showAssetSelector, setShowAssetSelector] = useState(false);
+  const [checkedFinances, setCheckedFinances] = useState<Record<string, boolean>>({});
+  const [checkedPortfolios, setCheckedPortfolios] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (showAssetSelector) {
+      if (Object.keys(checkedFinances).length === 0 && financeAccounts.length > 0) {
+        const initF: any = {};
+        financeAccounts.forEach((fa: any) => initF[fa.id] = true);
+        setCheckedFinances(initF);
+      }
+      if (Object.keys(checkedPortfolios).length === 0 && portfolios.length > 0) {
+        const initP: any = {};
+        portfolios.forEach((p: any) => initP[p.id] = true);
+        setCheckedPortfolios(initP);
+      }
+    }
+  }, [showAssetSelector, financeAccounts, portfolios, checkedFinances, checkedPortfolios]);
 
   const setCurrentAge = (val: string) => setDraft({ ...draft, currentAge: val });
   const setRetireAge = (val: string) => setDraft({ ...draft, retireAge: val });
@@ -669,9 +689,69 @@ function PensionCalculator({ draft, setDraft }: CalcProps) {
   const setReturnPercent = (val: string) => setDraft({ ...draft, returnPercent: val });
   const setSwrPercent = (val: string) => setDraft({ ...draft, swrPercent: val });
 
-  const fillFromPortfolio = () => {
-    const balance = calculatePortfolioBalance(trades, cashflows, dividends, settings.initialCapital);
-    setCurrentSavings(Math.round(balance.realizedEquity).toString());
+  const applySelectedAssets = () => {
+    let totalSavings = 0;
+    financeAccounts.forEach((fa: any) => {
+      if (checkedFinances[fa.id]) {
+        totalSavings += getFinanceAccountCurrentBalance(fa.id);
+      }
+    });
+
+    portfolios.forEach((p: any) => {
+      if (checkedPortfolios[p.id]) {
+        const pTrades = allTrades.filter((t: any) => (t.portfolioId || 'default') === p.id);
+        const pCashflows = allCashflows.filter((c: any) => (c.portfolioId || 'default') === p.id);
+        const pDividends = allDividends.filter((d: any) => (d.portfolioId || 'default') === p.id);
+        
+        const initialCapID = p.id === 'default' ? (settings.initialCapital ?? 10000000) : 0;
+        const initialCapUS = p.id === 'default' ? (settings.initialCapitalUS ?? 1000) : 0;
+
+        const statsID = calculatePortfolioBalance(
+          pTrades.filter((t: any) => t.market !== 'US'),
+          pCashflows.filter((c: any) => c.market !== 'US'),
+          pDividends.filter((d: any) => d.market !== 'US'),
+          initialCapID,
+        );
+
+        const statsUS = calculatePortfolioBalance(
+          pTrades.filter((t: any) => t.market === 'US'),
+          pCashflows.filter((c: any) => c.market === 'US'),
+          pDividends.filter((d: any) => d.market === 'US'),
+          initialCapUS,
+        );
+
+        const openTrades = pTrades.filter((trade: any) => !trade.sellPrice || !trade.dateSell);
+        let openValueID = 0;
+        let openValueUS = 0;
+
+        openTrades.forEach((trade: any) => {
+          const isUS = trade.market === 'US';
+          const isMutualFund = trade.assetType === 'mutual_fund';
+          const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
+          const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
+
+          let positionValue = trade.buyPrice * shares;
+          if (currentPrice > 0) {
+            const unrealized = calculateUnrealizedPnL(trade.buyPrice, currentPrice, trade.lots, trade.buyFee, trade.market || 'ID', trade.assetType || 'stock');
+            positionValue = (trade.buyPrice * shares) + unrealized.pnl;
+          }
+
+          if (isUS) {
+            openValueUS += positionValue;
+          } else {
+            openValueID += positionValue;
+          }
+        });
+
+        const portfolioTotalID = statsID.buyingPower + openValueID;
+        const portfolioTotalUS = statsUS.buyingPower + openValueUS;
+
+        totalSavings += portfolioTotalID + (portfolioTotalUS * (settings.usdToIdrRate ?? 16200));
+      }
+    });
+
+    setCurrentSavings(Math.round(totalSavings).toString());
+    setShowAssetSelector(false);
   };
 
   const cAge = parseInt(currentAge) || 0;
@@ -701,6 +781,116 @@ function PensionCalculator({ draft, setDraft }: CalcProps) {
 
   return (
     <div>
+      <div style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => setShowAssetSelector(!showAssetSelector)}
+          style={{ fontSize: '0.8rem', padding: '6px 12px', background: 'var(--accent-green-dim)', color: 'var(--accent-green)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 6, cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          <RotateCcw size={14} />
+          Ambil Data dari Aset
+        </button>
+      </div>
+
+      {showAssetSelector && (
+        <div style={{ marginBottom: 20, padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-primary)' }}>Pilih Aset untuk Tabungan Pensiun:</h4>
+          
+          <div style={{ marginBottom: 12 }}>
+            <strong style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Kas &amp; Rekening Bank</strong>
+            <div style={{ display: 'grid', gap: 6, marginTop: 6 }}>
+              {financeAccounts.length > 0 ? financeAccounts.map((fa: any) => (
+                <label key={fa.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={checkedFinances[fa.id] || false}
+                    onChange={e => setCheckedFinances(prev => ({ ...prev, [fa.id]: e.target.checked }))}
+                  />
+                  <span>{fa.name} ({fa.institutionName})</span>
+                  <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{formatRupiah(getFinanceAccountCurrentBalance(fa.id))}</span>
+                </label>
+              )) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Belum ada rekening</div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <strong style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Investasi (Saham &amp; Reksadana)</strong>
+            <div style={{ display: 'grid', gap: 6, marginTop: 6 }}>
+              {portfolios.length > 0 ? portfolios.map((p: any) => {
+                const pTrades = allTrades.filter((t: any) => (t.portfolioId || 'default') === p.id);
+                const pCashflows = allCashflows.filter((c: any) => (c.portfolioId || 'default') === p.id);
+                const pDividends = allDividends.filter((d: any) => (d.portfolioId || 'default') === p.id);
+                
+                const initialCapID = p.id === 'default' ? (settings.initialCapital ?? 10000000) : 0;
+                const initialCapUS = p.id === 'default' ? (settings.initialCapitalUS ?? 1000) : 0;
+        
+                const statsID = calculatePortfolioBalance(
+                  pTrades.filter((t: any) => t.market !== 'US'),
+                  pCashflows.filter((c: any) => c.market !== 'US'),
+                  pDividends.filter((d: any) => d.market !== 'US'),
+                  initialCapID,
+                );
+        
+                const statsUS = calculatePortfolioBalance(
+                  pTrades.filter((t: any) => t.market === 'US'),
+                  pCashflows.filter((c: any) => c.market === 'US'),
+                  pDividends.filter((d: any) => d.market === 'US'),
+                  initialCapUS,
+                );
+        
+                const openTrades = pTrades.filter((trade: any) => !trade.sellPrice || !trade.dateSell);
+                let openValueID = 0;
+                let openValueUS = 0;
+        
+                openTrades.forEach((trade: any) => {
+                  const isUS = trade.market === 'US';
+                  const isMutualFund = trade.assetType === 'mutual_fund';
+                  const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
+                  const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
+        
+                  let positionValue = trade.buyPrice * shares;
+                  if (currentPrice > 0) {
+                    const unrealized = calculateUnrealizedPnL(trade.buyPrice, currentPrice, trade.lots, trade.buyFee, trade.market || 'ID', trade.assetType || 'stock');
+                    positionValue = (trade.buyPrice * shares) + unrealized.pnl;
+                  }
+        
+                  if (isUS) {
+                    openValueUS += positionValue;
+                  } else {
+                    openValueID += positionValue;
+                  }
+                });
+        
+                const portfolioTotalID = statsID.buyingPower + openValueID;
+                const portfolioTotalUS = statsUS.buyingPower + openValueUS;
+                const totalInvestValue = portfolioTotalID + (portfolioTotalUS * (settings.usdToIdrRate ?? 16200));
+
+                return (
+                  <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={checkedPortfolios[p.id] || false}
+                      onChange={e => setCheckedPortfolios(prev => ({ ...prev, [p.id]: e.target.checked }))}
+                    />
+                    <span>{p.name}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{formatRupiah(totalInvestValue)}</span>
+                  </label>
+                );
+              }) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Belum ada portofolio</div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={applySelectedAssets}>Terapkan</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAssetSelector(false)}>Batal</button>
+          </div>
+        </div>
+      )}
+
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Usia Saat Ini</label>
@@ -718,16 +908,7 @@ function PensionCalculator({ draft, setDraft }: CalcProps) {
           <CurrencyInput className="form-input" placeholder="5.000.000" value={monthlyExpense} onChange={e => setMonthlyExpense(e.target.value)} />
         </div>
         <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Tabungan/Investasi Saat Ini</span>
-            <button
-              onClick={fillFromPortfolio}
-              style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-            >
-              <RotateCcw size={10} />
-              Pakai Saldo Jurnal
-            </button>
-          </label>
+          <label className="form-label">Tabungan/Investasi Saat Ini</label>
           <CurrencyInput className="form-input" placeholder="10.000.000" value={currentSavings} onChange={e => setCurrentSavings(e.target.value)} />
         </div>
       </div>
@@ -984,8 +1165,27 @@ function RiskRewardCalculator({ draft, setDraft }: CalcProps) {
 }
 
 function ZakatCalculator({ draft, setDraft }: CalcProps) {
-  const { trades, cashflows, dividends, settings } = useData();
+  const { allTrades, allCashflows, allDividends, settings, marketPrices, financeAccounts, getFinanceAccountCurrentBalance, portfolios } = useData();
   const { goldPrice, cash, gold, portfolio, business, receivables, debts } = draft;
+
+  const [showAssetSelector, setShowAssetSelector] = useState(false);
+  const [checkedFinances, setCheckedFinances] = useState<Record<string, boolean>>({});
+  const [checkedPortfolios, setCheckedPortfolios] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (showAssetSelector) {
+      if (Object.keys(checkedFinances).length === 0 && financeAccounts.length > 0) {
+        const initF: any = {};
+        financeAccounts.forEach((fa: any) => initF[fa.id] = true);
+        setCheckedFinances(initF);
+      }
+      if (Object.keys(checkedPortfolios).length === 0 && portfolios.length > 0) {
+        const initP: any = {};
+        portfolios.forEach((p: any) => initP[p.id] = true);
+        setCheckedPortfolios(initP);
+      }
+    }
+  }, [showAssetSelector, financeAccounts, portfolios, checkedFinances, checkedPortfolios]);
 
   const setGoldPrice = (val: string) => setDraft({ ...draft, goldPrice: val });
   const setCash = (val: string) => setDraft({ ...draft, cash: val });
@@ -995,9 +1195,74 @@ function ZakatCalculator({ draft, setDraft }: CalcProps) {
   const setReceivables = (val: string) => setDraft({ ...draft, receivables: val });
   const setDebts = (val: string) => setDraft({ ...draft, debts: val });
 
-  const fillPortfolioFromJournal = () => {
-    const balance = calculatePortfolioBalance(trades, cashflows, dividends, settings.initialCapital);
-    setPortfolio(Math.round(balance.realizedEquity).toString());
+  const applySelectedAssets = () => {
+    let totalCash = 0;
+    financeAccounts.forEach((fa: any) => {
+      if (checkedFinances[fa.id]) {
+        totalCash += getFinanceAccountCurrentBalance(fa.id);
+      }
+    });
+
+    let totalInvest = 0;
+    portfolios.forEach((p: any) => {
+      if (checkedPortfolios[p.id]) {
+        const pTrades = allTrades.filter((t: any) => (t.portfolioId || 'default') === p.id);
+        const pCashflows = allCashflows.filter((c: any) => (c.portfolioId || 'default') === p.id);
+        const pDividends = allDividends.filter((d: any) => (d.portfolioId || 'default') === p.id);
+        
+        const initialCapID = p.id === 'default' ? (settings.initialCapital ?? 10000000) : 0;
+        const initialCapUS = p.id === 'default' ? (settings.initialCapitalUS ?? 1000) : 0;
+
+        const statsID = calculatePortfolioBalance(
+          pTrades.filter((t: any) => t.market !== 'US'),
+          pCashflows.filter((c: any) => c.market !== 'US'),
+          pDividends.filter((d: any) => d.market !== 'US'),
+          initialCapID,
+        );
+
+        const statsUS = calculatePortfolioBalance(
+          pTrades.filter((t: any) => t.market === 'US'),
+          pCashflows.filter((c: any) => c.market === 'US'),
+          pDividends.filter((d: any) => d.market === 'US'),
+          initialCapUS,
+        );
+
+        const openTrades = pTrades.filter((trade: any) => !trade.sellPrice || !trade.dateSell);
+        let openValueID = 0;
+        let openValueUS = 0;
+
+        openTrades.forEach((trade: any) => {
+          const isUS = trade.market === 'US';
+          const isMutualFund = trade.assetType === 'mutual_fund';
+          const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
+          const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
+
+          let positionValue = trade.buyPrice * shares;
+          if (currentPrice > 0) {
+            const unrealized = calculateUnrealizedPnL(trade.buyPrice, currentPrice, trade.lots, trade.buyFee, trade.market || 'ID', trade.assetType || 'stock');
+            positionValue = (trade.buyPrice * shares) + unrealized.pnl;
+          }
+
+          if (isUS) {
+            openValueUS += positionValue;
+          } else {
+            openValueID += positionValue;
+          }
+        });
+
+        const portfolioTotalID = statsID.buyingPower + openValueID;
+        const portfolioTotalUS = statsUS.buyingPower + openValueUS;
+
+        totalInvest += portfolioTotalID + (portfolioTotalUS * (settings.usdToIdrRate ?? 16200));
+      }
+    });
+
+    setDraft({
+      ...draft,
+      cash: Math.round(totalCash).toString(),
+      portfolio: Math.round(totalInvest).toString(),
+    });
+    setShowAssetSelector(false);
   };
 
   const gp = parseFloat(goldPrice) || 0;
@@ -1023,6 +1288,117 @@ function ZakatCalculator({ draft, setDraft }: CalcProps) {
       <div style={{ marginBottom: 12, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
         Hitung kewajiban Zakat Maal (2.5%) atas harta simpanan yang telah mencapai haul (1 tahun) dan nisab (setara 85g emas).
       </div>
+      
+      <div style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => setShowAssetSelector(!showAssetSelector)}
+          style={{ fontSize: '0.8rem', padding: '6px 12px', background: 'var(--accent-green-dim)', color: 'var(--accent-green)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 6, cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+        >
+          <RotateCcw size={14} />
+          Ambil Data dari Aset
+        </button>
+      </div>
+
+      {showAssetSelector && (
+        <div style={{ marginBottom: 20, padding: 16, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-primary)' }}>Pilih Aset untuk Dihitung:</h4>
+          
+          <div style={{ marginBottom: 12 }}>
+            <strong style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Kas &amp; Rekening Bank</strong>
+            <div style={{ display: 'grid', gap: 6, marginTop: 6 }}>
+              {financeAccounts.length > 0 ? financeAccounts.map((fa: any) => (
+                <label key={fa.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={checkedFinances[fa.id] || false}
+                    onChange={e => setCheckedFinances(prev => ({ ...prev, [fa.id]: e.target.checked }))}
+                  />
+                  <span>{fa.name} ({fa.institutionName})</span>
+                  <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{formatRupiah(getFinanceAccountCurrentBalance(fa.id))}</span>
+                </label>
+              )) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Belum ada rekening</div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <strong style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Investasi (Saham &amp; Reksadana)</strong>
+            <div style={{ display: 'grid', gap: 6, marginTop: 6 }}>
+              {portfolios.length > 0 ? portfolios.map((p: any) => {
+                const pTrades = allTrades.filter((t: any) => (t.portfolioId || 'default') === p.id);
+                const pCashflows = allCashflows.filter((c: any) => (c.portfolioId || 'default') === p.id);
+                const pDividends = allDividends.filter((d: any) => (d.portfolioId || 'default') === p.id);
+                
+                const initialCapID = p.id === 'default' ? (settings.initialCapital ?? 10000000) : 0;
+                const initialCapUS = p.id === 'default' ? (settings.initialCapitalUS ?? 1000) : 0;
+        
+                const statsID = calculatePortfolioBalance(
+                  pTrades.filter((t: any) => t.market !== 'US'),
+                  pCashflows.filter((c: any) => c.market !== 'US'),
+                  pDividends.filter((d: any) => d.market !== 'US'),
+                  initialCapID,
+                );
+        
+                const statsUS = calculatePortfolioBalance(
+                  pTrades.filter((t: any) => t.market === 'US'),
+                  pCashflows.filter((c: any) => c.market === 'US'),
+                  pDividends.filter((d: any) => d.market === 'US'),
+                  initialCapUS,
+                );
+        
+                const openTrades = pTrades.filter((trade: any) => !trade.sellPrice || !trade.dateSell);
+                let openValueID = 0;
+                let openValueUS = 0;
+        
+                openTrades.forEach((trade: any) => {
+                  const isUS = trade.market === 'US';
+                  const isMutualFund = trade.assetType === 'mutual_fund';
+                  const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
+                  const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
+        
+                  let positionValue = trade.buyPrice * shares;
+                  if (currentPrice > 0) {
+                    const unrealized = calculateUnrealizedPnL(trade.buyPrice, currentPrice, trade.lots, trade.buyFee, trade.market || 'ID', trade.assetType || 'stock');
+                    positionValue = (trade.buyPrice * shares) + unrealized.pnl;
+                  }
+        
+                  if (isUS) {
+                    openValueUS += positionValue;
+                  } else {
+                    openValueID += positionValue;
+                  }
+                });
+        
+                const portfolioTotalID = statsID.buyingPower + openValueID;
+                const portfolioTotalUS = statsUS.buyingPower + openValueUS;
+                const totalInvestValue = portfolioTotalID + (portfolioTotalUS * (settings.usdToIdrRate ?? 16200));
+
+                return (
+                  <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={checkedPortfolios[p.id] || false}
+                      onChange={e => setCheckedPortfolios(prev => ({ ...prev, [p.id]: e.target.checked }))}
+                    />
+                    <span>{p.name}</span>
+                    <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{formatRupiah(totalInvestValue)}</span>
+                  </label>
+                );
+              }) : (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Belum ada portofolio</div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={applySelectedAssets}>Terapkan</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAssetSelector(false)}>Batal</button>
+          </div>
+        </div>
+      )}
+
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Harga Emas Antam (per gram)</label>
@@ -1040,17 +1416,7 @@ function ZakatCalculator({ draft, setDraft }: CalcProps) {
           <CurrencyInput className="form-input" placeholder="5.000.000" value={gold} onChange={e => setGold(e.target.value)} />
         </div>
         <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>Investasi (Saham &amp; Reksadana)</span>
-            <button
-              type="button"
-              onClick={fillPortfolioFromJournal}
-              style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--accent-green-dim)', color: 'var(--accent-green)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: 4, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
-            >
-              <RotateCcw size={10} />
-              Pakai Saldo Jurnal
-            </button>
-          </label>
+          <label className="form-label">Investasi (Saham &amp; Reksadana)</label>
           <CurrencyInput className="form-input" placeholder="15.000.000" value={portfolio} onChange={e => setPortfolio(e.target.value)} />
         </div>
       </div>
@@ -1119,9 +1485,9 @@ export default function CalculatorPage() {
     }));
   };
 
-  const activeGroup = CALCULATOR_GROUPS.find((group) => group.tabs.includes(calculatorActiveTab as any)) || CALCULATOR_GROUPS[0];
+  const activeGroup = CALCULATOR_GROUPS.find((group) => (group.tabs as readonly string[]).includes(calculatorActiveTab)) || CALCULATOR_GROUPS[0];
   const activeTabMeta = TABS.find((tab) => tab.id === calculatorActiveTab) || TABS[0];
-  const activeGroupTabs = TABS.filter((tab) => activeGroup.tabs.includes(tab.id as any));
+  const activeGroupTabs = TABS.filter((tab) => (activeGroup.tabs as readonly string[]).includes(tab.id));
 
   return (
     <div>

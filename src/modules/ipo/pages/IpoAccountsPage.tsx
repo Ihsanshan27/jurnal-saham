@@ -37,6 +37,7 @@ export default function IpoAccountsPage() {
     updateIpoAccount,
     toggleIpoAccountActive,
     deleteIpoAccount,
+    reorderIpoAccounts,
     canWrite,
   } = useData();
   const { confirm } = useDialog();
@@ -47,6 +48,8 @@ export default function IpoAccountsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(createInitialForm());
   const [searchQuery, setSearchQuery] = useState('');
+  const [draggedAccountId, setDraggedAccountId] = useState<string | null>(null);
+  const [dragOverAccountId, setDragOverAccountId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
@@ -64,7 +67,7 @@ export default function IpoAccountsPage() {
       // ignore
     }
   }, [viewMode]);
-  const [sortField, setSortField] = useState<string>('name');
+  const [sortField, setSortField] = useState<string>('custom');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
     try {
@@ -109,12 +112,6 @@ export default function IpoAccountsPage() {
           linkedEntriesCount: linkedEntries.length,
           eventCount,
         };
-      })
-      .sort((left: any, right: any) => {
-        if ((left.isActive !== false) !== (right.isActive !== false)) {
-          return left.isActive === false ? 1 : -1;
-        }
-        return left.name.localeCompare(right.name, 'id', { sensitivity: 'base' });
       });
   }, [ipoAccounts, ipoEntries]);
 
@@ -201,10 +198,38 @@ export default function IpoAccountsPage() {
         case 'notes':
           comparison = (a.notes || '').localeCompare(b.notes || '', 'id', { sensitivity: 'base' });
           break;
+        case 'custom':
+        default:
+          comparison = 0; // retain original order
+          break;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
   }, [accountsWithStats, searchQuery, statusFilter, sortField, sortDirection]);
+
+  const moveAccountCard = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    
+    // Automatically switch to custom sort mode when dragging
+    if (sortField !== 'custom') {
+      setSortField('custom');
+    }
+
+    const visibleIds = filteredAccounts.map((a: any) => a.id);
+    const sourceIndex = visibleIds.indexOf(sourceId);
+    const targetIndex = visibleIds.indexOf(targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const nextVisibleIds = [...visibleIds];
+    const [movedId] = nextVisibleIds.splice(sourceIndex, 1);
+    nextVisibleIds.splice(targetIndex, 0, movedId);
+
+    const remainingIds = ipoAccounts
+      .map((a: any) => a.id)
+      .filter((id: string) => !nextVisibleIds.includes(id));
+
+    reorderIpoAccounts([...nextVisibleIds, ...remainingIds]);
+  };
 
   const selectedAccountsCount = selectedAccountIds.length;
 
@@ -577,6 +602,20 @@ export default function IpoAccountsPage() {
               </select>
             </div>
             <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label" htmlFor="ipo-account-sort">Urutkan</label>
+              <select
+                id="ipo-account-sort"
+                className="form-select"
+                value={sortField}
+                onChange={(event) => setSortField(event.target.value)}
+              >
+                <option value="custom">Kustom (Drag & Drop)</option>
+                <option value="name">Nama Akun</option>
+                <option value="balance">Saldo Tertinggi</option>
+                <option value="remainingBalance">Sisa Saldo Tertinggi</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Mode Tampilan</label>
               <div className="ipo-view-toggle" role="tablist" aria-label="Mode tampilan akun IPO">
                 <button
@@ -772,8 +811,32 @@ export default function IpoAccountsPage() {
               {filteredAccounts.map((account: any) => (
                 <article
                   key={account.id}
-                  className={`bento-card ipo-account-card card-mode ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''}`}
+                  className={`bento-card ipo-account-card card-mode ${selectedAccountIds.includes(account.id) ? 'is-selected' : ''} ${draggedAccountId === account.id ? 'is-dragging' : ''} ${dragOverAccountId === account.id ? 'is-drag-over' : ''}`}
                   style={{ borderLeft: account.isActive === false ? '4px solid var(--border-color)' : '4px solid var(--accent-green)' }}
+                  draggable={canWrite && sortField === 'custom'}
+                  onDragStart={() => {
+                    if (!canWrite || sortField !== 'custom') return;
+                    setDraggedAccountId(account.id);
+                    setDragOverAccountId(account.id);
+                  }}
+                  onDragOver={(e) => {
+                    if (!canWrite || sortField !== 'custom') return;
+                    e.preventDefault();
+                    if (draggedAccountId && draggedAccountId !== account.id) {
+                      setDragOverAccountId(account.id);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    if (!canWrite || sortField !== 'custom') return;
+                    e.preventDefault();
+                    moveAccountCard(draggedAccountId || '', account.id);
+                    setDraggedAccountId(null);
+                    setDragOverAccountId(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedAccountId(null);
+                    setDragOverAccountId(null);
+                  }}
                 >
                   <div className="ipo-list-head" style={{ marginBottom: 16 }}>
                     <div>
@@ -791,16 +854,28 @@ export default function IpoAccountsPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className={`ipo-account-select-checkbox ${selectedAccountIds.includes(account.id) ? 'checked' : ''}`}
-                      onClick={() => toggleSelectedAccount(account.id)}
-                      aria-pressed={selectedAccountIds.includes(account.id)}
-                      aria-label={`${selectedAccountIds.includes(account.id) ? 'Batalkan pilihan akun' : 'Pilih akun'} ${account.name}`}
-                      title={selectedAccountIds.includes(account.id) ? 'Batalkan pilihan' : 'Pilih akun'}
-                    >
-                      <Icons.Check size={14} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {canWrite && sortField === 'custom' && (
+                        <button
+                          type="button"
+                          className="ipo-drag-handle"
+                          title="Geser untuk mengatur posisi card"
+                          aria-label={`Geser posisi card IPO ${account.name}`}
+                        >
+                          <Icons.ArrowRightLeft size={14} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={`ipo-account-select-checkbox ${selectedAccountIds.includes(account.id) ? 'checked' : ''}`}
+                        onClick={() => toggleSelectedAccount(account.id)}
+                        aria-pressed={selectedAccountIds.includes(account.id)}
+                        aria-label={`${selectedAccountIds.includes(account.id) ? 'Batalkan pilihan akun' : 'Pilih akun'} ${account.name}`}
+                        title={selectedAccountIds.includes(account.id) ? 'Batalkan pilihan' : 'Pilih akun'}
+                      >
+                        <Icons.Check size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="ipo-profit-block" style={{ marginTop: 0, marginBottom: 16 }}>

@@ -128,6 +128,22 @@ export function buildIpoDomain({
     return updatedEvents;
   };
 
+  const reorderIpoAccounts = (orderedIds: string[]) => {
+    if (!ensureWritable()) return null;
+    const orderMap = new Map(orderedIds.map((itemId, index) => [itemId, index]));
+    const updatedAccounts = [...ipoAccounts].sort((left, right) => {
+      const leftIndex = orderMap.get(left.id);
+      const rightIndex = orderMap.get(right.id);
+      if (leftIndex == null && rightIndex == null) return 0;
+      if (leftIndex == null) return 1;
+      if (rightIndex == null) return -1;
+      return leftIndex - rightIndex;
+    });
+    saveIpoAccounts(updatedAccounts);
+    showToast('Urutan Master Akun IPO berhasil diperbarui');
+    return updatedAccounts;
+  };
+
   const addIpoEntry = (entry: Omit<IpoEntry, 'id' | 'createdAt' | 'buyPrice'> & { buyPrice?: number }) => {
     if (!ensureWritable()) return;
     const newEntry = normalizeIpoEntryBuyPrice({
@@ -359,5 +375,6 @@ export function buildIpoDomain({
     batchUpdateIpoEntries,
     toggleIpoAccountActive,
     reorderIpoEvents,
+    reorderIpoAccounts,
   };
 }
