@@ -34,7 +34,9 @@ export default function IpoSummaryPage() {
     let totalCapital = 0, totalReturn = 0, sellCount = 0, keepCount = 0;
     
     entries.forEach((e: any) => {
-      const shares = e.lots * 100;
+      const isZonk = e.allotmentStatus === 'NOT_ALLOTTED';
+      const effectiveLots = isZonk ? 0 : (Number(e.lots) || 0);
+      const shares = effectiveLots * 100;
       const buyPrice = event?.offeringPrice ?? e.buyPrice;
       const buy = buyPrice * shares;
       const sell = e.sellPrice > 0 ? e.sellPrice * shares : buy;
@@ -121,11 +123,15 @@ export default function IpoSummaryPage() {
       const linkedAccount = entry.ipoAccountId ? accountMap.get(entry.ipoAccountId) : null;
       const normalizedNameKey = (entry.accountName || linkedAccount?.name || '').trim().toLowerCase();
       const accountKey = entry.ipoAccountId || normalizedNameKey;
-      const lots = Number(entry.lots) || 0;
+      const isZonk = entry.allotmentStatus === 'NOT_ALLOTTED';
+      const lots = isZonk ? 0 : (Number(entry.lots) || 0);
+      const originalLots = Number(entry.lots) || 0;
       const simulatedLots = lots * allotmentRatio;
       const totalCapitalBase = (event.offeringPrice || entry.buyPrice || 0) * lots * 100;
       const simulatedCapital = (event.offeringPrice || entry.buyPrice || 0) * simulatedLots * 100;
-      const breakdownLabel = `${event.stockCode} (${formatLotValue(simulatedLots)} lot)`;
+      const breakdownLabel = isZonk 
+        ? `${event.stockCode} (Zonk - Pesan ${formatLotValue(originalLots)} lot)`
+        : `${event.stockCode} (${formatLotValue(simulatedLots)} lot)`;
 
       if (!groupedAccounts.has(accountKey)) {
         groupedAccounts.set(accountKey, {

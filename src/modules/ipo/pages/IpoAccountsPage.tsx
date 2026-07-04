@@ -111,7 +111,8 @@ export default function IpoAccountsPage() {
       const usedBalance = linkedEntries
         .filter((entry: any) => entry.isBought === true)
         .reduce((sum: number, entry: any) => {
-          const lots = Number(entry.lots) || 0;
+          const isZonk = entry.allotmentStatus === 'NOT_ALLOTTED';
+          const lots = isZonk ? 0 : (Number(entry.lots) || 0);
           const buyPrice = Number(entry.buyPrice) || 0;
           return sum + buyPrice * lots * 100;
         }, 0);

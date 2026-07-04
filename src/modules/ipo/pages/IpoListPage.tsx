@@ -359,7 +359,9 @@ export default function IpoListPage() {
          sellCount = 0,
          keepCount = 0;
       entries.forEach((e: any) => {
-         const shares = e.lots * 100;
+         const isZonk = e.allotmentStatus === 'NOT_ALLOTTED';
+         const effectiveLots = isZonk ? 0 : (Number(e.lots) || 0);
+         const shares = effectiveLots * 100;
          const buyPrice = event?.offeringPrice ?? e.buyPrice;
          const buy = buyPrice * shares;
          const sell = e.sellPrice > 0 ? e.sellPrice * shares : buy;

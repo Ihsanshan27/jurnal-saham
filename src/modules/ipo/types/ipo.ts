@@ -35,6 +35,7 @@ export interface IpoEntry {
   slTl: 'SL' | 'TL' | '-'; // Stop Loss / Take Limit / tidak ada
   action: 'SELL' | 'KEEP';
   isBought?: boolean;      // status apakah saham IPO sudah dibeli
+  allotmentStatus?: 'PENDING' | 'ALLOTTED' | 'NOT_ALLOTTED'; // status penjatahan
   notes?: string;
   createdAt: string;
 }

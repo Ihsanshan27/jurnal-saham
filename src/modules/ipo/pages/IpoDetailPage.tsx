@@ -46,6 +46,7 @@ const EMPTY_FORM = {
   slTl: '-' as '-' | 'SL' | 'TL',
   action: 'SELL' as 'SELL' | 'KEEP',
   isBought: false,
+  allotmentStatus: 'PENDING' as 'PENDING' | 'ALLOTTED' | 'NOT_ALLOTTED',
   notes: '',
 };
 
@@ -68,13 +69,16 @@ type SortKey =
   | 'accountName'
   | 'email'
   | 'isBought'
+  | 'allotmentStatus'
   | 'slTl'
   | 'action';
 
 type SortDirection = 'asc' | 'desc';
 
 function calcEntry(e: IpoEntry): IpoEntryCalc {
-  const shares = e.lots * 100;
+  const isZonk = e.allotmentStatus === 'NOT_ALLOTTED';
+  const effectiveLots = isZonk ? 0 : e.lots;
+  const shares = effectiveLots * 100;
   const totalBuy = e.buyPrice * shares;
   const totalSell = e.sellPrice > 0 ? e.sellPrice * shares : 0;
   const profitRp = totalSell > 0 ? totalSell - totalBuy : 0;
@@ -505,6 +509,7 @@ export default function IpoDetailPage() {
       slTl: form.slTl,
       action: form.action,
       isBought: form.isBought,
+      allotmentStatus: form.allotmentStatus,
       notes: form.notes,
     };
     if (editId) {
@@ -526,6 +531,7 @@ export default function IpoDetailPage() {
       slTl: entry.slTl,
       action: entry.action,
       isBought: entry.isBought ?? false,
+      allotmentStatus: entry.allotmentStatus ?? 'PENDING',
       notes: entry.notes || '',
     };
     setFormState(draft);
@@ -556,6 +562,7 @@ export default function IpoDetailPage() {
       slTl: entry.slTl,
       action: entry.action,
       isBought: entry.isBought,
+      allotmentStatus: entry.allotmentStatus,
       notes: entry.notes,
     });
   };
@@ -581,7 +588,7 @@ export default function IpoDetailPage() {
     const headers = [
       'No', 'Saham', 'Harga Beli', 'Total Lot', 'Total Harga (Rp)',
       'Harga Sekarang / Jual AVG', 'Total Nilai (Rp)', 'Profit (Rp)', 'Profit (%)',
-      'Akun', 'Email (Google)', 'Sudah Buy?', 'SL/TL', 'SELL/KEEP', 'Catatan'
+      'Akun', 'Email (Google)', 'Sudah Buy?', 'Penjatahan', 'SL/TL', 'SELL/KEEP', 'Catatan'
     ];
     const rows = sortedEntries.map(e => [
       e.no,
@@ -596,6 +603,7 @@ export default function IpoDetailPage() {
       e.accountName,
       e.email || '',
       e.isBought ? 'Sudah' : 'Belum',
+      e.allotmentStatus === 'ALLOTTED' ? 'Dapat' : e.allotmentStatus === 'NOT_ALLOTTED' ? 'Zonk' : 'Belum',
       e.slTl,
       e.action,
       e.notes || '',
@@ -617,8 +625,10 @@ export default function IpoDetailPage() {
   const previewLots = parseFloat(form.lots) || 0;
   const previewBuy = event?.offeringPrice || 0;
   const previewSell = parseFloat(form.sellPrice) || 0;
-  const previewTotalBuy = previewBuy * previewLots * 100;
-  const previewTotalSell = previewSell > 0 ? previewSell * previewLots * 100 : 0;
+  const isPreviewZonk = form.allotmentStatus === 'NOT_ALLOTTED';
+  const previewEffectiveLots = isPreviewZonk ? 0 : previewLots;
+  const previewTotalBuy = previewBuy * previewEffectiveLots * 100;
+  const previewTotalSell = previewSell > 0 ? previewSell * previewEffectiveLots * 100 : 0;
   const previewProfit = previewTotalSell - previewTotalBuy;
   const previewPct = previewTotalBuy > 0 && previewTotalSell > 0 ? (previewProfit / previewTotalBuy) * 100 : 0;
   const compactCellStyle = { padding: '10px 8px', fontSize: '0.8rem', verticalAlign: 'middle' } as const;
@@ -772,6 +782,19 @@ export default function IpoDetailPage() {
           >
             <option value="false">Belum Buy</option>
             <option value="true">Sudah Buy</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor={`ipo-allotment-${isInline ? 'inline' : 'main'}`}>Penjatahan</label>
+          <select
+            id={`ipo-allotment-${isInline ? 'inline' : 'main'}`}
+            className="form-select"
+            value={form.allotmentStatus || 'PENDING'}
+            onChange={e => set('allotmentStatus', e.target.value)}
+          >
+            <option value="PENDING">Belum Pengumuman</option>
+            <option value="ALLOTTED">Dapat (Allotment)</option>
+            <option value="NOT_ALLOTTED">Zonk (Not Allotment)</option>
           </select>
         </div>
         <div className="form-group">
@@ -1153,6 +1176,7 @@ export default function IpoDetailPage() {
                   <th style={{ ...compactHeaderStyle, width: 110 }}>{renderSortableHeader('Akun', 'accountName')}</th>
                   <th style={{ ...compactHeaderStyle, width: 140 }}>{renderSortableHeader('Email', 'email')}</th>
                   <th style={{ ...compactHeaderStyle, width: 92 }}>{renderSortableHeader('Buy?', 'isBought')}</th>
+                  <th style={{ ...compactHeaderStyle, width: 95 }}>{renderSortableHeader('Penjatahan', 'allotmentStatus')}</th>
                   <th style={{ ...compactHeaderStyle, width: 54 }}>{renderSortableHeader('SL/TL', 'slTl')}</th>
                   <th style={{ ...compactHeaderStyle, width: 88 }}>{renderSortableHeader('Status', 'action')}</th>
                   {canWrite && <th style={{ ...compactHeaderStyle, width: 132 }}>Tools</th>}
@@ -1232,6 +1256,11 @@ export default function IpoDetailPage() {
                           </span>
                         </td>
                         <td style={compactCellStyle}>
+                          <span className={`ipo-badge-pill ${entry.allotmentStatus === 'ALLOTTED' ? 'ipo-badge-buy bought' : entry.allotmentStatus === 'NOT_ALLOTTED' ? 'ipo-badge-buy not-bought' : 'ipo-badge-status'}`}>
+                            {entry.allotmentStatus === 'ALLOTTED' ? 'Dapat' : entry.allotmentStatus === 'NOT_ALLOTTED' ? 'Zonk' : 'Pending'}
+                          </span>
+                        </td>
+                        <td style={compactCellStyle}>
                           <span className={`ipo-badge-pill ipo-badge-sltl ${entry.slTl === 'SL' ? 'sl' : entry.slTl === 'TL' ? 'tl' : 'neutral'}`}>
                             {entry.slTl}
                           </span>
@@ -1300,7 +1329,7 @@ export default function IpoDetailPage() {
                       </tr>
                       {isEditingThisRow && canWrite && (
                         <tr>
-                          <td colSpan={canWrite ? 16 : 15} style={{ padding: 0, background: 'rgba(59, 130, 246, 0.04)' }}>
+                          <td colSpan={canWrite ? 17 : 16} style={{ padding: 0, background: 'rgba(59, 130, 246, 0.04)' }}>
                             <div style={{ padding: 16, borderTop: '1px solid var(--border-color)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: 'var(--accent-blue-light)' }}>
                                 <Icons.Edit3 size={15} />
@@ -1330,7 +1359,7 @@ export default function IpoDetailPage() {
                   <td className={`font-mono ${summary.avgReturnPct >= 0 ? 'text-profit' : 'text-loss'}`} style={{ fontWeight: 800 }}>
                     {summary.avgReturnPct >= 0 ? '+' : ''}{summary.avgReturnPct.toFixed(2)}%
                   </td>
-                  <td colSpan={canWrite ? 6 : 5}></td>
+                  <td colSpan={canWrite ? 7 : 6}></td>
                 </tr>
               </tfoot>
             </table>
