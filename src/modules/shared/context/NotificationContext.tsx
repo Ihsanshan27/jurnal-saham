@@ -27,6 +27,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     tradeEditDraft,
     getFinanceAccountCurrentBalance,
     usedLocalCacheFallback,
+    dataLoading,
   } = useData();
   const { role, can } = usePermissions();
   const [reportShares, setReportShares] = useState<any[]>([]);
@@ -147,6 +148,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [userId]);
 
   useEffect(() => {
+    if (dataLoading) return;
     const now = new Date();
     const nextMetaState = generatedNotifications.reduce<NotificationMetaState>((acc, notification) => {
       const existingMeta = metaState[notification.key];
