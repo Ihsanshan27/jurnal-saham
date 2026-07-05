@@ -33,6 +33,7 @@ export interface Trade {
   rating?: number;
   tags?: string[];
   notes?: string;
+  setupImageUrl?: string;
   portfolioId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -118,4 +119,27 @@ export interface AppSettings {
   behaviorMaxPositionSizePercent?: number;
   behaviorDoubleConfirmExit?: boolean;
   profileIncludedFinanceAccountIds?: string[];
+}
+
+export interface BsjpTrade {
+  id: string;
+  createdAt: string;
+  dateBuy: string;
+  stockCode: string;
+  lots: number;
+  buyPrice: number;
+  sellPrice?: number | null;
+  market: 'ID' | 'US';
+  sekuritas: string;
+  buyFee: number;
+  sellFee: number;
+  updatedAt?: string;
+}
+
+export interface TradingPlan {
+  id: string;
+  createdAt: string;
+  stockCode?: string;
+  market?: string;
+  [key: string]: any;
 }

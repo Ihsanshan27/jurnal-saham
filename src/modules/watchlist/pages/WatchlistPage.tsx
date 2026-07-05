@@ -229,7 +229,7 @@ export default function WatchlistPage() {
     }
   };
 
-  const handleStatusChange = (id: string, status: string) => {
+  const handleStatusChange = (id: string, status: 'waiting' | 'entered' | 'passed') => {
     updateWatchlistItem(id, { status });
   };
 
@@ -833,7 +833,7 @@ export default function WatchlistPage() {
                             className="form-select"
                             style={{ width: 130, padding: '4px 10px', fontSize: '0.8rem' }}
                             value={item.status}
-                            onChange={e => handleStatusChange(item.id, e.target.value)}
+                            onChange={e => handleStatusChange(item.id, e.target.value as 'waiting' | 'entered' | 'passed')}
                           >
                             {WATCHLIST_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                           </select>

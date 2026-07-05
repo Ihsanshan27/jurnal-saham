@@ -58,6 +58,7 @@ export default function NewTradePage() {
       rating: 0,
       tags: plan ? 'rencana-trading' : '',
       notes: '',
+      setupImageUrl: '',
       portfolioId: plan?.portfolioId || activePortfolioId || 'default',
     };
 

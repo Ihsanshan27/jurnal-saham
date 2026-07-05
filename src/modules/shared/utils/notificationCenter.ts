@@ -88,7 +88,7 @@ type FinanceTransactionLike = {
   transferGroupId?: string;
 };
 
-type ReportShareLike = {
+export type ReportShareLike = {
   id: string;
   title: string;
   is_active: boolean;

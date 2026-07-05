@@ -3,13 +3,49 @@ import { useAuth } from '@/modules/auth/AuthContext';
 import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import { getScopedItem, setScopedItem } from '@/modules/shared/utils/storage';
-import { buildNotificationItems, isNotificationExpired, type NotificationItem } from '@/modules/shared/utils/notificationCenter';
+import { buildNotificationItems, isNotificationExpired, type NotificationItem, type ReportShareLike } from '@/modules/shared/utils/notificationCenter';
 import { listReportShares } from '@/modules/shared/services/reportShareService';
 import { isSupabaseConfigured } from '@/modules/shared/services/supabaseClient';
 
-const NotificationContext = createContext<any>(null);
+export interface NotificationWithReadStatus extends NotificationItem {
+  isRead: boolean;
+}
+
+export interface NotificationContextType {
+  notifications: NotificationWithReadStatus[];
+  unreadCount: number;
+  markAsRead: (notification: NotificationItem) => void;
+  markAllAsRead: () => void;
+}
+
+const STORAGE_KEY_READS = 'notification_reads';
+const STORAGE_KEY_META = 'notification_meta';
+const STORAGE_KEY_LAST_ROLE = 'notification_last_role';
+
+const NotificationContext = createContext<NotificationContextType | null>(null);
+
 type NotificationReadState = Record<string, string>;
 type NotificationMetaState = Record<string, { fingerprint: string; firstSeenAt: string }>;
+
+function isMetaEqual(a: NotificationMetaState, b: NotificationMetaState) {
+  const keysA = Object.keys(a);
+  if (keysA.length !== Object.keys(b).length) return false;
+  for (const key of keysA) {
+    const valA = a[key];
+    const valB = b[key];
+    if (!valB || valA.fingerprint !== valB.fingerprint || valA.firstSeenAt !== valB.firstSeenAt) return false;
+  }
+  return true;
+}
+
+function isReadEqual(a: NotificationReadState, b: NotificationReadState) {
+  const keysA = Object.keys(a);
+  if (keysA.length !== Object.keys(b).length) return false;
+  for (const key of keysA) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -30,12 +66,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     dataLoading,
   } = useData();
   const { role, can } = usePermissions();
-  const [reportShares, setReportShares] = useState<any[]>([]);
+  const [reportShares, setReportShares] = useState<ReportShareLike[]>([]);
   const [readState, setReadState] = useState<NotificationReadState>(() => (
-    userId ? getScopedItem('notification_reads', userId) || {} : {}
+    userId ? getScopedItem(STORAGE_KEY_READS, userId) || {} : {}
   ));
   const [metaState, setMetaState] = useState<NotificationMetaState>(() => (
-    userId ? getScopedItem('notification_meta', userId) || {} : {}
+    userId ? getScopedItem(STORAGE_KEY_META, userId) || {} : {}
   ));
 
   useEffect(() => {
@@ -44,8 +80,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setMetaState({});
       return;
     }
-    setReadState(getScopedItem('notification_reads', userId) || {});
-    setMetaState(getScopedItem('notification_meta', userId) || {});
+    setReadState(getScopedItem(STORAGE_KEY_READS, userId) || {});
+    setMetaState(getScopedItem(STORAGE_KEY_META, userId) || {});
   }, [userId]);
 
   useEffect(() => {
@@ -55,13 +91,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
 
     let cancelled = false;
-    listReportShares(userId)
-      .then((rows) => {
+
+    const fetchShares = async () => {
+      try {
+        const rows = await listReportShares(userId);
         if (!cancelled) setReportShares(rows || []);
-      })
-      .catch(() => {
+      } catch (error) {
         if (!cancelled) setReportShares([]);
-      });
+      }
+    };
+
+    fetchShares();
 
     return () => {
       cancelled = true;
@@ -70,7 +110,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const roleChangeNotification = useMemo(() => {
     if (!userId || !role) return null;
-    const previousRole = getScopedItem('notification_last_role', userId) || role;
+    const previousRole = getScopedItem(STORAGE_KEY_LAST_ROLE, userId) || role;
     if (previousRole === role) return null;
     return {
       key: `workspace-role-changed:${previousRole}:${role}`,
@@ -90,9 +130,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (!userId || !role) return;
-    const storedRole = getScopedItem('notification_last_role', userId);
+    const storedRole = getScopedItem(STORAGE_KEY_LAST_ROLE, userId);
     if (!storedRole) {
-      setScopedItem('notification_last_role', userId, role);
+      setScopedItem(STORAGE_KEY_LAST_ROLE, userId, role);
     }
   }, [role, userId]);
 
@@ -136,14 +176,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const persistReadState = useCallback((nextState: NotificationReadState) => {
     setReadState(nextState);
     if (userId) {
-      setScopedItem('notification_reads', userId, nextState);
+      setScopedItem(STORAGE_KEY_READS, userId, nextState);
     }
   }, [userId]);
 
   const persistMetaState = useCallback((nextState: NotificationMetaState) => {
     setMetaState(nextState);
     if (userId) {
-      setScopedItem('notification_meta', userId, nextState);
+      setScopedItem(STORAGE_KEY_META, userId, nextState);
     }
   }, [userId]);
 
@@ -162,7 +202,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       return acc;
     }, {});
 
-    const metaChanged = JSON.stringify(nextMetaState) !== JSON.stringify(metaState);
+    const metaChanged = !isMetaEqual(nextMetaState, metaState);
     if (metaChanged) {
       persistMetaState(nextMetaState);
     }
@@ -181,7 +221,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       return acc;
     }, {});
 
-    const readChanged = JSON.stringify(nextReadState) !== JSON.stringify(readState);
+    const readChanged = !isReadEqual(nextReadState, readState);
     if (readChanged) {
       persistReadState(nextReadState);
     }
@@ -194,7 +234,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
     persistReadState(nextState);
     if (userId && notification.typeId === 'workspace-role-changed') {
-      setScopedItem('notification_last_role', userId, role);
+      setScopedItem(STORAGE_KEY_LAST_ROLE, userId, role);
     }
   }, [persistReadState, readState, role, userId]);
 
@@ -205,7 +245,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }, { ...readState });
     persistReadState(nextState);
     if (userId && role) {
-      setScopedItem('notification_last_role', userId, role);
+      setScopedItem(STORAGE_KEY_LAST_ROLE, userId, role);
     }
   }, [generatedNotifications, persistReadState, readState, role, userId]);
 

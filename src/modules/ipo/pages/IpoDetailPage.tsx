@@ -539,7 +539,6 @@ export default function IpoDetailPage() {
     setEditDraftId(entry.id);
     sessionStorage.removeItem(OPEN_KEY);
     setShowFormState(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleToggleForm = () => {

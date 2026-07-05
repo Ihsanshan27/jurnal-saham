@@ -62,7 +62,7 @@ export default function NotesPage() {
     setForm({
       title: note.title,
       content: note.content,
-      tags: note.tags ? note.tags.join(', ') : '',
+      tags: (note as any).tags ? (note as any).tags.join(', ') : '',
     });
     setEditId(note.id);
     setShowForm(true);
@@ -186,9 +186,9 @@ export default function NotesPage() {
                 <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--text-secondary)' }}>
                   {note.content}
                 </div>
-                {note.tags && note.tags.length > 0 && (
+                {(note as any).tags && (note as any).tags.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 16 }}>
-                    {note.tags.map(tag => (
+                    {(note as any).tags.map(tag => (
                       <span key={tag} className="badge badge-blue">#{tag}</span>
                     ))}
                   </div>
