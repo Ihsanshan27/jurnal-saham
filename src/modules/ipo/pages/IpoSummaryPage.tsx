@@ -36,6 +36,7 @@ export default function IpoSummaryPage() {
     
     entries.forEach((e: any) => {
       const isZonk = e.allotmentStatus === 'NOT_ALLOTTED';
+      const isAllotted = e.allotmentStatus === 'ALLOTTED';
       const effectiveLots = isZonk ? 0 : (Number(e.lots) || 0);
       const shares = effectiveLots * 100;
       const buyPrice = event?.offeringPrice ?? e.buyPrice;
@@ -46,7 +47,7 @@ export default function IpoSummaryPage() {
       totalCapital += buy;
       totalReturn += profit;
       
-      if (!isZonk) {
+      if (isAllotted) {
         allottedAccountCount++;
         if (e.action === 'SELL') sellCount++;
         else keepCount++;

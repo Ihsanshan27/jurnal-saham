@@ -6,6 +6,7 @@ import { useDialog } from "@/modules/shared/context/DialogContext";
 import CurrencyInput from "@/modules/shared/components/CurrencyInput";
 import { usePrivacyStyle } from "@/modules/shared/hooks/usePrivacyStyle";
 import { formatDate, formatRupiah } from "@/modules/shared/utils/formatters";
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import "@/modules/ipo/ipo.css";
 import "@/modules/ipo/ipo-neobrutalism.css";
 
@@ -586,17 +587,17 @@ export default function IpoAccountsPage() {
                 <label className="form-label" htmlFor="ipo-master-active">
                   Status
                 </label>
-                <select
+                <CustomSelect
                   id="ipo-master-active"
-                  className="form-select"
                   value={form.isActive ? "active" : "inactive"}
-                  onChange={(event) =>
-                    setValue("isActive", event.target.value === "active")
+                  onChange={(value) =>
+                    setValue("isActive", value === "active")
                   }
-                >
-                  <option value="active">Aktif</option>
-                  <option value="inactive">Nonaktif</option>
-                </select>
+                  options={[
+                    { value: "active", label: "Aktif" },
+                    { value: "inactive", label: "Nonaktif" }
+                  ]}
+                />
               </div>
             </div>
 
@@ -745,34 +746,34 @@ export default function IpoAccountsPage() {
               <label className="form-label" htmlFor="ipo-account-status-filter">
                 Filter Status
               </label>
-              <select
+              <CustomSelect
                 id="ipo-account-status-filter"
-                className="form-select"
                 value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(event.target.value as StatusFilter)
+                onChange={(value) =>
+                  setStatusFilter(value as StatusFilter)
                 }
-              >
-                <option value="all">Semua</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Nonaktif</option>
-              </select>
+                options={[
+                  { value: "all", label: "Semua" },
+                  { value: "active", label: "Aktif" },
+                  { value: "inactive", label: "Nonaktif" }
+                ]}
+              />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" htmlFor="ipo-account-sort">
                 Urutkan
               </label>
-              <select
+              <CustomSelect
                 id="ipo-account-sort"
-                className="form-select"
                 value={sortField}
-                onChange={(event) => setSortField(event.target.value)}
-              >
-                <option value="custom">Kustom (Drag & Drop)</option>
-                <option value="name">Nama Akun</option>
-                <option value="balance">Saldo Tertinggi</option>
-                <option value="remainingBalance">Sisa Saldo Tertinggi</option>
-              </select>
+                onChange={(value) => setSortField(value)}
+                options={[
+                  { value: "custom", label: "Kustom (Drag & Drop)" },
+                  { value: "name", label: "Nama Akun" },
+                  { value: "balance", label: "Saldo Tertinggi" },
+                  { value: "remainingBalance", label: "Sisa Saldo Tertinggi" }
+                ]}
+              />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Mode Tampilan</label>

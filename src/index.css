@@ -132,6 +132,19 @@
   background: #2c2c2e;
 }
 
+[data-theme='dark'] input[type="date"].form-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+[data-theme='dark'] input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+[data-theme='dark'] .form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23aeaeb2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
 /* ---- Reset & Base ---- */
 *,
 *::before,
@@ -622,46 +635,87 @@ img {
 
 .form-input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-input:hover {
+  border-color: var(--border-color-hover);
 }
 
 .form-input:focus {
   background: var(--bg-input-focus);
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px var(--accent-blue-dim);
+  box-shadow: 0 0 0 4px var(--accent-blue-dim), var(--shadow-sm);
+  outline: none;
 }
 
 .form-input::placeholder {
   color: var(--text-muted);
+  font-weight: 400;
 }
 
+/* Premium Date Picker Styling */
+input[type="date"].form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  cursor: text;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity var(--transition-fast);
+  position: absolute;
+  right: 14px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Premium Select Styling */
 .form-select {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 16px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   transition: all var(--transition-fast);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394A3B8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding-right: 42px;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-select:hover {
+  border-color: var(--border-color-hover);
+  background-color: var(--bg-card-hover);
 }
 
 .form-select:focus {
   background-color: var(--bg-input-focus);
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px var(--accent-blue-dim);
+  box-shadow: 0 0 0 4px var(--accent-blue-dim), var(--shadow-sm);
+  outline: none;
 }
 
 .form-textarea {

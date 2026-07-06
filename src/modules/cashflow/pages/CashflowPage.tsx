@@ -7,6 +7,9 @@ import { calculatePortfolioBalance } from '@/modules/trades/calculations';
 import { formatRupiah, formatUSD, formatDate } from '@/modules/shared/utils/formatters';
 import { Coins, Plus, X, Trash2, Save, ArrowDownLeft, ArrowUpRight, Pencil } from 'lucide-react';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 
 export default function CashflowPage() {
   const {
@@ -206,10 +209,14 @@ export default function CashflowPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Jenis Transaksi</label>
-                  <select className="form-select" value={form.type} onChange={e => set('type', e.target.value)}>
-                    <option value="deposit">Deposit (Top-up)</option>
-                    <option value="withdraw">Withdraw (Penarikan)</option>
-                  </select>
+                  <CustomSelect
+                    value={form.type}
+                    onChange={(value) => set('type', value)}
+                    options={[
+                      { value: 'deposit', label: 'Deposit (Top-up)' },
+                      { value: 'withdraw', label: 'Withdraw (Penarikan)' }
+                    ]}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Jumlah ({isUS ? 'USD' : 'IDR'}) *</label>
@@ -224,7 +231,10 @@ export default function CashflowPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Tanggal *</label>
-                  <input type="date" className="form-input" value={form.date} onChange={e => set('date', e.target.value)} />
+                  <CustomDatePicker
+                    value={form.date}
+                    onChange={(date) => set('date', format(date, 'yyyy-MM-dd'))}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Catatan</label>

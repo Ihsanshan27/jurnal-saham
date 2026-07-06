@@ -7,6 +7,9 @@ import { formatRupiah, formatDate } from "@/modules/shared/utils/formatters";
 import type { IpoEvent, IpoSummary } from "@/modules/ipo/types/ipo";
 import { getIpoEventStatus, getIpoOfferingStartDate, getIpoOfferingEndDate, parseDateOnly } from "@/modules/ipo/utils/ipoStatus";
 import * as Icons from "lucide-react";
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 import "@/modules/ipo/ipo.css";
 
 const DRAFT_KEY = "ipo_list_form_draft";
@@ -469,40 +472,40 @@ export default function IpoListPage() {
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-target-board">Papan Pencatatan</label>
-                  <select
+                  <CustomSelect
                      id="ipo-list-target-board"
-                     className="form-input"
                      value={form.targetBoard}
-                     onChange={(e) => set("targetBoard", e.target.value)}
-                  >
-                     <option value="Utama">Utama</option>
-                     <option value="Pengembangan">Pengembangan</option>
-                     <option value="Akselerasi">Akselerasi</option>
-                     <option value="Ekonomi Baru">Ekonomi Baru</option>
-                  </select>
+                     onChange={(value) => set("targetBoard", value)}
+                     options={[
+                        { value: "Utama", label: "Utama" },
+                        { value: "Pengembangan", label: "Pengembangan" },
+                        { value: "Akselerasi", label: "Akselerasi" },
+                        { value: "Ekonomi Baru", label: "Ekonomi Baru" }
+                     ]}
+                  />
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-sector">Sektor Industri</label>
-                  <select
+                  <CustomSelect
                      id="ipo-list-sector"
-                     className="form-input"
                      value={form.sector}
-                     onChange={(e) => set("sector", e.target.value)}
-                  >
-                     <option value="">-- Pilih Sektor --</option>
-                     <option value="Energi">Energi</option>
-                     <option value="Barang Baku">Barang Baku</option>
-                     <option value="Industri">Industri</option>
-                     <option value="Barang Konsumen Primer">Barang Konsumen Primer</option>
-                     <option value="Barang Konsumen Non-Primer">Barang Konsumen Non-Primer</option>
-                     <option value="Kesehatan">Kesehatan</option>
-                     <option value="Keuangan">Keuangan</option>
-                     <option value="Properti & Real Estat">Properti & Real Estat</option>
-                     <option value="Teknologi">Teknologi</option>
-                     <option value="Infrastruktur">Infrastruktur</option>
-                     <option value="Transportasi & Logistik">Transportasi & Logistik</option>
-                     <option value="Lainnya">Lainnya</option>
-                  </select>
+                     onChange={(value) => set("sector", value)}
+                     options={[
+                        { value: "", label: "-- Pilih Sektor --" },
+                        { value: "Energi", label: "Energi" },
+                        { value: "Barang Baku", label: "Barang Baku" },
+                        { value: "Industri", label: "Industri" },
+                        { value: "Barang Konsumen Primer", label: "Barang Konsumen Primer" },
+                        { value: "Barang Konsumen Non-Primer", label: "Barang Konsumen Non-Primer" },
+                        { value: "Kesehatan", label: "Kesehatan" },
+                        { value: "Keuangan", label: "Keuangan" },
+                        { value: "Properti & Real Estat", label: "Properti & Real Estat" },
+                        { value: "Teknologi", label: "Teknologi" },
+                        { value: "Infrastruktur", label: "Infrastruktur" },
+                        { value: "Transportasi & Logistik", label: "Transportasi & Logistik" },
+                        { value: "Lainnya", label: "Lainnya" }
+                     ]}
+                  />
                </div>
             </div>
          </div>
@@ -561,12 +564,9 @@ export default function IpoListPage() {
             <div className={`form-row ${mode === "modal" ? "ipo-grid-2" : "ipo-grid-4"}`}>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-bb-start">Bookbuilding Mulai</label>
-                  <input
-                     id="ipo-list-bb-start"
-                     type="date"
-                     className={`form-input${formErrors.bookbuildingStartDate ? " input-error" : ""}`}
+                  <CustomDatePicker
                      value={form.bookbuildingStartDate}
-                     onChange={(e) => { set("bookbuildingStartDate", e.target.value); setFormErrors(p => ({ ...p, bookbuildingStartDate: "" })); }}
+                     onChange={(date) => { set("bookbuildingStartDate", format(date, 'yyyy-MM-dd')); setFormErrors(p => ({ ...p, bookbuildingStartDate: "" })); }}
                   />
                   {formErrors.bookbuildingStartDate && (
                      <div className="ipo-field-error"><Icons.AlertCircle size={12} />{formErrors.bookbuildingStartDate}</div>
@@ -574,22 +574,16 @@ export default function IpoListPage() {
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-bb-end">Bookbuilding Selesai</label>
-                  <input
-                     id="ipo-list-bb-end"
-                     type="date"
-                     className="form-input"
+                  <CustomDatePicker
                      value={form.bookbuildingEndDate}
-                     onChange={(e) => set("bookbuildingEndDate", e.target.value)}
+                     onChange={(date) => set("bookbuildingEndDate", format(date, 'yyyy-MM-dd'))}
                   />
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-offering-date">Tanggal Penawaran</label>
-                  <input
-                     id="ipo-list-offering-date"
-                     type="date"
-                     className={`form-input${formErrors.offeringDate ? " input-error" : ""}`}
+                  <CustomDatePicker
                      value={form.offeringDate}
-                     onChange={(e) => { set("offeringDate", e.target.value); setFormErrors(p => ({ ...p, offeringDate: "" })); }}
+                     onChange={(date) => { set("offeringDate", format(date, 'yyyy-MM-dd')); setFormErrors(p => ({ ...p, offeringDate: "" })); }}
                   />
                   {formErrors.offeringDate && (
                      <div className="ipo-field-error"><Icons.AlertCircle size={12} />{formErrors.offeringDate}</div>
@@ -597,42 +591,30 @@ export default function IpoListPage() {
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-allotment-date">Tanggal Penjatahan (Allotment)</label>
-                  <input
-                     id="ipo-list-allotment-date"
-                     type="date"
-                     className="form-input"
+                  <CustomDatePicker
                      value={form.allotmentDate}
-                     onChange={(e) => set("allotmentDate", e.target.value)}
+                     onChange={(date) => set("allotmentDate", format(date, 'yyyy-MM-dd'))}
                   />
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-refund-date">Tanggal Refund</label>
-                  <input
-                     id="ipo-list-refund-date"
-                     type="date"
-                     className="form-input"
+                  <CustomDatePicker
                      value={form.refundDate}
-                     onChange={(e) => set("refundDate", e.target.value)}
+                     onChange={(date) => set("refundDate", format(date, 'yyyy-MM-dd'))}
                   />
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-distribution-date">Tanggal Distribusi Saham</label>
-                  <input
-                     id="ipo-list-distribution-date"
-                     type="date"
-                     className="form-input"
+                  <CustomDatePicker
                      value={form.distributionDate}
-                     onChange={(e) => set("distributionDate", e.target.value)}
+                     onChange={(date) => set("distributionDate", format(date, 'yyyy-MM-dd'))}
                   />
                </div>
                <div className="form-group">
                   <label className="form-label" htmlFor="ipo-list-ipo-date">Tanggal Listing / IPO *</label>
-                  <input
-                     id="ipo-list-ipo-date"
-                     type="date"
-                     className={`form-input${formErrors.ipoDate ? " input-error" : ""}`}
+                  <CustomDatePicker
                      value={form.ipoDate}
-                     onChange={(e) => { set("ipoDate", e.target.value); setFormErrors(p => ({ ...p, ipoDate: "" })); }}
+                     onChange={(date) => { set("ipoDate", format(date, 'yyyy-MM-dd')); setFormErrors(p => ({ ...p, ipoDate: "" })); }}
                   />
                   {formErrors.ipoDate && (
                      <div className="ipo-field-error"><Icons.AlertCircle size={12} />{formErrors.ipoDate}</div>
@@ -745,46 +727,38 @@ export default function IpoListPage() {
                </div>
                <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.72rem' }}>Status</label>
-                  <select
-                     className="form-input"
+                  <CustomSelect
                      value={statusFilter}
-                     onChange={(e) => setStatusFilter(e.target.value)}
-                  >
-                     <option value="all">Semua Status</option>
-                     <option value="active">Active</option>
-                     <option value="upcoming">Upcoming</option>
-                     <option value="completed">Completed</option>
-                  </select>
+                     onChange={(value) => setStatusFilter(value)}
+                     options={[
+                        { value: "all", label: "Semua Status" },
+                        { value: "active", label: "Active" },
+                        { value: "upcoming", label: "Upcoming" },
+                        { value: "completed", label: "Completed" }
+                     ]}
+                  />
                </div>
                <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.72rem' }}>Underwriter</label>
-                  <select
-                     className="form-input"
+                  <CustomSelect
                      value={underwriterFilter}
-                     onChange={(e) => setUnderwriterFilter(e.target.value)}
-                  >
-                     <option value="all">Semua Underwriter</option>
-                     {uniqueUnderwriters.map((uw) => (
-                        <option key={uw} value={uw}>
-                           {uw}
-                        </option>
-                     ))}
-                  </select>
+                     onChange={(value) => setUnderwriterFilter(value)}
+                     options={[
+                        { value: "all", label: "Semua Underwriter" },
+                        ...uniqueUnderwriters.map((uw) => ({ value: uw, label: uw }))
+                     ]}
+                  />
                </div>
                <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label" style={{ fontSize: '0.72rem' }}>Tahun</label>
-                  <select
-                     className="form-input"
+                  <CustomSelect
                      value={yearFilter}
-                     onChange={(e) => setYearFilter(e.target.value)}
-                  >
-                     <option value="all">Semua Tahun</option>
-                     {uniqueYears.map((yr) => (
-                        <option key={yr} value={yr}>
-                           {yr}
-                        </option>
-                     ))}
-                  </select>
+                     onChange={(value) => setYearFilter(value)}
+                     options={[
+                        { value: "all", label: "Semua Tahun" },
+                        ...uniqueYears.map((yr) => ({ value: yr, label: yr }))
+                     ]}
+                  />
                </div>
             </div>
          )}

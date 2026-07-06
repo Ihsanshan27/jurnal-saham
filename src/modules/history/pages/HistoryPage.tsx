@@ -11,8 +11,11 @@ import {
 } from 'recharts';
 import MarketTabBar from '@/modules/shared/components/MarketTabBar';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
+import { format } from 'date-fns';
 import { calculateTradePnL } from '@/modules/trades/calculations';
 import { getTradeQuantityLabel } from '@/modules/trades/calculations';
 import { formatCompactNumber, formatDate, formatPercent, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
@@ -537,35 +540,20 @@ export default function HistoryPage() {
               <h3 className="card-title">Trade Summary</h3>
               <div className="history-filter-row">
                 <label className="sr-only" htmlFor="history-range-select">Pilih periode trade summary</label>
-                <select
-                  id="history-range-select"
-                  title="Pilih periode trade summary"
-                  aria-label="Pilih periode trade summary"
-                  className="form-select history-range-select"
+                <CustomSelect
                   value={selectedRangeKey}
-                  onChange={(event) => setSelectedRangeKey(event.target.value as RangeKey)}
-                >
-                  {rangeSummaries.map((range) => (
-                    <option key={range.key} value={range.key}>{range.label}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setSelectedRangeKey(value as RangeKey)}
+                  options={rangeSummaries.map((range) => ({ value: range.key, label: range.label }))}
+                />
                 {isCustomRangeSelected && (
                   <>
-                    <input
-                      type="date"
-                      title="Tanggal mulai custom trade summary"
-                      aria-label="Tanggal mulai custom trade summary"
-                      className="form-input history-date-input"
+                    <CustomDatePicker
                       value={customStartDate}
-                      onChange={(event) => setCustomStartDate(event.target.value)}
+                      onChange={(date) => setCustomStartDate(format(date, 'yyyy-MM-dd'))}
                     />
-                    <input
-                      type="date"
-                      title="Tanggal akhir custom trade summary"
-                      aria-label="Tanggal akhir custom trade summary"
-                      className="form-input history-date-input"
+                    <CustomDatePicker
                       value={customEndDate}
-                      onChange={(event) => setCustomEndDate(event.target.value)}
+                      onChange={(date) => setCustomEndDate(format(date, 'yyyy-MM-dd'))}
                     />
                   </>
                 )}

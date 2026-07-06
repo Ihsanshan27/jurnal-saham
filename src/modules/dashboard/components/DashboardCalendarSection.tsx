@@ -1,5 +1,6 @@
 import * as Icons from 'lucide-react';
 import type { ClosedDashboardTrade, DashboardCalendarDay } from '@/modules/dashboard/types/dashboard';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 type DashboardCalendarSectionProps = {
   calendarDays: Array<DashboardCalendarDay | null>;
@@ -58,37 +59,25 @@ export default function DashboardCalendarSection({
           <label className="sr-only" htmlFor="dashboard-calendar-month">
             Pilih bulan kalender performa
           </label>
-          <select
-            id="dashboard-calendar-month"
-            className="form-select dashboard-calendar-month-input"
-            aria-label="Pilih bulan kalender performa"
-            title="Pilih bulan kalender performa"
+          <CustomSelect
             value={String(calendarMonth.getMonth() + 1)}
-            onChange={(event) => setCalendarMonth(new Date(calendarMonth.getFullYear(), Number(event.target.value) - 1, 1))}
-          >
-            {Array.from({ length: 12 }, (_, index) => (
-              <option key={index + 1} value={index + 1}>
-                {new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(2026, index, 1))}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setCalendarMonth(new Date(calendarMonth.getFullYear(), Number(value) - 1, 1))}
+            options={Array.from({ length: 12 }, (_, index) => ({
+              value: String(index + 1),
+              label: new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(2026, index, 1))
+            }))}
+          />
           <label className="sr-only" htmlFor="dashboard-calendar-year">
             Pilih tahun kalender performa
           </label>
-          <select
-            id="dashboard-calendar-year"
-            className="form-select dashboard-calendar-year-input"
-            aria-label="Pilih tahun kalender performa"
-            title="Pilih tahun kalender performa"
-            value={calendarMonth.getFullYear()}
-            onChange={(event) => setCalendarMonth(new Date(Number(event.target.value), calendarMonth.getMonth(), 1))}
-          >
-            {calendarYearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
+          <CustomSelect
+            value={String(calendarMonth.getFullYear())}
+            onChange={(value) => setCalendarMonth(new Date(Number(value), calendarMonth.getMonth(), 1))}
+            options={calendarYearOptions.map((year) => ({
+              value: String(year),
+              label: String(year)
+            }))}
+          />
           <button
             type="button"
             className="btn btn-secondary btn-sm dashboard-calendar-nav-btn"

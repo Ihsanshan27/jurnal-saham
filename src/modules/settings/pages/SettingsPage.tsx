@@ -10,6 +10,9 @@ import { isSupabaseConfigured } from '@/modules/shared/services/supabaseClient';
 import { formatDateTime, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import SelectionToggleCard from '@/modules/shared/components/SelectionToggleCard';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 import {
   Brain,
   Database,
@@ -566,9 +569,11 @@ export default function SettingsPage() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label className="form-label">Preset Broker Indonesia (IDR)</label>
-                  <select className="form-select" value={form.selectedBrokerID || 'Custom'} onChange={e => handleBrokerIDChange(e.target.value)}>
-                    {BROKERS_ID.map((broker) => <option key={broker.name} value={broker.name}>{broker.name}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.selectedBrokerID || 'Custom'}
+                    onChange={(value) => handleBrokerIDChange(value)}
+                    options={BROKERS_ID.map(broker => ({ value: broker.name, label: broker.name }))}
+                  />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -585,9 +590,11 @@ export default function SettingsPage() {
               <SectionCard title="Pengaturan Trading Amerika" description="Atur modal dan broker default untuk transaksi USD." actionLabel="Simpan Pengaturan US" onAction={handleSaveSettings}>
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label className="form-label">Preset Broker Amerika (USD)</label>
-                  <select className="form-select" value={form.selectedBrokerUS || 'Custom'} onChange={e => handleBrokerUSChange(e.target.value)}>
-                    {BROKERS_US.map((broker) => <option key={broker.name} value={broker.name}>{broker.name}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.selectedBrokerUS || 'Custom'}
+                    onChange={(value) => handleBrokerUSChange(value)}
+                    options={BROKERS_US.map(broker => ({ value: broker.name, label: broker.name }))}
+                  />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -630,11 +637,15 @@ export default function SettingsPage() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Tema Aplikasi</label>
-                    <select className="form-select" value={form.themePreference || 'system'} onChange={e => handleThemePreferenceChange(e.target.value as any)}>
-                      <option value="system">Ikuti Sistem</option>
-                      <option value="light">Light Mode</option>
-                      <option value="dark">Dark Mode</option>
-                    </select>
+                    <CustomSelect
+                      value={form.themePreference || 'system'}
+                      onChange={(value) => handleThemePreferenceChange(value as any)}
+                      options={[
+                        { value: 'system', label: 'Ikuti Sistem' },
+                        { value: 'light', label: 'Light Mode' },
+                        { value: 'dark', label: 'Dark Mode' }
+                      ]}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Mode Privasi Nominal</label>
@@ -834,41 +845,34 @@ export default function SettingsPage() {
                     <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">Pilih User</label>
-                        <select
-                          className="form-select"
+                        <CustomSelect
                           value={shareForm.granteeId}
-                          onChange={(event) => setShareForm((prev) => ({ ...prev, granteeId: event.target.value }))}
-                        >
-                          <option value="">Pilih mentor / viewer</option>
-                          {allProfiles
-                            .filter((item) => item.role === 'mentor' || item.role === 'viewer' || item.role === 'admin')
-                            .map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.displayName} ({item.role})
-                              </option>
-                            ))}
-                        </select>
+                          onChange={(value) => setShareForm(prev => ({ ...prev, granteeId: value }))}
+                          options={[
+                            { value: '', label: 'Pilih mentor / viewer' },
+                            ...allProfiles
+                              .filter((item) => item.role === 'mentor' || item.role === 'viewer' || item.role === 'admin')
+                              .map((item) => ({
+                                value: item.id,
+                                label: `${item.displayName} (${item.role})`
+                              }))
+                          ]}
+                        />
                       </div>
                       <div className="form-group">
                         <label className="form-label">Level Akses</label>
-                        <select
-                          className="form-select"
+                        <CustomSelect
                           value={shareForm.accessLevel}
-                          onChange={(event) => setShareForm((prev) => ({ ...prev, accessLevel: event.target.value }))}
-                        >
-                          {ACCESS_LEVELS.map((level) => (
-                            <option key={level} value={level}>{ACCESS_LABELS[level] || level}</option>
-                          ))}
-                        </select>
+                          onChange={(value) => setShareForm(prev => ({ ...prev, accessLevel: value }))}
+                          options={ACCESS_LEVELS.map(level => ({ value: level, label: ACCESS_LABELS[level] || level }))}
+                        />
                       </div>
                     </div>
                     <div className="form-group">
                       <label className="form-label">Tanggal Berakhir Akses (opsional)</label>
-                      <input
-                        type="date"
-                        className="form-input"
+                      <CustomDatePicker
                         value={shareForm.expiresAt}
-                        onChange={(event) => setShareForm((prev) => ({ ...prev, expiresAt: event.target.value }))}
+                        onChange={(date) => setShareForm(prev => ({ ...prev, expiresAt: format(date, 'yyyy-MM-dd') }))}
                       />
                     </div>
                     <button

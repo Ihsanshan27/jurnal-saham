@@ -4,6 +4,7 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import { useWorkspace } from '@/modules/shared/context/WorkspaceContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { listProfiles } from '@/modules/shared/services/profileService';
 import { createAuditLog } from '@/modules/admin/services/auditLogService';
@@ -258,52 +259,45 @@ export default function AdminWorkspacesPage() {
             <form onSubmit={handleInviteMember}>
               <div className="form-group">
                 <label className="form-label" htmlFor="workspace-select">Workspace</label>
-                <select
-                  id="workspace-select"
-                  className="form-select"
-                  aria-label="Pilih workspace"
+                <CustomSelect
                   value={activeWorkspaceId}
-                  onChange={event => handleWorkspaceChange(event.target.value)}
-                >
-                  <option value="">Pilih workspace</option>
-                  {workspaceList.map(workspace => (
-                    <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
-                  ))}
-                </select>
+                  onChange={(value) => handleWorkspaceChange(value)}
+                  options={[
+                    { value: '', label: 'Pilih workspace' },
+                    ...workspaceList.map((workspace) => ({
+                      value: workspace.id,
+                      label: workspace.name
+                    }))
+                  ]}
+                />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="workspace-user-select">User</label>
-                <select
-                  id="workspace-user-select"
-                  className="form-select"
-                  aria-label="Pilih user untuk workspace"
+                <CustomSelect
                   value={memberInviteForm.userId}
-                  onChange={event => setMemberInviteForm(previousForm => ({ ...previousForm, userId: event.target.value }))}
-                  disabled={!activeWorkspaceId}
-                >
-                  <option value="">
-                    {inviteableProfiles.length === 0 ? 'Semua user sudah menjadi member' : 'Pilih user'}
-                  </option>
-                  {inviteableProfiles.map(profile => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.displayName} ({profile.email || 'tanpa email'})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setMemberInviteForm(previousForm => ({ ...previousForm, userId: value }))}
+                  options={[
+                    {
+                      value: '',
+                      label: inviteableProfiles.length === 0 ? 'Semua user sudah menjadi member' : 'Pilih user'
+                    },
+                    ...inviteableProfiles.map(profile => ({
+                      value: profile.id,
+                      label: `${profile.displayName} (${profile.email || 'tanpa email'})`
+                    }))
+                  ]}
+                />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="workspace-role-select">Role Workspace</label>
-                <select
-                  id="workspace-role-select"
-                  className="form-select"
-                  aria-label="Pilih role workspace"
+                <CustomSelect
                   value={memberInviteForm.role}
-                  onChange={event => setMemberInviteForm(previousForm => ({ ...previousForm, role: event.target.value }))}
-                >
-                  {WORKSPACE_ROLES.map(role => (
-                    <option key={role} value={role}>{ROLE_LABELS[role]}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setMemberInviteForm(previousForm => ({ ...previousForm, role: value }))}
+                  options={WORKSPACE_ROLES.map((role) => ({
+                    value: role,
+                    label: ROLE_LABELS[role]
+                  }))}
+                />
               </div>
               <button
                 className="btn btn-primary"

@@ -5,6 +5,9 @@ import SortableTableHeader from '@/modules/shared/components/SortableTableHeader
 import { calculateTradePnL, calculateUnrealizedPnL } from '@/modules/trades/calculations';
 import { formatRupiah, formatUSD, formatPercent, formatDate } from '@/modules/shared/utils/formatters';
 import * as Icons from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 
 export default function BsjpRecapPage() {
   const { 
@@ -423,55 +426,52 @@ export default function BsjpRecapPage() {
       {/* Filter and Sort Bar */}
       <div className="filter-bar" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
         {/* Year Filter */}
-        <select 
-          className="form-select" 
-          style={{ width: 140 }} 
-          value={filterYear} 
-          onChange={e => { setFilterYear(e.target.value); setPage(1); }}
-        >
-          <option value="">Semua Tahun</option>
-          {availableYears.map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+        <div style={{ width: 140 }}>
+          <CustomSelect 
+            value={filterYear} 
+            onChange={value => { setFilterYear(value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Tahun' },
+              ...availableYears.map(y => ({ value: y, label: y }))
+            ]}
+          />
+        </div>
 
         {/* Month Filter */}
-        <select 
-          className="form-select" 
-          style={{ width: 150 }} 
-          value={filterMonth} 
-          onChange={e => { setFilterMonth(e.target.value); setPage(1); }}
-        >
-          <option value="">Semua Bulan</option>
-          {monthNames.map(m => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
+        <div style={{ width: 150 }}>
+          <CustomSelect 
+            value={filterMonth} 
+            onChange={value => { setFilterMonth(value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Bulan' },
+              ...monthNames.map(m => ({ value: m.value, label: m.label }))
+            ]}
+          />
+        </div>
 
         {/* Specific Date Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Tanggal Beli:</label>
-          <input 
-            type="date" 
-            className="form-input" 
-            style={{ width: 160, padding: '8px 12px' }} 
-            value={filterDate} 
-            onChange={e => { setFilterDate(e.target.value); setPage(1); }}
-          />
+          <div style={{ width: 160 }}>
+            <CustomDatePicker 
+              value={filterDate} 
+              onChange={date => { setFilterDate(format(date, 'yyyy-MM-dd')); setPage(1); }}
+              placeholder="Tanggal Beli"
+            />
+          </div>
         </div>
 
         {/* Broker Filter */}
-        <select 
-          className="form-select" 
-          style={{ width: 160 }} 
-          value={filterBroker} 
-          onChange={e => { setFilterBroker(e.target.value); setPage(1); }}
-        >
-          <option value="">Semua Sekuritas</option>
-          {availableBrokers.map(b => (
-            <option key={b} value={b}>{b}</option>
-          ))}
-        </select>
+        <div style={{ width: 160 }}>
+          <CustomSelect 
+            value={filterBroker} 
+            onChange={value => { setFilterBroker(value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Sekuritas' },
+              ...availableBrokers.map(b => ({ value: b, label: b }))
+            ]}
+          />
+        </div>
 
         {/* Clear Filter Button */}
         {(filterYear || filterMonth || filterDate || filterBroker) && (
@@ -639,30 +639,26 @@ export default function BsjpRecapPage() {
                 <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Pasar</label>
-                    <select 
-                      className="form-select" 
+                    <CustomSelect 
                       value={form.market} 
-                      onChange={e => {
-                        const m = e.target.value;
+                      onChange={value => {
                         setForm(prev => ({
                           ...prev,
-                          market: m,
-                          sekuritas: m === 'US' ? (settings.selectedBrokerUS || 'Custom') : (settings.selectedBrokerID || 'Custom')
+                          market: value,
+                          sekuritas: value === 'US' ? (settings.selectedBrokerUS || 'Custom') : (settings.selectedBrokerID || 'Custom')
                         }));
                       }}
-                    >
-                      <option value="ID">Indonesia (IDR)</option>
-                      <option value="US">Amerika (USD)</option>
-                    </select>
+                      options={[
+                        { value: 'ID', label: 'Indonesia (IDR)' },
+                        { value: 'US', label: 'Amerika (USD)' }
+                      ]}
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Tanggal Beli</label>
-                    <input 
-                      type="date" 
-                      className="form-input" 
+                    <CustomDatePicker 
                       value={form.dateBuy} 
-                      onChange={e => setForm(prev => ({ ...prev, dateBuy: e.target.value }))}
-                      required 
+                      onChange={date => setForm(prev => ({ ...prev, dateBuy: format(date, 'yyyy-MM-dd') }))}
                     />
                   </div>
                 </div>

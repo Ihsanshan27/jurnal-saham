@@ -7,6 +7,7 @@ import SortableTableHeader from '@/modules/shared/components/SortableTableHeader
 import { formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import * as Icons from 'lucide-react';
 
 export default function TradingPlansPage() {
@@ -200,10 +201,14 @@ export default function TradingPlansPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Pasar</label>
-                  <select className="form-select" value={form.market} onChange={e => set('market', e.target.value)}>
-                    <option value="ID">Pasar Indonesia (Rp)</option>
-                    <option value="US">Pasar Amerika ($)</option>
-                  </select>
+                  <CustomSelect
+                    value={form.market}
+                    onChange={(value) => set('market', value)}
+                    options={[
+                      { value: 'ID', label: 'Pasar Indonesia (Rp)' },
+                      { value: 'US', label: 'Pasar Amerika ($)' }
+                    ]}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Kode Saham *</label>
@@ -217,9 +222,11 @@ export default function TradingPlansPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Pilih Dompet / Portofolio</label>
-                  <select className="form-select" value={form.portfolioId} onChange={e => set('portfolioId', e.target.value)}>
-                    {portfolios.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.portfolioId}
+                    onChange={(value) => set('portfolioId', value)}
+                    options={portfolios.map((p) => ({ value: p.id, label: p.name }))}
+                  />
                 </div>
               </div>
 

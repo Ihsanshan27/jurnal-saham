@@ -8,6 +8,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/modules/auth/AuthContext';
 import TradeReviewPanel from '@/modules/trades/components/TradeReviewPanel';
 import * as Icons from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 
 export default function TradeDetailPage() {
   const { id } = useParams();
@@ -155,7 +158,7 @@ export default function TradeDetailPage() {
         <div className="floating-form-actions">
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-primary" style={{ minWidth: 180 }} onClick={handleSave}>Simpan Perubahan</button>
-            <button className="btn btn-secondary" onClick={handleCancelEdit}>Batal</button>
+            <button type="button" className="btn btn-secondary" onClick={handleCancelEdit}>Batal</button>
           </div>
         </div>
       ) : null}
@@ -172,9 +175,11 @@ export default function TradeDetailPage() {
                 <>
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label className="form-label">Portofolio</label>
-                    <select className="form-select" value={form.portfolioId || 'default'} onChange={e => set('portfolioId', e.target.value)}>
-                      {portfolios.map((portfolio) => <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>)}
-                    </select>
+                    <CustomSelect 
+                      value={form.portfolioId || 'default'} 
+                      onChange={value => set('portfolioId', value)}
+                      options={portfolios.map((p: any) => ({ value: p.id, label: p.name }))}
+                    />
                   </div>
 
                   <div className="form-row">
@@ -190,11 +195,17 @@ export default function TradeDetailPage() {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">Tgl Beli</label>
-                      <input type="date" className="form-input" value={form.dateBuy} onChange={e => set('dateBuy', e.target.value)} />
+                      <CustomDatePicker 
+                        value={form.dateBuy} 
+                        onChange={date => set('dateBuy', format(date, 'yyyy-MM-dd'))} 
+                      />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Tgl Jual</label>
-                      <input type="date" className="form-input" value={form.dateSell || ''} onChange={e => set('dateSell', e.target.value)} />
+                      <CustomDatePicker 
+                        value={form.dateSell || ''} 
+                        onChange={date => set('dateSell', format(date, 'yyyy-MM-dd'))} 
+                      />
                     </div>
                   </div>
                   <div className="form-row">
@@ -210,17 +221,25 @@ export default function TradeDetailPage() {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">Strategi</label>
-                      <select className="form-select" value={form.strategy || ''} onChange={e => set('strategy', e.target.value)}>
-                        <option value="">Pilih strategi...</option>
-                        {strategiesList.map((strategy) => <option key={strategy} value={strategy}>{strategy}</option>)}
-                      </select>
+                      <CustomSelect 
+                        value={form.strategy || ''} 
+                        onChange={value => set('strategy', value)}
+                        options={[
+                          { value: '', label: 'Pilih strategi...' },
+                          ...strategiesList.map((s: string) => ({ value: s, label: s }))
+                        ]}
+                      />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Emosi</label>
-                      <select className="form-select" value={form.emotion || ''} onChange={e => set('emotion', e.target.value)}>
-                        <option value="">Pilih emosi...</option>
-                        {emotionsList.map((emotionItem) => <option key={emotionItem.value} value={emotionItem.value}>{emotionItem.label}</option>)}
-                      </select>
+                      <CustomSelect 
+                        value={form.emotion || ''} 
+                        onChange={value => set('emotion', value)}
+                        options={[
+                          { value: '', label: 'Pilih emosi...' },
+                          ...emotionsList.map((e: any) => ({ value: e.value, label: e.label }))
+                        ]}
+                      />
                       {form.emotion && ['fearful', 'greedy', 'revenge', 'doubtful', 'fomo'].includes(form.emotion) && (settings.behaviorNegativeEmotionWarning || settings.behaviorBlockNegativeEmotion) ? (
                         <div style={{
                           marginTop: 6,
@@ -470,7 +489,7 @@ export default function TradeDetailPage() {
       {editing ? (
         <div className="mobile-sticky-actions">
           <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={handleSave}>Simpan Perubahan</button>
-          <button className="btn btn-secondary btn-lg" onClick={handleCancelEdit}>Batal</button>
+          <button type="button" className="btn btn-secondary btn-lg" onClick={handleCancelEdit}>Batal</button>
         </div>
       ) : null}
 

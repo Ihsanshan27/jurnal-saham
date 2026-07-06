@@ -6,6 +6,9 @@ import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { formatRupiah, formatUSD, formatDate } from '@/modules/shared/utils/formatters';
 import { Coins, Plus, X, Trash2, Save, TrendingUp, Sparkles } from 'lucide-react';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 
 export default function DividendPage() {
   const { dividends, addDividend, deleteDividend, trades, dividendFormDraft, setDividendFormDraft } = useData();
@@ -191,12 +194,17 @@ export default function DividendPage() {
               <h3 style={{ margin: 0 }}>Catat Dividen {isUS ? 'Pasar US' : 'Pasar ID'}</h3>
 
               {portfolioStocks.length > 0 && (
-                <select className="form-select" style={{ width: 'auto', minWidth: 200 }} onChange={handleSelectPortfolio} defaultValue="">
-                  <option value="">Isi otomatis dari Portfolio...</option>
-                  {portfolioStocks.map(s => (
-                    <option key={s.code} value={s.code}>{s.code} ({s.shares.toLocaleString(isUS ? 'en-US' : 'id-ID')} lbr)</option>
-                  ))}
-                </select>
+                <CustomSelect
+                  value=""
+                  onChange={(value) => handleSelectPortfolio({ target: { value } })}
+                  options={[
+                    { value: "", label: "Isi otomatis dari Portfolio..." },
+                    ...portfolioStocks.map(s => ({
+                      value: s.code,
+                      label: `${s.code} (${s.shares.toLocaleString(isUS ? 'en-US' : 'id-ID')} lbr)`
+                    }))
+                  ]}
+                />
               )}
             </div>
 
@@ -231,11 +239,17 @@ export default function DividendPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Cum Date</label>
-                  <input type="date" className="form-input" value={form.cumDate} onChange={e => set('cumDate', e.target.value)} />
+                  <CustomDatePicker
+                    value={form.cumDate}
+                    onChange={(date) => set('cumDate', format(date, 'yyyy-MM-dd'))}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Pay Date (Tgl Cair)</label>
-                  <input type="date" className="form-input" value={form.payDate} onChange={e => set('payDate', e.target.value)} />
+                  <CustomDatePicker
+                    value={form.payDate}
+                    onChange={(date) => set('payDate', format(date, 'yyyy-MM-dd'))}
+                  />
                 </div>
               </div>
 

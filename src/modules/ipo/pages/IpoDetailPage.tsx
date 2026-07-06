@@ -7,6 +7,9 @@ import { formatRupiah, formatDate } from '@/modules/shared/utils/formatters';
 import type { IpoEntry, IpoEntryCalc } from '@/modules/ipo/types/ipo';
 import { getIpoEventStatus, getIpoOfferingStartDate, parseDateOnly } from '@/modules/ipo/utils/ipoStatus';
 import * as Icons from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 import '@/modules/ipo/ipo.css';
 
 const SLTL_OPTIONS = ['-', 'SL', 'TL'] as const;
@@ -656,19 +659,18 @@ export default function IpoDetailPage() {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label" htmlFor={`ipo-master-account-${isInline ? 'inline' : 'main'}`}>Pilih Master Akun</label>
-          <select
+          <CustomSelect
             id={`ipo-master-account-${isInline ? 'inline' : 'main'}`}
-            className="form-select"
             value={form.ipoAccountId}
-            onChange={e => setSelectedIpoAccount(e.target.value)}
-          >
-            <option value="">-- Input manual / pilih nanti --</option>
-            {knownIpoAccounts.map((account: any) => (
-              <option key={account.id} value={account.id}>
-                {account.name}{account.isActive === false ? ' (Nonaktif)' : ''}{account.email ? ` • ${account.email}` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setSelectedIpoAccount(value)}
+            options={[
+              { value: "", label: "-- Input manual / pilih nanti --" },
+              ...knownIpoAccounts.map((account: any) => ({
+                value: account.id,
+                label: `${account.name}${account.isActive === false ? ' (Nonaktif)' : ''}${account.email ? ` • ${account.email}` : ''}`
+              }))
+            ]}
+          />
         </div>
         <div className="form-group" style={{ display: 'flex', alignItems: 'end' }}>
           <div className="ipo-flex-wrap">
@@ -759,42 +761,48 @@ export default function IpoDetailPage() {
         </div>
         <div className="form-group">
           <label className="form-label" htmlFor={`ipo-sl-tl-${isInline ? 'inline' : 'main'}`}>SL / TL</label>
-          <select id={`ipo-sl-tl-${isInline ? 'inline' : 'main'}`} className="form-select" value={form.slTl} onChange={e => set('slTl', e.target.value)}>
-            {SLTL_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
+          <CustomSelect
+            id={`ipo-sl-tl-${isInline ? 'inline' : 'main'}`}
+            value={form.slTl}
+            onChange={(value) => set('slTl', value)}
+            options={SLTL_OPTIONS.map(o => ({ value: o, label: o }))}
+          />
         </div>
       </div>
       <div className="form-row">
         <div className="form-group">
           <label className="form-label" htmlFor={`ipo-action-${isInline ? 'inline' : 'main'}`}>Aksi</label>
-          <select id={`ipo-action-${isInline ? 'inline' : 'main'}`} className="form-select" value={form.action} onChange={e => setAction(e.target.value as 'SELL' | 'KEEP')}>
-            {ACTION_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
+          <CustomSelect
+            id={`ipo-action-${isInline ? 'inline' : 'main'}`}
+            value={form.action}
+            onChange={(value) => setAction(value as 'SELL' | 'KEEP')}
+            options={ACTION_OPTIONS.map(o => ({ value: o, label: o }))}
+          />
         </div>
         <div className="form-group">
           <label className="form-label" htmlFor={`ipo-is-bought-${isInline ? 'inline' : 'main'}`}>Status Buy</label>
-          <select
+          <CustomSelect
             id={`ipo-is-bought-${isInline ? 'inline' : 'main'}`}
-            className="form-select"
             value={form.isBought ? 'true' : 'false'}
-            onChange={e => setIsBought(e.target.value === 'true')}
-          >
-            <option value="false">Belum Buy</option>
-            <option value="true">Sudah Buy</option>
-          </select>
+            onChange={(value) => setIsBought(value === 'true')}
+            options={[
+              { value: 'false', label: 'Belum Buy' },
+              { value: 'true', label: 'Sudah Buy' }
+            ]}
+          />
         </div>
         <div className="form-group">
           <label className="form-label" htmlFor={`ipo-allotment-${isInline ? 'inline' : 'main'}`}>Penjatahan</label>
-          <select
+          <CustomSelect
             id={`ipo-allotment-${isInline ? 'inline' : 'main'}`}
-            className="form-select"
             value={form.allotmentStatus || 'PENDING'}
-            onChange={e => set('allotmentStatus', e.target.value)}
-          >
-            <option value="PENDING">Belum Pengumuman</option>
-            <option value="ALLOTTED">Dapat (Allotment)</option>
-            <option value="NOT_ALLOTTED">Zonk (Not Allotment)</option>
-          </select>
+            onChange={(value) => set('allotmentStatus', value)}
+            options={[
+              { value: 'PENDING', label: 'Belum Pengumuman' },
+              { value: 'ALLOTTED', label: 'Dapat (Allotment)' },
+              { value: 'NOT_ALLOTTED', label: 'Zonk (Not Allotment)' }
+            ]}
+          />
         </div>
         <div className="form-group">
           <label className="form-label" htmlFor={`ipo-notes-${isInline ? 'inline' : 'main'}`}>Catatan</label>
@@ -1502,40 +1510,40 @@ export default function IpoDetailPage() {
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-target-board">Papan Pencatatan</label>
-                         <select
+                         <CustomSelect
                             id="ipo-event-target-board"
-                            className="form-input"
                             value={eventForm.targetBoard}
-                            onChange={e => setEventForm(prev => ({ ...prev, targetBoard: e.target.value }))}
-                         >
-                            <option value="Utama">Utama</option>
-                            <option value="Pengembangan">Pengembangan</option>
-                            <option value="Akselerasi">Akselerasi</option>
-                            <option value="Ekonomi Baru">Ekonomi Baru</option>
-                         </select>
+                            onChange={(value) => setEventForm(prev => ({ ...prev, targetBoard: value }))}
+                            options={[
+                               { value: "Utama", label: "Utama" },
+                               { value: "Pengembangan", label: "Pengembangan" },
+                               { value: "Akselerasi", label: "Akselerasi" },
+                               { value: "Ekonomi Baru", label: "Ekonomi Baru" }
+                            ]}
+                         />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-sector">Sektor Industri</label>
-                         <select
+                         <CustomSelect
                             id="ipo-event-sector"
-                            className="form-input"
                             value={eventForm.sector}
-                            onChange={e => setEventForm(prev => ({ ...prev, sector: e.target.value }))}
-                         >
-                            <option value="">-- Pilih Sektor --</option>
-                            <option value="Energi">Energi</option>
-                            <option value="Barang Baku">Barang Baku</option>
-                            <option value="Industri">Industri</option>
-                            <option value="Barang Konsumen Primer">Barang Konsumen Primer</option>
-                            <option value="Barang Konsumen Non-Primer">Barang Konsumen Non-Primer</option>
-                            <option value="Kesehatan">Kesehatan</option>
-                            <option value="Keuangan">Keuangan</option>
-                            <option value="Properti & Real Estat">Properti & Real Estat</option>
-                            <option value="Teknologi">Teknologi</option>
-                            <option value="Infrastruktur">Infrastruktur</option>
-                            <option value="Transportasi & Logistik">Transportasi & Logistik</option>
-                            <option value="Lainnya">Lainnya</option>
-                         </select>
+                            onChange={(value) => setEventForm(prev => ({ ...prev, sector: value }))}
+                            options={[
+                               { value: "", label: "-- Pilih Sektor --" },
+                               { value: "Energi", label: "Energi" },
+                               { value: "Barang Baku", label: "Barang Baku" },
+                               { value: "Industri", label: "Industri" },
+                               { value: "Barang Konsumen Primer", label: "Barang Konsumen Primer" },
+                               { value: "Barang Konsumen Non-Primer", label: "Barang Konsumen Non-Primer" },
+                               { value: "Kesehatan", label: "Kesehatan" },
+                               { value: "Keuangan", label: "Keuangan" },
+                               { value: "Properti & Real Estat", label: "Properti & Real Estat" },
+                               { value: "Teknologi", label: "Teknologi" },
+                               { value: "Infrastruktur", label: "Infrastruktur" },
+                               { value: "Transportasi & Logistik", label: "Transportasi & Logistik" },
+                               { value: "Lainnya", label: "Lainnya" }
+                            ]}
+                         />
                       </div>
                    </div>
                 </div>
@@ -1589,83 +1597,58 @@ export default function IpoDetailPage() {
                    <div className="form-row ipo-grid-2">
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-bb-start">Bookbuilding Mulai</label>
-                         <input
-                            id="ipo-event-bb-start"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.bookbuildingStartDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, bookbuildingStartDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, bookbuildingStartDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-bb-end">Bookbuilding Selesai</label>
-                         <input
-                            id="ipo-event-bb-end"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.bookbuildingEndDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, bookbuildingEndDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, bookbuildingEndDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-offering-start-date">Tanggal Mulai Penawaran</label>
-                         <input
-                            id="ipo-event-offering-start-date"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.offeringStartDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, offeringStartDate: e.target.value, offeringDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, offeringStartDate: format(date, 'yyyy-MM-dd'), offeringDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-offering-end-date">Tanggal Akhir Penawaran</label>
-                         <input
-                            id="ipo-event-offering-end-date"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.offeringEndDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, offeringEndDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, offeringEndDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-allotment-date">Tanggal Penjatahan (Allotment)</label>
-                         <input
-                            id="ipo-event-allotment-date"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.allotmentDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, allotmentDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, allotmentDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-refund-date">Tanggal Refund</label>
-                         <input
-                            id="ipo-event-refund-date"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.refundDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, refundDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, refundDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-distribution-date">Tanggal Distribusi Saham</label>
-                         <input
-                            id="ipo-event-distribution-date"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.distributionDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, distributionDate: e.target.value }))}
+                            onChange={(date) => setEventForm(prev => ({ ...prev, distributionDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                       <div className="form-group">
                          <label className="form-label" htmlFor="ipo-event-ipo-date">Tanggal Listing / IPO *</label>
-                         <input
-                            id="ipo-event-ipo-date"
-                            type="date"
-                            className="form-input"
+                         <CustomDatePicker
                             value={eventForm.ipoDate}
-                            onChange={e => setEventForm(prev => ({ ...prev, ipoDate: e.target.value }))}
-                            required
+                            onChange={(date) => setEventForm(prev => ({ ...prev, ipoDate: format(date, 'yyyy-MM-dd') }))}
                          />
                       </div>
                    </div>

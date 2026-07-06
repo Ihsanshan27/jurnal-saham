@@ -6,6 +6,7 @@ import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { WATCHLIST_STATUS, WATCHLIST_PRIORITY } from '@/modules/shared/utils/constants';
 import { formatRupiah, formatDate, formatPercent } from '@/modules/shared/utils/formatters';
 import { Eye, Plus, X, Trash2, Save, TrendingUp, TrendingDown, Edit3 } from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import { fetchQuotesBatch, fetchStockOHLCV } from '@/modules/shared/services/yahooFinanceService';
 import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
 import { calculateIndicators, isMacdGoldenCross, isEmaGoldenCross, getLatestEmaValues } from '@/modules/shared/utils/technicalIndicators';
@@ -493,21 +494,27 @@ export default function WatchlistPage() {
               <div className="form-row" style={{ marginTop: 12 }}>
                 <div className="form-group">
                   <label className="form-label">Prioritas</label>
-                  <select className="form-select" value={form.priority} onChange={e => set('priority', e.target.value)}>
-                    {WATCHLIST_PRIORITY.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.priority}
+                    onChange={value => set('priority', value)}
+                    options={WATCHLIST_PRIORITY}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Status</label>
-                  <select className="form-select" value={form.status} onChange={e => set('status', e.target.value)}>
-                    {WATCHLIST_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.status}
+                    onChange={value => set('status', value)}
+                    options={WATCHLIST_STATUS}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Rekomendasi Manual</label>
-                  <select className="form-select" value={form.manualRecommendation} onChange={e => set('manualRecommendation', e.target.value)}>
-                    {MANUAL_RECOMMENDATIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.manualRecommendation}
+                    onChange={value => set('manualRecommendation', value)}
+                    options={MANUAL_RECOMMENDATIONS}
+                  />
                 </div>
               </div>
               <div className="form-group" style={{ marginBottom: 12 }}>
@@ -829,14 +836,11 @@ export default function WatchlistPage() {
                         <td style={{ maxWidth: 200, fontSize: '0.8rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.reason}>{item.reason || '-'}</td>
                         <td><span className={`badge badge-${priority?.color || 'blue'}`}>{priority?.label || item.priority}</span></td>
                         <td>
-                          <select
-                            className="form-select"
-                            style={{ width: 130, padding: '4px 10px', fontSize: '0.8rem' }}
+                          <CustomSelect
                             value={item.status}
-                            onChange={e => handleStatusChange(item.id, e.target.value as 'waiting' | 'entered' | 'passed')}
-                          >
-                            {WATCHLIST_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                          </select>
+                            onChange={value => handleStatusChange(item.id, value as 'waiting' | 'entered' | 'passed')}
+                            options={WATCHLIST_STATUS}
+                          />
                         </td>
                         <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatDate(item.createdAt)}</td>
                         <td>

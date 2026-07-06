@@ -9,6 +9,7 @@ import { calculateTradePnL, calculateUnrealizedPnL, getTradeAssetTypeLabel, getT
 import { formatRupiah, formatUSD, formatPercent, formatDate } from '@/modules/shared/utils/formatters';
 import { STRATEGIES, EMOTIONS } from '@/modules/shared/utils/constants';
 import * as Icons from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 export default function TradesPage() {
   const { trades, deleteTrade, deleteTrades, updateTrades, marketPrices, settings, addTrade, fetchLivePrices, showToast } = useData();
@@ -259,20 +260,38 @@ export default function TradesPage() {
           <span className="search-bar-icon"><Icons.Search size={16} /></span>
           <input placeholder="Cari kode saham..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <select className="form-select" style={{ width: 160 }} value={filterStrategy} onChange={e => { setFilterStrategy(e.target.value); setPage(1); }}>
-          <option value="">Semua Strategi</option>
-          {(settings.customStrategies || STRATEGIES).map((s: string) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select className="form-select" style={{ width: 140 }} value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
-          <option value="">Semua Status</option>
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select className="form-select" style={{ width: 140 }} value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="dateBuy">Sort: Tanggal</option>
-          <option value="stockCode">Sort: Kode</option>
-          <option value="pnl">Sort: P/L</option>
-        </select>
+        <div style={{ width: 160 }}>
+          <CustomSelect 
+            value={filterStrategy} 
+            onChange={value => { setFilterStrategy(value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Strategi' },
+              ...(settings.customStrategies || STRATEGIES).map((s: string) => ({ value: s, label: s }))
+            ]}
+          />
+        </div>
+        <div style={{ width: 140 }}>
+          <CustomSelect 
+            value={filterStatus} 
+            onChange={value => { setFilterStatus(value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Status' },
+              { value: 'open', label: 'Open' },
+              { value: 'closed', label: 'Closed' }
+            ]}
+          />
+        </div>
+        <div style={{ width: 140 }}>
+          <CustomSelect 
+            value={sortBy} 
+            onChange={value => setSortBy(value)}
+            options={[
+              { value: 'dateBuy', label: 'Sort: Tanggal' },
+              { value: 'stockCode', label: 'Sort: Kode' },
+              { value: 'pnl', label: 'Sort: P/L' }
+            ]}
+          />
+        </div>
         <button className="btn btn-ghost btn-sm" onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}>
           {sortDir === 'desc' ? '↓' : '↑'}
         </button>
@@ -506,17 +525,15 @@ export default function TradesPage() {
               {bulkModalType === 'strategy' ? (
                 <div className="form-group">
                   <label className="form-label" htmlFor="bulk-strategy-select">Pilih Strategi</label>
-                  <select
+                  <CustomSelect
                     id="bulk-strategy-select"
-                    className="form-select"
                     value={bulkStrategy}
-                    onChange={e => setBulkStrategy(e.target.value)}
-                  >
-                    <option value="">Kosongkan / Tanpa Strategi</option>
-                    {(settings.customStrategies || STRATEGIES).map((s: string) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    onChange={value => setBulkStrategy(value)}
+                    options={[
+                      { value: '', label: 'Kosongkan / Tanpa Strategi' },
+                      ...(settings.customStrategies || STRATEGIES).map((s: string) => ({ value: s, label: s }))
+                    ]}
+                  />
                 </div>
               ) : (
                 <div className="form-group">
@@ -535,7 +552,7 @@ export default function TradesPage() {
               )}
             </div>
             <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button className="btn btn-secondary" onClick={() => setBulkModalType(null)}>Batal</button>
+              <button type="button" className="btn btn-secondary" onClick={() => setBulkModalType(null)}>Batal</button>
               <button
                 className="btn btn-primary"
                 onClick={bulkModalType === 'strategy' ? handleSaveBulkStrategy : handleSaveBulkTags}

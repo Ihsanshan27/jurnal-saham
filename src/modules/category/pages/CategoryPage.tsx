@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { EMITEN_DATA, SECTORS, SECTOR_META, getTickersBySector } from '@/modules/shared/utils/commodityData';
 import { fetchQuotesBatch } from '@/modules/shared/services/yahooFinanceService';
 import { TrendingUp, TrendingDown, Loader2, RefreshCw, Layers, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 interface QuoteData {
     ticker: string;
@@ -287,15 +288,14 @@ const CategoryPage = () => {
                         />
                         <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                     </div>
-                    <select
+                    <CustomSelect
                         value={sortBy}
-                        onChange={e => setSortBy(e.target.value)}
-                        className="form-select"
-                        style={{ width: '180px', fontSize: '0.875rem' }}
-                    >
-                        <option value="sector">Urut: Sektor (Default)</option>
-                        <option value="change">Urut: % Perubahan ↓</option>
-                    </select>
+                        onChange={value => setSortBy(value)}
+                        options={[
+                            { value: 'sector', label: 'Urut: Sektor (Default)' },
+                            { value: 'change', label: 'Urut: % Perubahan ↓' }
+                        ]}
+                    />
                 </div>
             </div>
 

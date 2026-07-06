@@ -20,6 +20,7 @@ import {
 import { generateAnalysis } from '@/modules/shared/utils/generateAnalysis';
 import { EMITEN_DATA, SECTORS, getTickersBySector } from '@/modules/shared/utils/commodityData';
 import { Search, RefreshCw, AlertTriangle, Zap } from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 const Skeleton = () => (
     <div className="card" style={{ overflow: 'hidden', opacity: 0.6 }}>
@@ -246,19 +247,19 @@ const ScreenerPage = () => {
                         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
                     </div>
 
-                    <select
-                        onChange={e => {
-                            if (!e.target.value) return;
-                            const sectorTickers = getTickersBySector(e.target.value).map(t => t.ticker).join(', ');
+                    <CustomSelect
+                        value=""
+                        onChange={(value) => {
+                            if (!value) return;
+                            const sectorTickers = getTickersBySector(value).map(t => t.ticker).join(', ');
                             setTickerInput(sectorTickers);
                             loadData(sectorTickers.split(', '), activeFilterCount > 0);
                         }}
-                        className="form-select"
-                        style={{ width: '180px', fontSize: '0.85rem' }}
-                    >
-                        <option value="">📂 Pilih Sektor...</option>
-                        {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                        options={[
+                            { value: "", label: "📂 Pilih Sektor..." },
+                            ...SECTORS.map(s => ({ value: s, label: s }))
+                        ]}
+                    />
 
                     <button onClick={handleScan} disabled={loading} className="btn btn-primary" style={{ flexShrink: 0 }}>
                         <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />

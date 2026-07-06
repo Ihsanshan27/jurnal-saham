@@ -9,6 +9,7 @@ import { createReportShare, deleteReportShare, listReportShares, updateReportSha
 import { isSupabaseConfigured } from '@/modules/shared/services/supabaseClient';
 import { buildReportSnapshot } from '@/modules/shared/utils/reporting';
 import { formatDateTime } from '@/modules/shared/utils/formatters';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 export default function ReportsPage() {
   const { trades, cashflows, dividends, settings, marketPrices, showToast } = useData();
@@ -180,10 +181,14 @@ export default function ReportsPage() {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Market</label>
-              <select className="form-input" value={market} onChange={(event) => setMarket(event.target.value)}>
-                <option value="ID">Pasar Indonesia</option>
-                <option value="US">Pasar Amerika</option>
-              </select>
+              <CustomSelect
+                value={market}
+                onChange={(value) => setMarket(value)}
+                options={[
+                  { value: 'ID', label: 'Pasar Indonesia' },
+                  { value: 'US', label: 'Pasar Amerika' }
+                ]}
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Judul Share</label>

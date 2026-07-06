@@ -6,6 +6,7 @@ import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { formatDate, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
 import MarketTabBar from '@/modules/shared/components/MarketTabBar';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import * as Icons from 'lucide-react';
 import '@/modules/portfolios/portfolios.css';
 
@@ -228,18 +229,17 @@ export default function PortfoliosPage() {
             </div>
             <div className="form-group">
               <label className="form-label">Hubungkan ke Rekening Finance</label>
-              <select
-                className="form-select"
+              <CustomSelect
                 value={form.financeAccountId}
-                onChange={e => setForm(prev => ({ ...prev, financeAccountId: e.target.value }))}
-              >
-                <option value="">Tidak dihubungkan</option>
-                {activeFinanceAccounts.map((account: any) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name} • {account.institutionName}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setForm((prev) => ({ ...prev, financeAccountId: value }))}
+                options={[
+                  { value: '', label: 'Tidak dihubungkan' },
+                  ...activeFinanceAccounts.map((account: any) => ({
+                    value: account.id,
+                    label: `${account.name} • ${account.institutionName}`
+                  }))
+                ]}
+              />
               <div className="portfolio-form-note">
                 Satu dompet hanya bisa pilih satu rekening. Satu rekening boleh dipakai banyak dompet.
               </div>
@@ -264,7 +264,7 @@ export default function PortfoliosPage() {
           {activePortfolio?.name || 'Portofolio Utama'}
         </h2>
         <div style={{ marginBottom: 16 }}>
-          <MarketTabBar activeTab={activeMarketTab} onChange={(tab) => setActiveMarketTab(tab)} accentColor="var(--accent-green)" />
+          <MarketTabBar activeTab={activeMarketTab} onChange={(tab) => setActiveMarketTab(tab as 'ID' | 'US')} accentColor="var(--accent-green)" />
         </div>
         <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: 20 }}>
           Total Equity ({activeMarketTab === 'US' ? 'USD' : 'IDR'})

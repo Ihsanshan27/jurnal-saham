@@ -3,6 +3,7 @@ import { useAuth } from '@/modules/auth/AuthContext';
 import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { USER_ROLES, listProfiles, updateProfileRole } from '@/modules/shared/services/profileService';
 import { createAuditLog, createAuditLogSafe } from '@/modules/admin/services/auditLogService';
@@ -244,18 +245,11 @@ export default function AdminUsersPage() {
                     {profile.createdAt ? formatDate(profile.createdAt) : '-'}
                   </td>
                   <td>
-                    <select
-                      className="form-select admin-role-select"
-                      title={`Ubah role untuk ${profile.displayName || profile.email || 'user'}`}
-                      aria-label={`Ubah role untuk ${profile.displayName || profile.email || 'user'}`}
+                    <CustomSelect
                       value={profile.role}
-                      disabled={savingId === profile.id}
-                      onChange={e => handleRoleChange(profile, e.target.value)}
-                    >
-                      {USER_ROLES.map(role => (
-                        <option key={role} value={role}>{ROLE_LABELS[role]}</option>
-                      ))}
-                    </select>
+                      onChange={(value) => handleRoleChange(profile, value)}
+                      options={USER_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
+                    />
                   </td>
                 </tr>
               ))}
@@ -313,17 +307,11 @@ export default function AdminUsersPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Role</label>
-                  <select
-                    className="form-select"
-                    title="Pilih role user baru"
-                    aria-label="Pilih role user baru"
+                  <CustomSelect
                     value={createForm.role}
-                    onChange={e => setCreateForm(prev => ({ ...prev, role: e.target.value }))}
-                  >
-                    {USER_ROLES.map(role => (
-                      <option key={role} value={role}>{ROLE_LABELS[role]}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => setCreateForm(prev => ({ ...prev, role: value }))}
+                    options={USER_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
+                  />
                 </div>
                 <div className="admin-form-note">
                   User dibuat lewat Supabase Edge Function dan langsung dikonfirmasi, jadi bisa login tanpa email confirmation.

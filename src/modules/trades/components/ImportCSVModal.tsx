@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { getTradeAssetTypeLabel } from '@/modules/trades/calculations';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 interface ImportCSVModalProps {
   isOpen: boolean;
@@ -235,18 +236,18 @@ export default function ImportCSVModal({ isOpen, onClose, onImportSuccess, addTr
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <label className="form-label" htmlFor="broker-preset-select" style={{ fontSize: '0.78rem', marginBottom: 0 }}>Preset Broker / Sekuritas</label>
-              <select
-                id="broker-preset-select"
-                className="form-select"
-                style={{ minWidth: 150, padding: '4px 8px', fontSize: '0.8rem', height: '32px' }}
-                value={brokerPreset}
-                onChange={(e) => setBrokerPreset(e.target.value as any)}
-              >
-                <option value="default">Format Default</option>
-                <option value="ajaib">Ajaib</option>
-                <option value="mirae">Mirae Asset</option>
-                <option value="ipot">IPOT</option>
-              </select>
+              <div style={{ minWidth: 150 }}>
+                <CustomSelect
+                  value={brokerPreset}
+                  onChange={(value) => setBrokerPreset(value as any)}
+                  options={[
+                    { value: 'default', label: 'Format Default' },
+                    { value: 'ajaib', label: 'Ajaib' },
+                    { value: 'mirae', label: 'Mirae Asset' },
+                    { value: 'ipot', label: 'IPOT' }
+                  ]}
+                />
+              </div>
             </div>
             
             <div style={{ display: 'flex', gap: 12, alignSelf: 'flex-end' }}>

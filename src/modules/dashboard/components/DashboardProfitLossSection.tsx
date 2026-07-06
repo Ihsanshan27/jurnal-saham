@@ -12,6 +12,9 @@ import { BarChart3 } from 'lucide-react';
 import ChartTooltip from '@/modules/shared/components/ChartTooltip';
 import type { ProfitLossChartPoint, RangeSummaryItem } from '@/modules/dashboard/types/dashboard';
 import type { PerformanceRangeKey, RangeKey } from '@/modules/dashboard/utils/dashboardDate';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 
 type DashboardProfitLossSectionProps = {
   customEndDate: string;
@@ -70,36 +73,20 @@ export default function DashboardProfitLossSection({
           <span>Profit/Loss</span>
         </div>
         <div className="dashboard-profit-filter-group">
-          <select
-            className="form-select"
-            aria-label="Pilih periode profit loss"
-            title="Pilih periode profit loss"
+          <CustomSelect
             value={selectedRangeKey}
-            onChange={(event) => setSelectedRangeKey(event.target.value as RangeKey)}
-          >
-            {rangeSummaries.map((range) => (
-              <option key={range.key} value={range.key}>
-                {range.label}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setSelectedRangeKey(value as RangeKey)}
+            options={rangeSummaries.map((range) => ({ value: range.key, label: range.label }))}
+          />
           {isCustomRangeSelected && (
             <>
-              <input
-                type="date"
-                className="form-input"
-                aria-label="Tanggal mulai custom profit loss"
-                title="Tanggal mulai custom profit loss"
+              <CustomDatePicker
                 value={customStartDate}
-                onChange={(event) => setCustomStartDate(event.target.value)}
+                onChange={(date) => setCustomStartDate(format(date, 'yyyy-MM-dd'))}
               />
-              <input
-                type="date"
-                className="form-input"
-                aria-label="Tanggal akhir custom profit loss"
-                title="Tanggal akhir custom profit loss"
+              <CustomDatePicker
                 value={customEndDate}
-                onChange={(event) => setCustomEndDate(event.target.value)}
+                onChange={(date) => setCustomEndDate(format(date, 'yyyy-MM-dd'))}
               />
             </>
           )}

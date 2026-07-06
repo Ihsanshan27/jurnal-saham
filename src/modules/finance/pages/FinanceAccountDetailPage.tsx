@@ -11,6 +11,9 @@ import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
 import { FINANCE_TRANSACTION_TYPE_OPTIONS, getFinanceTransactionAmountForDisplay, getFinanceTransactionTypeLabel } from '@/modules/finance/utils/finance';
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 import '@/modules/finance/finance.css';
 
 function createInitialTransactionForm(activePortfolioId: string) {
@@ -393,11 +396,11 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transaction-type">Jenis Transaksi</label>
-                  <select id="finance-transaction-type" className="form-select" value={transactionForm.type} onChange={(event) => handleTransactionChange('type', event.target.value)}>
-                    {FINANCE_TRANSACTION_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={transactionForm.type}
+                    onChange={(value) => handleTransactionChange('type', value)}
+                    options={FINANCE_TRANSACTION_TYPE_OPTIONS}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transaction-amount">Nominal *</label>
@@ -417,10 +420,14 @@ export default function FinanceAccountDetailPage() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label" htmlFor="finance-adjustment-direction">Arah Adjustment</label>
-                    <select id="finance-adjustment-direction" className="form-select" value={transactionForm.adjustmentDirection} onChange={(event) => handleTransactionChange('adjustmentDirection', event.target.value)}>
-                      <option value="increase">Tambah Saldo</option>
-                      <option value="decrease">Kurangi Saldo</option>
-                    </select>
+                    <CustomSelect
+                      value={transactionForm.adjustmentDirection}
+                      onChange={(value) => handleTransactionChange('adjustmentDirection', value)}
+                      options={[
+                        { value: 'increase', label: 'Tambah Saldo' },
+                        { value: 'decrease', label: 'Kurangi Saldo' }
+                      ]}
+                    />
                   </div>
                 </div>
               ) : null}
@@ -428,7 +435,10 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transaction-date">Tanggal *</label>
-                  <input id="finance-transaction-date" type="date" className="form-input" value={transactionForm.date} onChange={(event) => handleTransactionChange('date', event.target.value)} required />
+                  <CustomDatePicker
+                    value={transactionForm.date}
+                    onChange={(date) => handleTransactionChange('date', format(date, 'yyyy-MM-dd'))}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transaction-category">Kategori</label>
@@ -457,11 +467,11 @@ export default function FinanceAccountDetailPage() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label" htmlFor="finance-transaction-portfolio">Portofolio Trading</label>
-                    <select id="finance-transaction-portfolio" className="form-select" value={transactionForm.linkedPortfolioId} onChange={(event) => handleTransactionChange('linkedPortfolioId', event.target.value)}>
-                      {portfolios.map((portfolio: any) => (
-                        <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
-                      ))}
-                    </select>
+                    <CustomSelect
+                      value={transactionForm.linkedPortfolioId}
+                      onChange={(value) => handleTransactionChange('linkedPortfolioId', value)}
+                      options={portfolios.map((portfolio: any) => ({ value: portfolio.id, label: portfolio.name }))}
+                    />
                   </div>
                 </div>
               ) : null}
@@ -491,12 +501,17 @@ export default function FinanceAccountDetailPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transfer-target">Ke Rekening *</label>
-                  <select id="finance-transfer-target" className="form-select" value={transferForm.toAccountId} onChange={(event) => handleTransferChange('toAccountId', event.target.value)} required>
-                    <option value="">Pilih rekening tujuan</option>
-                    {counterpartyOptions.map((item: any) => (
-                      <option key={item.id} value={item.id}>{item.name} • {item.institutionName}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={transferForm.toAccountId}
+                    onChange={(value) => handleTransferChange('toAccountId', value)}
+                    options={[
+                      { value: '', label: 'Pilih rekening tujuan' },
+                      ...counterpartyOptions.map((item: any) => ({
+                        value: item.id,
+                        label: `${item.name} • ${item.institutionName}`
+                      }))
+                    ]}
+                  />
                 </div>
               </div>
               <div className="form-row">
@@ -511,7 +526,10 @@ export default function FinanceAccountDetailPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transfer-date">Tanggal *</label>
-                  <input id="finance-transfer-date" type="date" className="form-input" value={transferForm.date} onChange={(event) => handleTransferChange('date', event.target.value)} required />
+                  <CustomDatePicker
+                    value={transferForm.date}
+                    onChange={(date) => handleTransferChange('date', format(date, 'yyyy-MM-dd'))}
+                  />
                 </div>
               </div>
               <div className="form-row">
@@ -544,17 +562,11 @@ export default function FinanceAccountDetailPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-transfer-target">Ke Dompet *</label>
-                  <select
-                    id="finance-portfolio-transfer-target"
-                    className="form-select"
+                  <CustomSelect
                     value={portfolioTransferForm.portfolioId}
-                    onChange={(event) => handlePortfolioTransferChange('portfolioId', event.target.value)}
-                    required
-                  >
-                    {portfolios.map((portfolio: any) => (
-                      <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => handlePortfolioTransferChange('portfolioId', value)}
+                    options={portfolios.map((portfolio: any) => ({ value: portfolio.id, label: portfolio.name }))}
+                  />
                 </div>
               </div>
               <div className="form-row">
@@ -570,13 +582,9 @@ export default function FinanceAccountDetailPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-transfer-date">Tanggal *</label>
-                  <input
-                    id="finance-portfolio-transfer-date"
-                    type="date"
-                    className="form-input"
+                  <CustomDatePicker
                     value={portfolioTransferForm.date}
-                    onChange={(event) => handlePortfolioTransferChange('date', event.target.value)}
-                    required
+                    onChange={(date) => handlePortfolioTransferChange('date', format(date, 'yyyy-MM-dd'))}
                   />
                 </div>
               </div>
@@ -612,17 +620,11 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-withdrawal-source">Dari Dompet *</label>
-                  <select
-                    id="finance-portfolio-withdrawal-source"
-                    className="form-select"
+                  <CustomSelect
                     value={portfolioWithdrawalForm.portfolioId}
-                    onChange={(event) => handlePortfolioWithdrawalChange('portfolioId', event.target.value)}
-                    required
-                  >
-                    {portfolios.map((portfolio: any) => (
-                      <option key={portfolio.id} value={portfolio.id}>{portfolio.name}</option>
-                    ))}
-                  </select>
+                    onChange={(value) => handlePortfolioWithdrawalChange('portfolioId', value)}
+                    options={portfolios.map((portfolio: any) => ({ value: portfolio.id, label: portfolio.name }))}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Ke Rekening</label>
@@ -642,13 +644,9 @@ export default function FinanceAccountDetailPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-withdrawal-date">Tanggal *</label>
-                  <input
-                    id="finance-portfolio-withdrawal-date"
-                    type="date"
-                    className="form-input"
+                  <CustomDatePicker
                     value={portfolioWithdrawalForm.date}
-                    onChange={(event) => handlePortfolioWithdrawalChange('date', event.target.value)}
-                    required
+                    onChange={(date) => handlePortfolioWithdrawalChange('date', format(date, 'yyyy-MM-dd'))}
                   />
                 </div>
               </div>
@@ -686,22 +684,32 @@ export default function FinanceAccountDetailPage() {
             <div className="finance-inline-form">
               <div className="form-group" style={{ minWidth: 170 }}>
                 <label className="form-label" htmlFor="finance-filter-type">Filter Tipe</label>
-                <select id="finance-filter-type" className="form-select" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-                  <option value="all">Semua</option>
-                  <option value="income">Pemasukan</option>
-                  <option value="expense">Pengeluaran</option>
-                  <option value="adjustment">Adjustment</option>
-                  <option value="transfer_in">Transfer Masuk</option>
-                  <option value="transfer_out">Transfer Keluar</option>
-                </select>
+                <CustomSelect
+                  value={typeFilter}
+                  onChange={(value) => setTypeFilter(value)}
+                  options={[
+                    { value: 'all', label: 'Semua' },
+                    { value: 'income', label: 'Pemasukan' },
+                    { value: 'expense', label: 'Pengeluaran' },
+                    { value: 'adjustment', label: 'Adjustment' },
+                    { value: 'transfer_in', label: 'Transfer Masuk' },
+                    { value: 'transfer_out', label: 'Transfer Keluar' }
+                  ]}
+                />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="finance-filter-from">Dari</label>
-                <input id="finance-filter-from" type="date" className="form-input" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+                <CustomDatePicker
+                  value={dateFrom}
+                  onChange={(date) => setDateFrom(format(date, 'yyyy-MM-dd'))}
+                />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="finance-filter-to">Sampai</label>
-                <input id="finance-filter-to" type="date" className="form-input" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+                <CustomDatePicker
+                  value={dateTo}
+                  onChange={(date) => setDateTo(format(date, 'yyyy-MM-dd'))}
+                />
               </div>
             </div>
             <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); }}>
