@@ -788,7 +788,7 @@ export default function IpoAccountsPage() {
                   aria-pressed={viewMode === "card"}
                 >
                   <Icons.LayoutGrid size={15} />
-                  Grid Card
+                  Grid View
                 </button>
                 <button
                   type="button"
@@ -797,7 +797,7 @@ export default function IpoAccountsPage() {
                   aria-pressed={viewMode === "list"}
                 >
                   <Icons.Rows3 size={15} />
-                  Grid List
+                  List View
                 </button>
               </div>
             </div>
