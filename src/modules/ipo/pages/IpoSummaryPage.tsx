@@ -32,6 +32,7 @@ export default function IpoSummaryPage() {
     const event = ipoEvents.find((item: IpoEvent) => item.id === eventId);
     const entries = ipoEntries.filter((e: any) => e.ipoEventId === eventId);
     let totalCapital = 0, totalReturn = 0, sellCount = 0, keepCount = 0;
+    let allottedAccountCount = 0;
     
     entries.forEach((e: any) => {
       const isZonk = e.allotmentStatus === 'NOT_ALLOTTED';
@@ -41,17 +42,22 @@ export default function IpoSummaryPage() {
       const buy = buyPrice * shares;
       const sell = e.sellPrice > 0 ? e.sellPrice * shares : buy;
       const profit = e.action === 'SELL' ? sell - buy : 0;
+      
       totalCapital += buy;
       totalReturn += profit;
-      if (e.action === 'SELL') sellCount++;
-      else keepCount++;
+      
+      if (!isZonk) {
+        allottedAccountCount++;
+        if (e.action === 'SELL') sellCount++;
+        else keepCount++;
+      }
     });
 
     return {
       totalCapital,
       totalReturn,
       avgReturnPct: totalCapital > 0 ? (totalReturn / totalCapital) * 100 : 0,
-      accountCount: entries.length,
+      accountCount: allottedAccountCount,
       sellCount,
       keepCount,
     };
