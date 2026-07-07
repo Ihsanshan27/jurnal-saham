@@ -142,6 +142,28 @@ export default function IpoDetailPage() {
     setSelectedEntryIds([]);
   };
 
+  const handleBulkUpdateIpoPriceClick = () => {
+    setBulkPriceInput('');
+    setShowBulkPriceModal(true);
+  };
+
+  const handleConfirmBulkPrice = (e: React.FormEvent) => {
+    e.preventDefault();
+    let parsedPrice = 0;
+    if (bulkPriceInput.trim() !== '') {
+      parsedPrice = parseInt(bulkPriceInput.replace(/[^0-9]/g, ''), 10);
+      if (isNaN(parsedPrice)) {
+        showToast('Harga tidak valid', 'error');
+        return;
+      }
+    }
+    
+    batchUpdateIpoEntries(selectedEntryIds, { sellPrice: parsedPrice });
+    showToast(`Berhasil update harga untuk ${selectedEntryIds.length} akun`);
+    setSelectedEntryIds([]);
+    setShowBulkPriceModal(false);
+  };
+
   const handleBulkDeleteIpoEntries = async () => {
     const isConfirmed = await confirm(`Apakah Anda yakin ingin menghapus ${selectedEntryIds.length} entri akun yang dipilih?`, {
       title: 'Hapus Entri Massal',
@@ -314,6 +336,8 @@ export default function IpoDetailPage() {
     setEditId(null);
   };
   const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
+  const [bulkPriceInput, setBulkPriceInput] = useState('');
   const [eventForm, setEventForm] = useState({
     stockCode: '',
     underwriter: '',
@@ -468,7 +492,7 @@ export default function IpoDetailPage() {
   const summary = useMemo(() => {
     const sellEntries = entries.filter(e => e.action === 'SELL');
     const totalCapital = entries.reduce((s, e) => s + e.totalBuy, 0);
-    const totalReturn = sellEntries.reduce((s, e) => s + e.profitRp, 0);
+    const totalReturn = entries.reduce((s, e) => s + e.profitRp, 0);
     const totalSellValue = sellEntries.reduce((s, e) => s + e.totalSell, 0);
     const avgReturnPct = totalCapital > 0 ? (totalReturn / totalCapital) * 100 : 0;
     return { totalCapital, totalReturn, totalSellValue, avgReturnPct, totalAccounts: entries.length };
@@ -1433,6 +1457,10 @@ export default function IpoDetailPage() {
                 <Icons.Layers size={14} />
                 <span>Set KEEP</span>
               </button>
+              <button className="btn btn-secondary btn-sm btn-bulk" onClick={handleBulkUpdateIpoPriceClick}>
+                <Icons.DollarSign size={14} />
+                <span>Set Harga</span>
+              </button>
               <button className="btn btn-secondary btn-sm btn-bulk" onClick={() => handleBulkUpdateIpoSlTl('SL')}>
                 <span>SL</span>
               </button>
@@ -1677,6 +1705,50 @@ export default function IpoDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Bulk Price */}
+      {showBulkPriceModal && (
+        <div className="modal-overlay ipo-modal-overlay">
+          <div className="modal ipo-modal" style={{ maxWidth: 400 }}>
+            <div className="modal-header ipo-modal-header">
+              <h3>Set Harga Massal</h3>
+              <button type="button" className="btn btn-ghost btn-icon ipo-btn-close" onClick={() => setShowBulkPriceModal(false)}>
+                <Icons.X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleConfirmBulkPrice}>
+              <div className="modal-body ipo-modal-body">
+                <p style={{ marginBottom: 16, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Set harga sekarang / jual untuk <strong>{selectedEntryIds.length}</strong> akun terpilih. Kosongkan untuk set menjadi 0.
+                </p>
+                <div className="form-group">
+                  <label className="form-label">Harga (Rp)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={bulkPriceInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setBulkPriceInput(val);
+                    }}
+                    placeholder="Contoh: 350"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="modal-footer ipo-modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowBulkPriceModal(false)}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Simpan Harga
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -368,7 +368,7 @@ export default function IpoListPage() {
          const buyPrice = event?.offeringPrice ?? e.buyPrice;
          const buy = buyPrice * shares;
          const sell = e.sellPrice > 0 ? e.sellPrice * shares : buy;
-         const profit = e.action === "SELL" ? sell - buy : 0;
+         const profit = sell - buy;
          totalCapital += buy;
          totalReturn += profit;
          if (e.action === "SELL") sellCount++;

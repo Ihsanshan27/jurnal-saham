@@ -1643,33 +1643,44 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 /* ---- Toast / Notification ---- */
 .toast-container {
   position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 300;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  pointer-events: none;
 }
 
 .toast {
-  padding: 14px 20px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  animation: slideInRight 0.3s ease;
+  pointer-events: auto;
+  padding: 16px 20px;
+  background: rgba(17, 24, 39, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0,0,0,0.2) inset;
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 300px;
+  gap: 14px;
+  min-width: 320px;
+  max-width: 420px;
+  color: #F9FAFB;
+  font-weight: 500;
+  font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .toast-success {
-  border-left: 3px solid var(--accent-green);
+  border-left: 4px solid var(--accent-green);
+  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.15), 0 20px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
 .toast-error {
-  border-left: 3px solid var(--accent-red);
+  border-left: 4px solid var(--accent-red);
+  box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.15), 0 20px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
 /* ---- Animations ---- */
@@ -1689,8 +1700,8 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 }
 
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(60px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(100px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 @keyframes floatBlob {
