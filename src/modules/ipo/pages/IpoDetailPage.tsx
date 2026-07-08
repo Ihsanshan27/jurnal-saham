@@ -142,6 +142,11 @@ export default function IpoDetailPage() {
     setSelectedEntryIds([]);
   };
 
+  const handleBulkUpdateIpoAllotmentStatus = (allotmentStatus: 'PENDING' | 'ALLOTTED' | 'NOT_ALLOTTED') => {
+    batchUpdateIpoEntries(selectedEntryIds, { allotmentStatus });
+    setSelectedEntryIds([]);
+  };
+
   const handleBulkUpdateIpoPriceClick = () => {
     setBulkPriceInput('');
     setShowBulkPriceModal(true);
@@ -162,6 +167,31 @@ export default function IpoDetailPage() {
     showToast(`Berhasil update harga untuk ${selectedEntryIds.length} akun`);
     setSelectedEntryIds([]);
     setShowBulkPriceModal(false);
+  };
+
+  const handleBulkUpdateIpoLotClick = () => {
+    setBulkLotInput('');
+    setShowBulkLotModal(true);
+  };
+
+  const handleConfirmBulkLot = (e: React.FormEvent) => {
+    e.preventDefault();
+    let parsedLot = 0;
+    if (bulkLotInput.trim() !== '') {
+      parsedLot = parseFloat(bulkLotInput.replace(/[^0-9.]/g, ''));
+      if (isNaN(parsedLot) || parsedLot <= 0) {
+        showToast('Jumlah lot tidak valid', 'error');
+        return;
+      }
+    } else {
+        showToast('Jumlah lot wajib diisi', 'error');
+        return;
+    }
+    
+    batchUpdateIpoEntries(selectedEntryIds, { lots: parsedLot });
+    showToast(`Berhasil update lot untuk ${selectedEntryIds.length} akun`);
+    setSelectedEntryIds([]);
+    setShowBulkLotModal(false);
   };
 
   const handleBulkDeleteIpoEntries = async () => {
@@ -338,6 +368,8 @@ export default function IpoDetailPage() {
   const [showEditEventModal, setShowEditEventModal] = useState(false);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const [bulkPriceInput, setBulkPriceInput] = useState('');
+  const [showBulkLotModal, setShowBulkLotModal] = useState(false);
+  const [bulkLotInput, setBulkLotInput] = useState('');
   const [eventForm, setEventForm] = useState({
     stockCode: '',
     underwriter: '',
@@ -1461,6 +1493,10 @@ export default function IpoDetailPage() {
                 <Icons.DollarSign size={14} />
                 <span>Set Harga</span>
               </button>
+              <button className="btn btn-secondary btn-sm btn-bulk" onClick={handleBulkUpdateIpoLotClick}>
+                <Icons.Package size={14} />
+                <span>Set Lot</span>
+              </button>
               <button className="btn btn-secondary btn-sm btn-bulk" onClick={() => handleBulkUpdateIpoSlTl('SL')}>
                 <span>SL</span>
               </button>
@@ -1469,6 +1505,19 @@ export default function IpoDetailPage() {
               </button>
               <button className="btn btn-secondary btn-sm btn-bulk" onClick={() => handleBulkUpdateIpoSlTl('-')}>
                 <span>-</span>
+              </button>
+              <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.2)', margin: '0 4px' }} />
+              <button className="btn btn-secondary btn-sm btn-bulk" onClick={() => handleBulkUpdateIpoAllotmentStatus('ALLOTTED')}>
+                <Icons.CheckCircle2 size={14} />
+                <span>Dapat</span>
+              </button>
+              <button className="btn btn-secondary btn-sm btn-bulk" onClick={() => handleBulkUpdateIpoAllotmentStatus('NOT_ALLOTTED')}>
+                <Icons.XCircle size={14} />
+                <span>Zonk</span>
+              </button>
+              <button className="btn btn-secondary btn-sm btn-bulk" onClick={() => handleBulkUpdateIpoAllotmentStatus('PENDING')}>
+                <Icons.HelpCircle size={14} />
+                <span>Pending</span>
               </button>
               <button className="btn btn-secondary btn-sm btn-bulk" style={{ color: 'var(--accent-green)' }} onClick={handleBulkSyncIpoToJournal}>
                 <Icons.Share2 size={14} />
@@ -1742,6 +1791,50 @@ export default function IpoDetailPage() {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Simpan Harga
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Bulk Lot */}
+      {showBulkLotModal && (
+        <div className="modal-overlay ipo-modal-overlay">
+          <div className="modal ipo-modal" style={{ maxWidth: 400 }}>
+            <div className="modal-header ipo-modal-header">
+              <h3>Set Lot Massal</h3>
+              <button type="button" className="btn btn-ghost btn-icon ipo-btn-close" onClick={() => setShowBulkLotModal(false)}>
+                <Icons.X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleConfirmBulkLot}>
+              <div className="modal-body ipo-modal-body">
+                <p style={{ marginBottom: 16, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Set jumlah lot untuk <strong>{selectedEntryIds.length}</strong> akun terpilih.
+                </p>
+                <div className="form-group">
+                  <label className="form-label">Jumlah Lot</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={bulkLotInput}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, '');
+                      setBulkLotInput(val);
+                    }}
+                    placeholder="Contoh: 10"
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
+              <div className="modal-footer ipo-modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowBulkLotModal(false)}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Simpan Lot
                 </button>
               </div>
             </form>
