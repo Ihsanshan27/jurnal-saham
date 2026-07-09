@@ -372,7 +372,7 @@ export default function TradeDetailPage() {
         </div>
       </div>
 
-      {trade.history && trade.history.length > 0 && (
+      {false && trade.history && trade.history.length > 0 && (
         <div className="card" style={{ marginTop: 24, marginBottom: 20 }}>
           <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icons.History size={18} style={{ color: 'var(--accent-blue-light)' }} />
