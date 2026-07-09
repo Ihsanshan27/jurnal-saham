@@ -6,7 +6,7 @@ import { useDialog } from '@/modules/shared/context/DialogContext';
 import { cleanOldAuditLogs, createAuditLogSafe } from '@/modules/admin/services/auditLogService';
 import { listProfiles } from '@/modules/shared/services/profileService';
 import { ACCESS_LEVELS, listOwnedSharedAccess, revokeSharedAccess, upsertSharedAccess } from '@/modules/shared/services/sharedAccessService';
-import { isSupabaseConfigured } from '@/modules/shared/services/supabaseClient';
+import { isSupabaseConfigured, supabase } from '@/modules/shared/services/supabaseClient';
 import { formatDateTime, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import SelectionToggleCard from '@/modules/shared/components/SelectionToggleCard';
@@ -276,7 +276,7 @@ export default function SettingsPage() {
       return Number.isNaN(parsed) ? fallback : parsed;
     };
 
-    const nextLogRetentionDays = form.logRetentionDays === '' ? 90 : (parseInt(form.logRetentionDays as any) >= 0 ? parseInt(form.logRetentionDays as any) : 90);
+    const nextLogRetentionDays = String(form.logRetentionDays) === '' ? 90 : (parseInt(form.logRetentionDays as any) >= 0 ? parseInt(form.logRetentionDays as any) : 90);
 
     updateSettings({
       initialCapital: toNumberOrDefault(form.initialCapital, 10000000),
@@ -343,7 +343,7 @@ export default function SettingsPage() {
   };
 
   const handleExport = () => {
-    const data = exportData(user?.id);
+    const data = exportData();
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -369,7 +369,7 @@ export default function SettingsPage() {
     reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target.result as string);
-        await importData(data, user?.id);
+        await importData(data);
         await createAuditLogSafe({
           actorId: user?.id,
           action: 'data.imported',
@@ -394,7 +394,7 @@ export default function SettingsPage() {
     });
     if (!isConfirmed) return;
 
-    clearData(user?.id)
+    clearData()
       .then(async () => {
         await createAuditLogSafe({
           actorId: user?.id,
@@ -406,6 +406,36 @@ export default function SettingsPage() {
         setTimeout(() => window.location.reload(), 1000);
       })
       .catch((error) => showToast(error.message, 'error'));
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!supabase) {
+      showToast('Database tidak terkonfigurasi', 'error');
+      return;
+    }
+    const isConfirmed1 = await confirm('PERINGATAN: Apakah Anda yakin ingin menghapus akun Anda? Ini akan menghapus SELURUH data Anda secara permanen!', {
+      title: 'Hapus Akun (Langkah 1)',
+      severity: 'danger',
+      confirmText: 'Ya, Lanjutkan'
+    });
+    if (!isConfirmed1) return;
+
+    const isConfirmed2 = await confirm('Anda sangat yakin? Segala portofolio, history, dan profil Anda tidak dapat dikembalikan lagi.', {
+      title: 'Konfirmasi Terakhir Hapus Akun',
+      severity: 'danger',
+      confirmText: 'HAPUS PERMANEN'
+    });
+    if (!isConfirmed2) return;
+
+    try {
+      const { error } = await supabase.rpc('delete_own_account');
+      if (error) throw error;
+      
+      showToast('Akun Anda telah berhasil dihapus secara permanen.');
+      setTimeout(() => logout(), 2000);
+    } catch (error: any) {
+      showToast(`Gagal menghapus akun: ${error.message}`, 'error');
+    }
   };
 
   const handleSaveShare = async () => {
@@ -995,6 +1025,16 @@ export default function SettingsPage() {
                 <button className="btn btn-secondary" onClick={logout}>
                   <LogOut size={16} />
                   <span>Logout</span>
+                </button>
+              </SectionCard>
+
+              <SectionCard title="Zona Berbahaya (Akun)" description="Hapus seluruh data beserta akun Anda dari Jurnal Saham.">
+                <div style={{ marginBottom: 14, fontSize: '0.85rem', color: 'var(--accent-red)' }}>
+                  Tindakan ini menghapus kredensial login Anda secara permanen dan tidak bisa dibatalkan.
+                </div>
+                <button className="btn btn-danger" onClick={handleDeleteAccount}>
+                  <Trash2 size={16} />
+                  <span>Hapus Akun Permanen</span>
                 </button>
               </SectionCard>
             </>

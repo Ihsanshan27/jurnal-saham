@@ -60,6 +60,7 @@ export const NAV_ITEMS = [
   { path: '/calculator', label: 'Kalkulator', icon: 'Calculator', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
   { path: '/watchlist', label: 'Watchlist', icon: 'Eye', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
   { path: '/plans', label: 'Rencana Trading', icon: 'BookOpen', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
+  { path: '/admin/dashboard', label: 'Dasbor Admin', icon: 'PieChart', section: 'ADMIN', roles: ['admin'] },
   { path: '/admin/users', label: 'Users', icon: 'Users', section: 'ADMIN', roles: ['admin'] },
   // { path: '/admin/workspaces', label: 'Workspaces', icon: 'Building', section: 'ADMIN', roles: ['admin'] },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: 'History', section: 'ADMIN', roles: ['admin'] },

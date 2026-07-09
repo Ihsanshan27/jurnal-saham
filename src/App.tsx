@@ -43,9 +43,12 @@ const IpoSummaryPage = lazy(() => import('@/modules/ipo/pages/IpoSummaryPage'));
 const IpoAccountsPage = lazy(() => import('@/modules/ipo/pages/IpoAccountsPage'));
 const AdminUsersPage = lazy(() => import('@/modules/admin/pages/AdminUsersPage'));
 const AdminWorkspacesPage = lazy(() => import('@/modules/admin/pages/AdminWorkspacesPage'));
+const AdminDashboardPage = lazy(() => import('@/modules/admin/pages/AdminDashboardPage'));
 const AdminAuditLogsPage = lazy(() => import('@/modules/admin/pages/AdminAuditLogsPage'));
 const ReportsPage = lazy(() => import('@/modules/reports/pages/ReportsPage'));
 const SharedReportPage = lazy(() => import('@/modules/reports/pages/SharedReportPage'));
+const TermsPage = lazy(() => import('@/modules/public/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('@/modules/public/pages/PrivacyPage'));
 // [MENTOR DISABLED] const MentorTradersPage = lazy(() => import('@/modules/mentor/pages/MentorTradersPage'));
 // [MENTOR DISABLED] const MentorTraderDetailPage = lazy(() => import('@/modules/mentor/pages/MentorTraderDetailPage'));
 
@@ -147,6 +150,8 @@ function AppRoutes() {
       <Route path="/verify-email" element={<PublicRoute><LazyPage><VerifyEmailPage /></LazyPage></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><LazyPage><ForgotPasswordPage /></LazyPage></PublicRoute>} />
       <Route path="/reset-password" element={<LazyPage><ResetPasswordPage /></LazyPage>} />
+      <Route path="/terms" element={<LazyPage><TermsPage /></LazyPage>} />
+      <Route path="/privacy" element={<LazyPage><PrivacyPage /></LazyPage>} />
       <Route path="/shared/:shareId" element={<LazyPage><SharedReportPage /></LazyPage>} />
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<PermissionRoute permission="dashboard:read"><LazyPage><DashboardPage /></LazyPage></PermissionRoute>} />
@@ -177,6 +182,7 @@ function AppRoutes() {
         <Route path="/ipo/accounts" element={<LazyPage><IpoAccountsPage /></LazyPage>} />
         <Route path="/ipo/summary" element={<LazyPage><IpoSummaryPage /></LazyPage>} />
         <Route path="/ipo/:id" element={<LazyPage><IpoDetailPage /></LazyPage>} />
+        <Route path="/admin/dashboard" element={<AdminRoute><LazyPage><AdminDashboardPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><LazyPage><AdminUsersPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/workspaces" element={<AdminRoute><LazyPage><AdminWorkspacesPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/audit-logs" element={<AdminRoute><LazyPage><AdminAuditLogsPage /></LazyPage></AdminRoute>} />

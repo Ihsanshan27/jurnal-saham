@@ -132,6 +132,10 @@ export default function LoginPage() {
 
         <div className="login-footer">
           Belum punya akun? <Link to="/register">Daftar sekarang</Link>
+          <div style={{ marginTop: 16, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            <Link to="/terms" style={{ color: 'inherit', textDecoration: 'underline', marginRight: 12 }}>Syarat & Ketentuan</Link>
+            <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>Kebijakan Privasi</Link>
+          </div>
         </div>
       </div>
     </div>
