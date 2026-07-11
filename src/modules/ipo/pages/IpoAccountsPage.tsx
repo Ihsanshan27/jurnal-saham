@@ -109,20 +109,36 @@ export default function IpoAccountsPage() {
       const eventCount = new Set(
         linkedEntries.map((entry: any) => entry.ipoEventId),
       ).size;
-      const usedBalance = linkedEntries
+      let usedBalance = 0;
+      let totalProfit = 0;
+
+      linkedEntries
         .filter((entry: any) => entry.isBought === true)
-        .reduce((sum: number, entry: any) => {
+        .forEach((entry: any) => {
           const isZonk = entry.allotmentStatus === 'NOT_ALLOTTED';
           const lots = isZonk ? 0 : (Number(entry.lots) || 0);
           const buyPrice = Number(entry.buyPrice) || 0;
-          return sum + buyPrice * lots * 100;
-        }, 0);
-      const balance = Number(account.balance) || 0;
+          const totalBuy = buyPrice * lots * 100;
+
+          if (entry.action !== 'SELL') {
+            usedBalance += totalBuy;
+          } else {
+            const sellPrice = Number(entry.sellPrice) || 0;
+            const totalSell = sellPrice * lots * 100;
+            totalProfit += (totalSell - totalBuy);
+          }
+        });
+
+      const currentBalance = Number(account.balance) || 0;
+      const totalAsset = currentBalance + totalProfit;
+
       return {
         ...account,
-        balance,
+        balance: currentBalance,
+        totalProfit,
+        totalAsset,
         usedBalance,
-        remainingBalance: balance - usedBalance,
+        remainingBalance: currentBalance - usedBalance,
         linkedEntriesCount: linkedEntries.length,
         eventCount,
       };
@@ -138,7 +154,7 @@ export default function IpoAccountsPage() {
     const linkedEntries = ipoEntries.filter(
       (entry: any) => entry.ipoAccountId,
     ).length;
-    const totalBalance = ipoAccounts.reduce(
+    const totalBalance = accountsWithStats.reduce(
       (sum: number, account: any) => sum + (Number(account.balance) || 0),
       0,
     );
@@ -221,6 +237,12 @@ export default function IpoAccountsPage() {
           break;
         case "usedBalance":
           comparison = (a.usedBalance || 0) - (b.usedBalance || 0);
+          break;
+        case "totalProfit":
+          comparison = (a.totalProfit || 0) - (b.totalProfit || 0);
+          break;
+        case "totalAsset":
+          comparison = (a.totalAsset || 0) - (b.totalAsset || 0);
           break;
         case "remainingBalance":
           comparison = (a.remainingBalance || 0) - (b.remainingBalance || 0);
@@ -560,7 +582,7 @@ export default function IpoAccountsPage() {
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-balance">
-                  Saldo Awal (Rp)
+                  Saldo Kas RDN Saat Ini (Rp)
                 </label>
                 <CurrencyInput
                   id="ipo-master-balance"
@@ -771,7 +793,9 @@ export default function IpoAccountsPage() {
                   { value: "custom", label: "Kustom (Drag & Drop)" },
                   { value: "name", label: "Nama Akun" },
                   { value: "balance", label: "Saldo Tertinggi" },
-                  { value: "remainingBalance", label: "Sisa Saldo Tertinggi" }
+                  { value: "remainingBalance", label: "Sisa Saldo Tertinggi" },
+                  { value: "totalProfit", label: "Profit Tertinggi" },
+                  { value: "totalAsset", label: "Total Kas+Profit Tertinggi" }
                 ]}
               />
             </div>
@@ -918,7 +942,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Saldo Awal {renderSortIcon("balance")}
+                        Kas Saat Ini {renderSortIcon("balance")}
                       </div>
                     </th>
                     <th
@@ -933,6 +957,34 @@ export default function IpoAccountsPage() {
                         }}
                       >
                         Terpakai {renderSortIcon("usedBalance")}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("totalProfit")}
+                      style={{ cursor: "pointer", userSelect: "none" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        Total Profit {renderSortIcon("totalProfit")}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("totalAsset")}
+                      style={{ cursor: "pointer", userSelect: "none" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        Total (Kas + Profit) {renderSortIcon("totalAsset")}
                       </div>
                     </th>
                     <th
@@ -1107,6 +1159,18 @@ export default function IpoAccountsPage() {
                         style={blurStyle}
                       >
                         {formatRupiah(account.usedBalance || 0)}
+                      </td>
+                      <td
+                        className={`ipo-account-table-metric-cell ${account.totalProfit > 0 ? "text-profit" : account.totalProfit < 0 ? "text-loss" : ""}`}
+                        style={blurStyle}
+                      >
+                        {formatRupiah(account.totalProfit || 0)}
+                      </td>
+                      <td
+                        className="ipo-account-table-metric-cell"
+                        style={{ ...blurStyle, fontWeight: 600 }}
+                      >
+                        {formatRupiah(account.totalAsset || 0)}
                       </td>
                       <td
                         className="ipo-account-table-metric-cell"
@@ -1322,9 +1386,16 @@ export default function IpoAccountsPage() {
                     </div>
                     <div
                       className="ipo-profit-avg"
-                      style={{ color: "var(--text-secondary)", ...blurStyle }}
+                      style={{ color: "var(--text-secondary)", ...blurStyle, display: 'flex', gap: '8px', justifyContent: 'center', fontSize: '0.9rem' }}
                     >
-                      Total Modal {formatRupiah(account.balance || 0)}
+                      <span>Kas {formatRupiah(account.balance || 0)}</span>
+                      <span>•</span>
+                      <span className={account.totalProfit > 0 ? "text-profit" : account.totalProfit < 0 ? "text-loss" : ""}>
+                        Profit {formatRupiah(account.totalProfit || 0)}
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 600, ...blurStyle }}>
+                      Total {formatRupiah(account.totalAsset || 0)}
                     </div>
                   </div>
 

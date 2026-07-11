@@ -45,6 +45,7 @@ export interface IpoAccount {
   name: string;
   email: string;
   balance?: number;       // saldo awal / modal yang dialokasikan untuk akun IPO
+  withdrawnAmount?: number; // dana yang sudah ditarik dari akun
   rdnBankName?: string;
   rdnAccountNumber?: string;
   withdrawBankName?: string;
