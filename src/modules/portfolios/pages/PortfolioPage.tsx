@@ -59,18 +59,24 @@ export default function PortfolioPage() {
   const totalInvested = openTrades.reduce((sum, trade) => sum + trade.totalBuy, 0);
   const totalFloating = openTrades.reduce((sum, trade) => sum + trade.floatingPnL, 0);
   const tradingBalance = totalInvested + totalFloating;
+  const totalCapital = balanceStats.buyingPower + totalInvested;
+
   const pieData = useMemo(() => {
     const grouped = new Map<string, number>();
     openTrades.forEach((trade) => {
       grouped.set(trade.stockCode, (grouped.get(trade.stockCode) || 0) + trade.totalBuy);
     });
-    return Array.from(grouped.entries()).map(([name, value]) => ({ name, value }));
-  }, [openTrades]);
+    const result = Array.from(grouped.entries()).map(([name, value]) => ({ name, value }));
+    if (balanceStats.buyingPower > 0) {
+      result.push({ name: 'Kas (Cash)', value: balanceStats.buyingPower });
+    }
+    return result;
+  }, [openTrades, balanceStats.buyingPower]);
   const formatMoney = activeTab === 'US' ? formatUSD : formatRupiah;
   const { sortConfig, sortedItems: sortedOpenTrades, requestSort } = useTableSort(openTrades, {
     initialKey: 'stockCode',
     getValue: (trade: any, key: 'stockCode' | 'buyPrice' | 'lots' | 'totalBuy' | 'currentPrice' | 'floatingPnL' | 'allocationPercent') => {
-      if (key === 'allocationPercent') return totalInvested > 0 ? (trade.totalBuy / totalInvested) * 100 : 0;
+      if (key === 'allocationPercent') return totalCapital > 0 ? (trade.totalBuy / totalCapital) * 100 : 0;
       return trade[key] || 0;
     },
   });
@@ -228,7 +234,7 @@ export default function PortfolioPage() {
                           <span style={blurStyle}>{formatMoney(trade.totalBuy)}</span>
                           <br />
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {totalInvested > 0 ? ((trade.totalBuy / totalInvested) * 100).toFixed(1) : '0.0'}% alokasi
+                            {totalCapital > 0 ? ((trade.totalBuy / totalCapital) * 100).toFixed(1) : '0.0'}% alokasi
                           </span>
                         </td>
                         <td>
