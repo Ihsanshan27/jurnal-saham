@@ -270,7 +270,7 @@ export default function NewTradePage() {
                           setForm((prev) => ({
                             ...prev,
                             assetType: 'mutual_fund',
-                            market: 'ID',
+                            // Do not force market to 'ID', allow both 'ID' and 'US' for mutual funds
                             buyFee: 0,
                             sellFee: 0,
                           }));
@@ -289,7 +289,6 @@ export default function NewTradePage() {
                         type="radio"
                         name="market"
                         checked={form.market === 'ID'}
-                        disabled={isMutualFund}
                         onChange={() => {
                           setForm((prev) => ({
                             ...prev,
@@ -306,7 +305,6 @@ export default function NewTradePage() {
                         type="radio"
                         name="market"
                         checked={form.market === 'US'}
-                        disabled={isMutualFund}
                         onChange={() => {
                           setForm((prev) => ({
                             ...prev,
@@ -321,7 +319,7 @@ export default function NewTradePage() {
                   </div>
                   {isMutualFund ? (
                     <div style={{ fontSize: '0.75rem', marginTop: 6, color: 'var(--text-muted)' }}>
-                      Reksadana saat ini dicatat sebagai instrumen IDR dengan jumlah unit.
+                      Reksadana dicatat dalam satuan unit.
                     </div>
                   ) : null}
                 </div>

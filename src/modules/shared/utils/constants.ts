@@ -43,6 +43,7 @@ export const DEFAULT_BROKER_FEE = {
 
 export const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: 'LayoutDashboard', section: 'MENU', roles: ['admin', 'mentor', 'trader', 'viewer'] },
+  { path: '/wealth', label: 'Kekayaan', icon: 'Landmark', section: 'MENU', roles: ['admin', 'mentor', 'trader', 'viewer'] },
   { path: '/trades', label: 'Transaksi', icon: 'Receipt', section: 'MENU', roles: ['admin', 'mentor', 'trader'] },
   { path: '/portfolio', label: 'Portfolio', icon: 'Briefcase', section: 'MENU', roles: ['admin', 'mentor', 'trader', 'viewer'] },
   { path: '/history', label: 'History', icon: 'History', section: 'MENU', roles: ['admin', 'mentor', 'trader', 'viewer'] },

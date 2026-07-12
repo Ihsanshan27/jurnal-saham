@@ -8,6 +8,7 @@ import { CheckCircle, AlertCircle } from 'lucide-react';
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
+  '/wealth': 'Dashboard Kekayaan',
   '/trades': 'Daftar Transaksi',
   '/trades/new': 'Catat Transaksi',
   '/analytics': 'Analitik & Statistik',
