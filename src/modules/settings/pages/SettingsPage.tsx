@@ -150,6 +150,21 @@ export default function SettingsPage() {
   const [newEmotionVal, setNewEmotionVal] = useState('');
   const [newEmotionLbl, setNewEmotionLbl] = useState('');
 
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportSelections, setExportSelections] = useState({
+    trades: true,
+    watchlist: true,
+    notes: true,
+    cashflows: true,
+    dividends: true,
+    settings: true,
+    portfolios: true,
+    tradingPlans: true,
+    ipo: true,
+    bsjp: true,
+    finance: true,
+  });
+
   useEffect(() => {
     setForm({ ...settings });
   }, [settings]);
@@ -343,8 +358,38 @@ export default function SettingsPage() {
   };
 
   const handleExport = () => {
+    setShowExportModal(true);
+  };
+
+  const executeExport = () => {
     const data = exportData();
-    const json = JSON.stringify(data, null, 2);
+    const filteredData: any = {
+      version: data.version,
+      storage: data.storage,
+      exportDate: data.exportDate,
+      marketPrices: data.marketPrices,
+    };
+
+    if (exportSelections.trades) filteredData.trades = data.trades;
+    if (exportSelections.watchlist) filteredData.watchlist = data.watchlist;
+    if (exportSelections.notes) filteredData.notes = data.notes;
+    if (exportSelections.cashflows) filteredData.cashflows = data.cashflows;
+    if (exportSelections.dividends) filteredData.dividends = data.dividends;
+    if (exportSelections.settings) filteredData.settings = data.settings;
+    if (exportSelections.portfolios) filteredData.portfolios = data.portfolios;
+    if (exportSelections.tradingPlans) filteredData.tradingPlans = data.tradingPlans;
+    if (exportSelections.ipo) {
+      filteredData.ipoEvents = data.ipoEvents;
+      filteredData.ipoEntries = data.ipoEntries;
+      filteredData.ipoAccounts = data.ipoAccounts;
+    }
+    if (exportSelections.bsjp) filteredData.bsjpTrades = data.bsjpTrades;
+    if (exportSelections.finance) {
+      filteredData.financeAccounts = data.financeAccounts;
+      filteredData.financeTransactions = data.financeTransactions;
+    }
+
+    const json = JSON.stringify(filteredData, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -357,9 +402,10 @@ export default function SettingsPage() {
       action: 'data.exported',
       targetType: 'journal_data',
       targetId: user?.id,
-      metadata: { storage: data.storage, version: data.version },
+      metadata: { storage: data.storage, version: data.version, selections: exportSelections },
     });
     showToast('Data berhasil diexport');
+    setShowExportModal(false);
   };
 
   const handleImport = (e) => {
@@ -1041,6 +1087,123 @@ export default function SettingsPage() {
           ) : null}
         </div>
       </div>
+
+      {showExportModal && (
+        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Pilih Data Export</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowExportModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 8 }}>
+                Pilih modul data apa saja yang ingin Anda sertakan dalam file backup JSON ini.
+              </p>
+              
+              <SelectionToggleCard
+                checked={exportSelections.trades}
+                onToggle={() => setExportSelections(prev => ({ ...prev, trades: !prev.trades }))}
+                title="Transaksi Jurnal"
+                description="Semua transaksi saham, reksadana, dan aset lainnya."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.watchlist}
+                onToggle={() => setExportSelections(prev => ({ ...prev, watchlist: !prev.watchlist }))}
+                title="Watchlist & Screener"
+                description="Daftar pantauan saham dan hasil screening."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.cashflows}
+                onToggle={() => setExportSelections(prev => ({ ...prev, cashflows: !prev.cashflows }))}
+                title="Arus Kas (Cashflow)"
+                description="Riwayat deposit, withdrawal, dan penyesuaian saldo."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.dividends}
+                onToggle={() => setExportSelections(prev => ({ ...prev, dividends: !prev.dividends }))}
+                title="Dividen"
+                description="Catatan penerimaan dividen."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.notes}
+                onToggle={() => setExportSelections(prev => ({ ...prev, notes: !prev.notes }))}
+                title="Catatan Trading"
+                description="Jurnal harian, evaluasi, dan catatan khusus."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.portfolios}
+                onToggle={() => setExportSelections(prev => ({ ...prev, portfolios: !prev.portfolios }))}
+                title="Daftar Portofolio"
+                description="Nama dan konfigurasi dompet portofolio."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.settings}
+                onToggle={() => setExportSelections(prev => ({ ...prev, settings: !prev.settings }))}
+                title="Pengaturan"
+                description="Preferensi trading, UI, perilaku, dan strategi kustom."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.tradingPlans}
+                onToggle={() => setExportSelections(prev => ({ ...prev, tradingPlans: !prev.tradingPlans }))}
+                title="Trading Plan"
+                description="Rencana trading yang belum terealisasi."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.ipo}
+                onToggle={() => setExportSelections(prev => ({ ...prev, ipo: !prev.ipo }))}
+                title="Data IPO"
+                description="Event, akun, dan partisipasi e-IPO."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.bsjp}
+                onToggle={() => setExportSelections(prev => ({ ...prev, bsjp: !prev.bsjp }))}
+                title="Data BSJP"
+                description="Transaksi Beli Sore Jual Pagi."
+                compact
+              />
+              <SelectionToggleCard
+                checked={exportSelections.finance}
+                onToggle={() => setExportSelections(prev => ({ ...prev, finance: !prev.finance }))}
+                title="Manajemen Keuangan"
+                description="Rekening bank pribadi, e-wallet, dan transaksi keuangan."
+                compact
+              />
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setExportSelections({
+                    trades: true, watchlist: true, notes: true, cashflows: true,
+                    dividends: true, settings: true, portfolios: true, tradingPlans: true,
+                    ipo: true, bsjp: true, finance: true
+                  })}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  Pilih Semua
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowExportModal(false)}>Batal</button>
+                <button type="button" className="btn btn-primary" onClick={executeExport}>
+                  <Database size={16} />
+                  <span>Download Backup</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
