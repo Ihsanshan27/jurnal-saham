@@ -1010,6 +1010,12 @@ export function DataProvider({ children }) {
     const amount = Math.abs(Number(transfer.amount) || 0);
     if (!amount) return null;
 
+    const currentBalance = getFinanceAccountCurrentBalance(transfer.accountId);
+    if (amount > currentBalance) {
+      showToast('Gagal: Saldo rekening tidak mencukupi untuk transfer ke dompet trading.', 'error');
+      return null;
+    }
+
     const payload = {
       accountId: transfer.accountId,
       type: 'expense',
@@ -1065,6 +1071,12 @@ export function DataProvider({ children }) {
     if (!ensureWritable()) return null;
     const amount = Math.abs(Number(transfer.amount) || 0);
     if (!amount) return null;
+
+    const currentBalance = getFinanceAccountCurrentBalance(transfer.fromAccountId);
+    if (amount > currentBalance) {
+      showToast('Gagal: Saldo rekening asal tidak mencukupi untuk transfer.', 'error');
+      return null;
+    }
 
     const transferGroupId = generateId();
     const createdAt = new Date().toISOString();

@@ -113,6 +113,54 @@ const MiniSelect = ({ value, options, onChange }: { value: number, options: {val
   );
 };
 
+const YearInput = ({ value, onChange }: { value: number, onChange: (val: number) => void }) => {
+  const [localVal, setLocalVal] = useState(String(value));
+
+  useEffect(() => {
+    setLocalVal(String(value));
+  }, [value]);
+
+  const handleBlur = () => {
+    const parsed = parseInt(localVal);
+    if (!isNaN(parsed) && parsed >= 1900 && parsed <= 2100) {
+      onChange(parsed);
+    } else {
+      setLocalVal(String(value));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  return (
+    <input 
+      type="number" 
+      value={localVal}
+      onChange={e => setLocalVal(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      style={{
+        width: 60,
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border-color)',
+        color: 'var(--text-primary)',
+        fontWeight: 600,
+        fontSize: '0.92rem',
+        padding: '4px 4px',
+        borderRadius: 'var(--radius-sm)',
+        outline: 'none',
+        textAlign: 'center',
+        MozAppearance: 'textfield' // removes native arrows in firefox
+      }}
+      className="no-spinners"
+      onFocus={(e) => e.target.select()}
+    />
+  );
+};
+
 export default function CustomDatePicker({
   value,
   onChange,
@@ -211,8 +259,6 @@ export default function CustomDatePicker({
 
   // Calendar rendering logic
   const renderHeader = () => {
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: currentYear + 20 - 1900 + 1 }, (_, i) => 1900 + i).map(y => ({ value: y, label: String(y) }));
     const months = Array.from({ length: 12 }, (_, i) => new Date(0, i)).map((m, i) => ({ value: i, label: format(m, 'MMMM', { locale: id }) }));
 
     return (
@@ -227,7 +273,7 @@ export default function CustomDatePicker({
           <Icons.ChevronLeft size={18} />
         </button>
         
-        <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <MiniSelect 
             value={currentMonth.getMonth()} 
             options={months}
@@ -237,9 +283,8 @@ export default function CustomDatePicker({
               setCurrentMonth(newDate);
             }}
           />
-          <MiniSelect 
-            value={currentMonth.getFullYear()} 
-            options={years}
+          <YearInput 
+            value={currentMonth.getFullYear()}
             onChange={(val) => {
               const newDate = new Date(currentMonth);
               newDate.setFullYear(val);
