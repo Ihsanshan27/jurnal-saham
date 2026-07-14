@@ -11,6 +11,7 @@ Berdasarkan riwayat pengerjaan Anda selama satu bulan terakhir, berikut adalah d
 ### 2. 📅 Manajemen Waktu & Custom Date
 - **Rentang Waktu**: Fitur baru untuk memfilter atau melihat data berdasarkan rentang waktu tertentu (dikerjakan dalam beberapa iterasi).
 - **Custom Date**: Dukungan untuk memilih tanggal kustom pada laporan atau pencarian data.
+- **Perbaikan DatePicker**: Memperbarui komponen input Tahun agar bisa diketik langsung dengan mudah tanpa *scroll* panjang.
 
 ### 3. 🔔 Notifikasi & Riwayat (History)
 - **Sistem Notifikasi**: Penambahan fitur notifikasi untuk memberikan peringatan atau pembaruan penting, beserta beberapa perbaikan (bug fixes) terkait notifikasi.
@@ -22,14 +23,18 @@ Berdasarkan riwayat pengerjaan Anda selama satu bulan terakhir, berikut adalah d
 - **Peningkatan Dark Mode**: Meningkatkan kontras warna pada border form dan input saat mode gelap aktif.
 - **Responsivitas**: Memperbaiki tata letak (layout) agar lebih responsif di berbagai ukuran layar.
 
-### 5. 💼 Portofolio & Transaksi (Trading)
+### 5. 💼 Portofolio, Transaksi & Keuangan
 - **Dompet (Wallet)**: Penambahan fitur dompet untuk mengelola saldo atau kas.
-- **Manajemen Akun (Acc)**: Penambahan fitur untuk mengelola berbagai akun.
+- **Manajemen Akun (Acc)**: Penambahan fitur untuk mengelola berbagai akun bank/e-wallet.
 - **Rekap BSJP**: Penambahan fitur rekapitulasi untuk strategi BSJP (Beli Sore Jual Pagi).
 - **Kolom Pembelian (Buy)**: Menambahkan kolom informasi pembelian pada tabel data.
 - **Fitur Edit**: Menambahkan kemampuan untuk mengedit entri data yang sudah ada.
+- **Validasi Transfer Saldo**: Menambahkan aturan agar transfer antar rekening bank atau top up ke dompet trading otomatis ditolak jika saldo rekening asal tidak mencukupi.
 
 ### 6. ⚙️ Peningkatan Performa & Infrastruktur
 - **Vercel SPA Routing**: Menambahkan aturan (rewrite rules) pada konfigurasi Vercel untuk mendukung perutean Single Page Application (SPA).
 - **Peningkatan Performa (Performance Upgrade)**: Melakukan optimasi dan refaktor kode agar aplikasi berjalan lebih cepat dan stabil.
 - Pembersihan *bug* pada berbagai komponen (filter reset, UI glitches).
+
+### 7. 💾 Manajemen Data & Pengaturan
+- **Selective Data Export (JSON)**: Menambahkan fitur *modal* pada pengaturan untuk memilih secara spesifik modul data mana saja yang ingin disertakan ke dalam file *backup* JSON (Transaksi, Portofolio, Trading Plan, Cashflow, dll.).
