@@ -115,7 +115,7 @@ export default function DashboardPage() {
    const filteredCashflows = useMemo(() => {
       if (activeMarketTab === "ALL") {
          return cashflows.map((cf) => {
-            if (cf.market === "US") {
+            if ((cf as any).market === "US") {
                return {
                   ...cf,
                   amount: cf.amount * usdToIdrRate,
@@ -126,15 +126,15 @@ export default function DashboardPage() {
       }
       return cashflows.filter(
          (cashflow) =>
-            cashflow.market === activeMarketTab ||
-            (!cashflow.market && activeMarketTab === "ID"),
+            (cashflow as any).market === activeMarketTab ||
+            (!(cashflow as any).market && activeMarketTab === "ID"),
       );
    }, [cashflows, activeMarketTab, usdToIdrRate]);
 
    const filteredDividends = useMemo(() => {
       if (activeMarketTab === "ALL") {
          return dividends.map((d) => {
-            if (d.market === "US") {
+            if ((d as any).market === "US") {
                return {
                   ...d,
                   totalAmount: (d.totalAmount || 0) * usdToIdrRate,
@@ -145,8 +145,8 @@ export default function DashboardPage() {
       }
       return dividends.filter(
          (dividend) =>
-            dividend.market === activeMarketTab ||
-            (!dividend.market && activeMarketTab === "ID"),
+            (dividend as any).market === activeMarketTab ||
+            (!(dividend as any).market && activeMarketTab === "ID"),
       );
    }, [dividends, activeMarketTab, usdToIdrRate]);
 
@@ -751,7 +751,7 @@ export default function DashboardPage() {
                   formatPercent={formatPercent}
                   recentSortConfig={recentSortConfig}
                   requestRecentSort={requestRecentSort}
-                  sortedRecentTrades={sortedRecentTrades}
+                  sortedRecentTrades={sortedRecentTrades as unknown as ClosedDashboardTrade[]}
                />
             </>
          )}

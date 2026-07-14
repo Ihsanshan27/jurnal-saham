@@ -212,10 +212,18 @@ export default function TradeDetailPage() {
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Beli' : 'Harga Beli'}</label>
                       <input type="number" className="form-input" value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        Total Beli: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(form.buyPrice) || 0 }).totalBuy)}
+                      </div>
                     </div>
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Jual' : 'Harga Jual'}</label>
                       <input type="number" className="form-input" value={form.sellPrice || ''} onChange={e => set('sellPrice', e.target.value)} />
+                      {form.sellPrice ? (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                          Total Jual: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(form.sellPrice) || 0 }).totalSell)}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   <div className="form-row">

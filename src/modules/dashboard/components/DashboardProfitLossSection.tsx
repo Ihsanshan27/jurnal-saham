@@ -72,25 +72,7 @@ export default function DashboardProfitLossSection({
           <BarChart3 size={18} className="dashboard-chart-title-icon" />
           <span>Profit/Loss</span>
         </div>
-        <div className="dashboard-profit-filter-group">
-          <CustomSelect
-            value={selectedRangeKey}
-            onChange={(value) => setSelectedRangeKey(value as RangeKey)}
-            options={rangeSummaries.map((range) => ({ value: range.key, label: range.label }))}
-          />
-          {isCustomRangeSelected && (
-            <>
-              <CustomDatePicker
-                value={customStartDate}
-                onChange={(date) => setCustomStartDate(format(date, 'yyyy-MM-dd'))}
-              />
-              <CustomDatePicker
-                value={customEndDate}
-                onChange={(date) => setCustomEndDate(format(date, 'yyyy-MM-dd'))}
-              />
-            </>
-          )}
-        </div>
+
       </div>
       <div className="dashboard-profit-summary">
         <div>
