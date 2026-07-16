@@ -69,6 +69,7 @@ export default function BsjpRecapPage() {
   // Modal & form states
   const [showModal, setShowModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState<any | null>(null);
+  const [customBrokerMode, setCustomBrokerMode] = useState(false);
 
   const [form, setForm] = useState({
     dateBuy: new Date().toISOString().split('T')[0],
@@ -83,6 +84,7 @@ export default function BsjpRecapPage() {
 
   const handleOpenAdd = () => {
     setEditingTrade(null);
+    setCustomBrokerMode(false);
     setForm({
       dateBuy: new Date().toISOString().split('T')[0],
       dateSell: '',
@@ -98,6 +100,7 @@ export default function BsjpRecapPage() {
 
   const handleOpenEdit = (trade: any) => {
     setEditingTrade(trade);
+    setCustomBrokerMode(false);
     setForm({
       dateBuy: trade.dateBuy || new Date().toISOString().split('T')[0],
       dateSell: trade.dateSell || '',
@@ -733,13 +736,46 @@ export default function BsjpRecapPage() {
 
                 <div className="form-group">
                   <label className="form-label">Nama Sekuritas</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="e.g. Ajaib, Gotrade, Mirae"
-                    value={form.sekuritas} 
-                    onChange={e => setForm(prev => ({ ...prev, sekuritas: e.target.value }))}
-                  />
+                  {customBrokerMode || availableBrokers.filter(b => b !== 'Custom').length === 0 ? (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="Ketik nama sekuritas..."
+                        value={form.sekuritas} 
+                        onChange={e => setForm(prev => ({ ...prev, sekuritas: e.target.value }))}
+                      />
+                      {availableBrokers.filter(b => b !== 'Custom').length > 0 && (
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          onClick={() => {
+                            setCustomBrokerMode(false);
+                            setForm(prev => ({ ...prev, sekuritas: availableBrokers.filter(b => b !== 'Custom')[0] || '' }));
+                          }}
+                          style={{ whiteSpace: 'nowrap' }}
+                        >
+                          Pilih dari daftar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <CustomSelect 
+                      value={availableBrokers.includes(form.sekuritas) ? form.sekuritas : '__CUSTOM__'}
+                      onChange={val => {
+                        if (val === '__CUSTOM__') {
+                          setCustomBrokerMode(true);
+                          setForm(prev => ({ ...prev, sekuritas: '' }));
+                        } else {
+                          setForm(prev => ({ ...prev, sekuritas: val }));
+                        }
+                      }}
+                      options={[
+                        ...availableBrokers.filter(b => b !== 'Custom').map(b => ({ value: b, label: b })),
+                        { value: '__CUSTOM__', label: '+ Ketik Manual...' }
+                      ]}
+                    />
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

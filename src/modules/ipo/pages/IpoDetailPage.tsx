@@ -1246,7 +1246,7 @@ export default function IpoDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedEntries.map(entry => {
+                {sortedEntries.map((entry, index) => {
                   const isProfit = entry.profitRp > 0;
                   const isLoss = entry.profitRp < 0;
                   const isKeep = entry.action === 'KEEP';
@@ -1285,7 +1285,7 @@ export default function IpoDetailPage() {
                             `${isRowChecked ? 'Batalkan pilihan' : 'Pilih'} akun ${entry.accountName}`,
                           )}
                         </td>
-                        <td style={{ ...compactCellStyle, color: 'var(--text-muted)', fontSize: '0.75rem' }}>{entry.no}</td>
+                        <td style={{ ...compactCellStyle, color: 'var(--text-muted)', fontSize: '0.75rem' }}>{index + 1}</td>
                         <td style={compactCellStyle}><strong>{event.stockCode}</strong></td>
                         <td className="font-mono" style={{ ...compactCellStyle, ...blurStyle }}>{formatRupiah(entry.buyPrice)}</td>
                         <td className="font-mono" style={compactCellStyle}>{entry.lots} lot</td>
