@@ -72,6 +72,7 @@ export default function BsjpRecapPage() {
 
   const [form, setForm] = useState({
     dateBuy: new Date().toISOString().split('T')[0],
+    dateSell: '',
     stockCode: '',
     lots: '',
     buyPrice: '',
@@ -84,6 +85,7 @@ export default function BsjpRecapPage() {
     setEditingTrade(null);
     setForm({
       dateBuy: new Date().toISOString().split('T')[0],
+      dateSell: '',
       stockCode: '',
       lots: '',
       buyPrice: '',
@@ -98,6 +100,7 @@ export default function BsjpRecapPage() {
     setEditingTrade(trade);
     setForm({
       dateBuy: trade.dateBuy || new Date().toISOString().split('T')[0],
+      dateSell: trade.dateSell || '',
       stockCode: trade.stockCode || '',
       lots: String(trade.lots || ''),
       buyPrice: String(trade.buyPrice || ''),
@@ -120,6 +123,7 @@ export default function BsjpRecapPage() {
 
     const payload = {
       dateBuy: form.dateBuy,
+      dateSell: form.dateSell ? form.dateSell : null,
       stockCode: form.stockCode.toUpperCase(),
       lots: parseInt(form.lots) || 0,
       buyPrice: parseFloat(form.buyPrice) || 0,
@@ -488,7 +492,7 @@ export default function BsjpRecapPage() {
       {/* Recap Table */}
       {pagedRows.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📊</div>
+          <div className="empty-state-icon"><Icons.BarChart size={48} className="text-gray-400" /></div>
           <div className="empty-state-title">Tidak ada transaksi terdaftar</div>
           <div className="empty-state-desc">Silakan sesuaikan penyaringan filter Anda atau tambahkan transaksi baru.</div>
         </div>
@@ -509,6 +513,9 @@ export default function BsjpRecapPage() {
                       <th style={{ width: 50 }}>NO</th>
                       <th onClick={() => handleSort('dateBuy')} style={{ cursor: 'pointer' }}>
                         TANGGAL BELI {sortBy === 'dateBuy' ? (sortDir === 'desc' ? '↓' : '↑') : ''}
+                      </th>
+                      <th onClick={() => handleSort('dateSell')} style={{ cursor: 'pointer' }}>
+                        TANGGAL JUAL {sortBy === 'dateSell' ? (sortDir === 'desc' ? '↓' : '↑') : ''}
                       </th>
                       <th onClick={() => handleSort('emiten')} style={{ cursor: 'pointer' }}>
                         EMITEN {sortBy === 'emiten' ? (sortDir === 'desc' ? '↓' : '↑') : ''}
@@ -542,8 +549,11 @@ export default function BsjpRecapPage() {
                           <td style={{ fontSize: '0.88rem' }}>
                             {formatDate(row.dateBuy)}
                           </td>
+                          <td style={{ fontSize: '0.88rem' }}>
+                            {row.dateSell ? formatDate(row.dateSell) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                          </td>
                           <td>
-                            <strong>{row.stockCode}</strong> {row.isUS && <span style={{ fontSize: '0.78rem' }}>🇺🇸</span>}
+                            <strong>{row.stockCode}</strong> {row.isUS && <span style={{ fontSize: '0.78rem' }}><span style={{fontSize: '0.8em', marginLeft: '4px'}}>(US)</span></span>}
                           </td>
                           <td className="font-mono">
                             {row.lots.toLocaleString('id-ID')}
@@ -636,7 +646,7 @@ export default function BsjpRecapPage() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Pasar</label>
                     <CustomSelect 
@@ -649,16 +659,24 @@ export default function BsjpRecapPage() {
                         }));
                       }}
                       options={[
-                        { value: 'ID', label: 'Indonesia (IDR)' },
-                        { value: 'US', label: 'Amerika (USD)' }
+                        { value: 'ID', label: 'IDR' },
+                        { value: 'US', label: 'USD' }
                       ]}
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Tanggal Beli</label>
+                    <label className="form-label">Tgl Beli</label>
                     <CustomDatePicker 
                       value={form.dateBuy} 
                       onChange={date => setForm(prev => ({ ...prev, dateBuy: format(date, 'yyyy-MM-dd') }))}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Tgl Jual (Opsi)</label>
+                    <CustomDatePicker 
+                      value={form.dateSell} 
+                      onChange={date => setForm(prev => ({ ...prev, dateSell: date ? format(date, 'yyyy-MM-dd') : '' }))}
+                      placeholder="Belum dijual"
                     />
                   </div>
                 </div>

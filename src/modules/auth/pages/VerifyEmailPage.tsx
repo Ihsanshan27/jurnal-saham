@@ -123,7 +123,7 @@ export default function VerifyEmailPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">📩</div>
+          <div className="login-logo-icon"><Mail size={48} className="text-blue-500" /></div>
           <h1>Verifikasi Email</h1>
         </div>
         <p className="login-subtitle">

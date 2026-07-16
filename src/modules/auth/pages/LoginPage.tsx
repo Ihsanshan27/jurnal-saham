@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/modules/auth/AuthContext';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, TrendingUp } from 'lucide-react';
 import { setPendingVerificationEmail } from '@/modules/auth/verificationStorage';
 
 export default function LoginPage() {
@@ -60,7 +60,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">📈</div>
+          <div className="login-logo-icon"><TrendingUp size={48} className="text-blue-500" /></div>
           <h1>Jurnal Saham</h1>
         </div>
         <p className="login-subtitle">Catat, analisis, dan tingkatkan performa trading Anda</p>

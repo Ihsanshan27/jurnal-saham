@@ -1,3 +1,4 @@
+import { Star, Image as ImageIcon, User, Calendar } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
@@ -360,7 +361,7 @@ export default function TradeDetailPage() {
 
           {trade.setupImageUrl ? (
             <div className="card" style={{ marginTop: 20 }}>
-              <div className="card-header"><h3 className="card-title">🖼 Setup Chart</h3></div>
+              <div className="card-header"><h3 className="card-title">Icon Setup Chart</h3></div>
               <div className="card-body" style={{ padding: 12, textAlign: 'center' }}>
                 <a href={trade.setupImageUrl} target="_blank" rel="noopener noreferrer">
                   <img
@@ -456,10 +457,10 @@ export default function TradeDetailPage() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                       <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        👤 Penyunting: <span style={{ color: 'var(--accent-blue-light)' }}>{log.editedBy}</span>
+                         Penyunting: <span style={{ color: 'var(--accent-blue-light)' }}>{log.editedBy}</span>
                       </div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        📅 Waktu: {new Date(log.editedAt).toLocaleString('id-ID')}
+                         Waktu: {new Date(log.editedAt).toLocaleString('id-ID')}
                       </div>
                     </div>
                     {changes.length === 0 ? (

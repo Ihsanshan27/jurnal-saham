@@ -1,3 +1,4 @@
+import { FileText, BarChart, AlertTriangle, Save, Clipboard } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '@/modules/shared/context/DataContext';
@@ -182,7 +183,7 @@ export default function TradingPlansPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">📝 Rencana Trading (Trading Plans)</h1>
+          <h1 className="page-title"> Rencana Trading (Trading Plans)</h1>
           <p className="page-subtitle">Rencanakan transaksi Anda dengan manajemen risiko otomatis</p>
         </div>
         {canWrite && (
@@ -298,7 +299,7 @@ export default function TradingPlansPage() {
               {/* Position Preview */}
               {entry > 0 && sl > 0 && tp > 0 && (
                 <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 20 }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-primary)' }}>📊 Preview Kalkulasi Posisi</h4>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-primary)' }}> Preview Kalkulasi Posisi</h4>
                   <div className="form-row" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
                     <div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Rasio Risk:Reward</div>
@@ -327,13 +328,13 @@ export default function TradingPlansPage() {
                   </div>
                   {requiredCapital > buyingPower && (
                     <div style={{ color: 'var(--accent-red)', fontSize: '0.75rem', marginTop: 10, fontWeight: 500 }}>
-                      ⚠️ Peringatan: Modal yang dibutuhkan melebihi Buying Power yang tersedia!
+                      ️ Peringatan: Modal yang dibutuhkan melebihi Buying Power yang tersedia!
                     </div>
                   )}
                 </div>
               )}
 
-              <button type="submit" className="btn btn-primary">💾 Simpan Rencana</button>
+              <button type="submit" className="btn btn-primary"> Simpan Rencana</button>
             </form>
           </div>
         </div>
@@ -342,7 +343,7 @@ export default function TradingPlansPage() {
       {/* Plan list */}
       {tradingPlans.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon"><Clipboard size={16} /> </div>
           <div className="empty-state-title">Belum ada rencana trading</div>
           <div className="empty-state-desc">Rencanakan transaksi Anda terlebih dahulu untuk mengelola risiko secara disiplin.</div>
         </div>

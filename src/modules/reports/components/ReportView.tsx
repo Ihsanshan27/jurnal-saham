@@ -83,7 +83,7 @@ export default function ReportView({
   if (!report) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">📄</div>
+        <div className="empty-state-icon"><File size={48} className="text-gray-400" /></div>
         <div className="empty-state-title">Report belum tersedia</div>
         <div className="empty-state-desc">{emptyMessage}</div>
       </div>
@@ -105,7 +105,7 @@ export default function ReportView({
     <div>
       <div className="page-header" style={{ alignItems: 'flex-start' }}>
         <div>
-          <h1 className="page-title">📄 {title || 'Trading Report'}</h1>
+          <h1 className="page-title"> {title || 'Trading Report'}</h1>
           <p className="page-subtitle">
             {report.ownerName} · {report.market === 'US' ? 'Pasar Amerika' : 'Pasar Indonesia'}
           </p>

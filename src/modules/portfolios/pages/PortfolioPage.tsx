@@ -150,7 +150,7 @@ export default function PortfolioPage() {
 
       {openTrades.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">💼</div>
+          <div className="empty-state-icon"><Briefcase size={48} className="text-gray-400" /></div>
           <div className="empty-state-title">Tidak ada posisi terbuka di {activeTab === 'US' ? 'Pasar US' : 'Pasar Indonesia'}</div>
           <div className="empty-state-desc">
             {isViewer ? 'Tidak ada posisi terbuka pada data yang bisa Anda lihat.' : 'Semua transaksi sudah ditutup, atau belum ada transaksi'}

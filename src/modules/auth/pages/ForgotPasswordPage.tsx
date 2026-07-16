@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">🔐</div>
+          <div className="login-logo-icon"><Lock size={48} className="text-blue-500" /></div>
           <h1>Lupa Password</h1>
         </div>
         <p className="login-subtitle">

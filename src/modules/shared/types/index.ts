@@ -125,6 +125,7 @@ export interface BsjpTrade {
   id: string;
   createdAt: string;
   dateBuy: string;
+  dateSell?: string | null;
   stockCode: string;
   lots: number;
   buyPrice: number;

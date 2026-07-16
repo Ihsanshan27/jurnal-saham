@@ -1,3 +1,4 @@
+import { Download, File, Folder, AlertTriangle } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { getTradeAssetTypeLabel } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
@@ -224,7 +225,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportSuccess, addTr
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-lg modal-flex">
         <div className="modal-header">
-          <h3 className="card-title">📥 Impor Jurnal Transaksi (CSV)</h3>
+          <h3 className="card-title"><Download size={20} /> Impor Jurnal Transaksi (CSV)</h3>
           <button className="btn btn-ghost btn-sm" onClick={onClose} style={{ fontSize: '1.2rem', padding: '0 8px' }}>&times;</button>
         </div>
 
@@ -252,10 +253,10 @@ export default function ImportCSVModal({ isOpen, onClose, onImportSuccess, addTr
             
             <div style={{ display: 'flex', gap: 12, alignSelf: 'flex-end' }}>
               <button type="button" className="btn btn-secondary btn-sm" style={{ height: '32px' }} onClick={downloadTemplate}>
-                📄 Unduh Template CSV
+                 Unduh Template CSV
               </button>
               <button type="button" className="btn btn-secondary btn-sm" style={{ height: '32px' }} onClick={() => fileInputRef.current?.click()}>
-                📁 Pilih File CSV
+                 Pilih File CSV
               </button>
             </div>
             <input
@@ -273,7 +274,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportSuccess, addTr
               color: 'var(--accent-red)', padding: '10px 14px', borderRadius: 'var(--radius-md)',
               fontSize: '0.82rem', marginBottom: '16px'
             }}>
-              ⚠️ {errorMsg}
+              ️ {errorMsg}
             </div>
           )}
 

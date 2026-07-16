@@ -19,7 +19,7 @@ import {
 } from '@/modules/shared/utils/patternRecognition';
 import { generateAnalysis } from '@/modules/shared/utils/generateAnalysis';
 import { EMITEN_DATA, SECTORS, getTickersBySector } from '@/modules/shared/utils/commodityData';
-import { Search, RefreshCw, AlertTriangle, Zap } from 'lucide-react';
+import { Search, RefreshCw, AlertTriangle, Zap, Folder, Flame, Radio, Clipboard, Check, Target } from 'lucide-react';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 
 const Skeleton = () => (
@@ -256,7 +256,7 @@ const ScreenerPage = () => {
                             loadData(sectorTickers.split(', '), activeFilterCount > 0);
                         }}
                         options={[
-                            { value: "", label: "📂 Pilih Sektor..." },
+                            { value: "", label: "Pilih Sektor..." },
                             ...SECTORS.map(s => ({ value: s, label: s }))
                         ]}
                     />
@@ -270,10 +270,10 @@ const ScreenerPage = () => {
                 {/* Stats */}
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
                     {[
-                        { label: 'Mode Scan Aktif', value: scanMode, icon: scanMode.includes('Top') ? '🔥' : '📡', accent: 'blue' },
-                        { label: 'Total Saham Di-scan', value: stocks.length, icon: '📋' },
-                        { label: 'Memenuhi Filter', value: filteredStocks.length, icon: '✅', accent: 'green' },
-                        { label: 'Filter Aktif', value: activeFilterCount, icon: '🎯', accent: activeFilterCount > 0 ? 'yellow' : null },
+                        { label: 'Mode Scan Aktif', value: scanMode, icon: scanMode.includes('Top') ? <Flame size={18} /> : <Radio size={18} />, accent: 'blue' },
+                        { label: 'Total Saham Di-scan', value: stocks.length, icon: <Clipboard size={18} /> },
+                        { label: 'Memenuhi Filter', value: filteredStocks.length, icon: <Check size={18} />, accent: 'green' },
+                        { label: 'Filter Aktif', value: activeFilterCount, icon: <Target size={18} />, accent: activeFilterCount > 0 ? 'yellow' : null },
                     ].map(stat => (
                         <div key={stat.label} className="stat-card" style={{ padding: '12px 18px', flex: '0 1 auto', minWidth: '120px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '1.2rem' }}>{stat.icon}</span>
@@ -330,7 +330,7 @@ const ScreenerPage = () => {
                         </div>
                     ) : !error ? (
                         <div className="card" style={{ padding: '60px 24px', textAlign: 'center' }}>
-                            <div className="empty-state-icon">🔍</div>
+                            <div className="empty-state-icon"><Search size={48} className="text-gray-400" /></div>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Tidak Ada Saham yang Cocok</h3>
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '360px', margin: '0 auto 24px' }}>
                                 Coba longgarkan filter indikator.

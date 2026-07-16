@@ -16,25 +16,25 @@ const ScreenerFilter = ({ filters, setFilters }) => {
     return (
         <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>🎯 Filter Screener</h3>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}> Filter Screener</h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pilih sinyal & kriteria teknikal</p>
             </div>
 
             {/* Trading Signals */}
             <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px', paddingBottom: '7px', borderBottom: '1px solid var(--border-color)' }}>
-                    🚦 Sinyal Trading
+                     Sinyal Trading
                 </div>
                 <CustomSelect
                     value={filters.signal || ''}
                     onChange={(value) => handleSelect({ target: { name: 'signal', value } })}
                     options={[
                         { value: "", label: "Semua Sinyal" },
-                        { value: "BOW", label: "🎯 Buy on Weakness (BOW)" },
-                        { value: "BOB", label: "💥 Buy on Breakout (BOB)" },
-                        { value: "ACCUMULATION", label: "📦 Accumulation Phase" },
-                        { value: "OVERSOLD_BOUNCE", label: "🔄 Oversold Bounce" },
-                        { value: "MOMENTUM", label: "🚀 Momentum Trend" }
+                        { value: "BOW", label: " Buy on Weakness (BOW)" },
+                        { value: "BOB", label: " Buy on Breakout (BOB)" },
+                        { value: "ACCUMULATION", label: " Accumulation Phase" },
+                        { value: "OVERSOLD_BOUNCE", label: " Oversold Bounce" },
+                        { value: "MOMENTUM", label: " Momentum Trend" }
                     ]}
                 />
             </div>
@@ -42,7 +42,7 @@ const ScreenerFilter = ({ filters, setFilters }) => {
             {/* Technical Indicators */}
             <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px', paddingBottom: '7px', borderBottom: '1px solid var(--border-color)' }}>
-                    📊 Indikator Teknikal
+                     Indikator Teknikal
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                     {[
@@ -76,18 +76,18 @@ const ScreenerFilter = ({ filters, setFilters }) => {
             {/* Chart Patterns */}
             <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px', paddingBottom: '7px', borderBottom: '1px solid var(--border-color)' }}>
-                    📈 Pola Chart
+                     Pola Chart
                 </div>
                 <CustomSelect
                     value={filters.pattern || ''}
                     onChange={(value) => handleSelect({ target: { name: 'pattern', value } })}
                     options={[
                         { value: "", label: "Semua Pola" },
-                        { value: "double_bottom", label: "📊 Double Bottom (W)" },
-                        { value: "ihns", label: "🔄 Inverted H&S" },
-                        { value: "bull_flag", label: "🚩 Bull Flag / Pennant" },
-                        { value: "ascending_triangle", label: "📐 Ascending Triangle" },
-                        { value: "candle_bullish", label: "🕯️ Bullish Candlestick" }
+                        { value: "double_bottom", label: " Double Bottom (W)" },
+                        { value: "ihns", label: " Inverted H&S" },
+                        { value: "bull_flag", label: " Bull Flag / Pennant" },
+                        { value: "ascending_triangle", label: " Ascending Triangle" },
+                        { value: "candle_bullish", label: "️ Bullish Candlestick" }
                     ]}
                 />
             </div>
@@ -95,15 +95,15 @@ const ScreenerFilter = ({ filters, setFilters }) => {
             {/* Sentiment */}
             <div>
                 <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '10px', paddingBottom: '7px', borderBottom: '1px solid var(--border-color)' }}>
-                    📰 Sentimen Berita
+                     Sentimen Berita
                 </div>
                 <CustomSelect
                     value={filters.sentiment || ''}
                     onChange={(value) => handleSelect({ target: { name: 'sentiment', value } })}
                     options={[
                         { value: "", label: "Semua Sentimen" },
-                        { value: "Positive", label: "📈 Positif (Bullish)" },
-                        { value: "Neutral", label: "🔸 Netral & Positif" }
+                        { value: "Positive", label: " Positif (Bullish)" },
+                        { value: "Neutral", label: " Netral & Positif" }
                     ]}
                 />
             </div>

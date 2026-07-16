@@ -79,7 +79,7 @@ export default function MentorTradersPage() {
             <div style={{ color: 'var(--text-muted)' }}>Memuat daftar trader...</div>
           ) : rows.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">👥</div>
+              <div className="empty-state-icon"><Users size={48} className="text-gray-400" /></div>
               <div className="empty-state-title">Belum ada trader yang share jurnal</div>
               <div className="empty-state-desc">Minta trader memberi akses dari halaman Pengaturan mereka.</div>
             </div>

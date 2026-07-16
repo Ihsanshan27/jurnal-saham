@@ -1,3 +1,4 @@
+import { Package, Triangle, Folder, Clipboard, TrendingUp, TrendingDown, Search } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { EMITEN_DATA, SECTORS, SECTOR_META, getTickersBySector } from '@/modules/shared/utils/commodityData';
 import { fetchQuotesBatch } from '@/modules/shared/services/yahooFinanceService';
@@ -80,7 +81,7 @@ interface SectorCardProps {
 // ------------------
 const SectorCard = ({ sector, emitens, quotes, loadedSectors }: SectorCardProps) => {
     const [open, setOpen] = useState(false);
-    const meta = SECTOR_META[sector] || { icon: '📦', color: 'var(--text-secondary)', dim: 'rgba(100,116,139,0.15)' };
+    const meta = SECTOR_META[sector] || { icon: <Package size={24} />, color: 'var(--text-secondary)', dim: 'rgba(100,116,139,0.15)' };
     const isLoaded = loadedSectors.has(sector);
 
     const prices = emitens.map(e => quotes[e.ticker]).filter((q): q is QuoteData => q != null && q.ok && q.price !== null);
@@ -120,8 +121,8 @@ const SectorCard = ({ sector, emitens, quotes, loadedSectors }: SectorCardProps)
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{emitens.length} emiten</span>
                         {isLoaded && prices.length > 0 && (
                             <>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent-green)' }}>▲ {gainers}</span>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent-red)' }}>▼ {losers}</span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent-green)' }}> {gainers}</span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--accent-red)' }}> {losers}</span>
                             </>
                         )}
                     </div>
@@ -261,10 +262,10 @@ const CategoryPage = () => {
                 {/* Stats bar */}
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
                     {[
-                        { label: 'Sektor', value: SECTORS.length, icon: '📂' },
-                        { label: 'Total Emiten', value: [...new Set(EMITEN_DATA.map(e => e.ticker))].length, icon: '📋' },
-                        { label: 'Naik Hari Ini', value: totalGainers, icon: '📈', color: 'var(--accent-green)' },
-                        { label: 'Turun Hari Ini', value: totalLosers, icon: '📉', color: 'var(--accent-red)' },
+                        { label: 'Sektor', value: SECTORS.length, icon: '' },
+                        { label: 'Total Emiten', value: [...new Set(EMITEN_DATA.map(e => e.ticker))].length, icon: '' },
+                        { label: 'Naik Hari Ini', value: totalGainers, icon: '', color: 'var(--accent-green)' },
+                        { label: 'Turun Hari Ini', value: totalLosers, icon: '', color: 'var(--accent-red)' },
                     ].map(stat => (
                         <div key={stat.label} className="stat-card" style={{ padding: '11px 16px', flex: '0 1 auto', minWidth: '100px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontSize: '1rem' }}>{stat.icon}</span>
@@ -314,7 +315,7 @@ const CategoryPage = () => {
 
             {sortedSectors.length === 0 && (
                 <div className="card" style={{ padding: '60px 24px', textAlign: 'center', gridColumn: '1 / -1' }}>
-                    <div className="empty-state-icon">🔍</div>
+                    <div className="empty-state-icon"><Search size={16} /> </div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Tidak Ditemukan</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                         Tidak ada sektor atau emiten yang cocok dengan pencarian "{search}".

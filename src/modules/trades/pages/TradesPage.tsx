@@ -375,7 +375,7 @@ export default function TradesPage() {
                         )}
                       </td>
                       <td>
-                        <strong>{trade.stockCode}</strong> {isUS && <span style={{fontSize: '0.8em'}}>🇺🇸</span>}
+                        <strong>{trade.stockCode}</strong> {isUS && <span style={{fontSize: '0.8em'}}><span style={{fontSize: '0.8em', marginLeft: '4px'}}>(US)</span></span>}
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{getTradeAssetTypeLabel(trade)}</div>
                       </td>
                       <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{formatDate(trade.dateBuy)}</td>

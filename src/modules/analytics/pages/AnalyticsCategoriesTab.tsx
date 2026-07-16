@@ -3,6 +3,7 @@ import {
 } from "recharts";
 import { formatRupiah } from "@/modules/shared/utils/formatters";
 import { EMOTIONS } from "@/modules/shared/utils/constants";
+import { Smile, Glasses, Frown, DollarSign, Angry, HelpCircle, AlertCircle, Meh } from "lucide-react";
 
 interface TooltipProps {
    active?: boolean;
@@ -20,9 +21,9 @@ function PercentTooltip({ active, payload, label }: TooltipProps) {
    );
 }
 
-const EMOJI_MAP: Record<string, string> = {
-   calm: "🙂", confident: "😎", fearful: "😨", greedy: "🤑",
-   revenge: "😡", doubtful: "🤔", fomo: "😱", neutral: "😐",
+const ICON_MAP: Record<string, React.ReactNode> = {
+   calm: <Smile size={16} />, confident: <Glasses size={16} />, fearful: <Frown size={16} />, greedy: <DollarSign size={16} />,
+   revenge: <Angry size={16} />, doubtful: <HelpCircle size={16} />, fomo: <AlertCircle size={16} />, neutral: <Meh size={16} />,
 };
 
 const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#8B5CF6", "#F43F5E", "#06B6D4", "#EC4899", "#84CC16"];
@@ -96,7 +97,7 @@ export default function AnalyticsCategoriesTab({
                            return (
                               <div key={emotionStat.emotion} className="analytics-list-row">
                                  <div className="analytics-list-label">
-                                    <span className="analytics-emoji">{EMOJI_MAP[emotionStat.emotion] || "❓"}</span>
+                                    <span className="analytics-emoji" style={{ display: 'inline-flex', alignItems: 'center' }}>{ICON_MAP[emotionStat.emotion] || <HelpCircle size={16} />}</span>
                                     <span className="analytics-item-label">{emotionOption?.label || emotionStat.emotion}</span>
                                  </div>
                                  <div className="analytics-list-metrics">

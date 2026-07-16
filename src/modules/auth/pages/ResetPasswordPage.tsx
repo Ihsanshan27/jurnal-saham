@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Lock } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/AuthContext';
 import { isSupabaseConfigured, supabase } from '@/modules/shared/services/supabaseClient';
@@ -99,7 +100,7 @@ export default function ResetPasswordPage() {
       <div className="login-page">
         <div className="login-card">
           <div className="login-logo">
-            <div className="login-logo-icon">🔒</div>
+            <div className="login-logo-icon"><Lock size={48} className="text-blue-500" /></div>
             <h1>Reset Password</h1>
           </div>
           <div className="auth-alert auth-alert-warning">
@@ -119,7 +120,7 @@ export default function ResetPasswordPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">🔑</div>
+          <div className="login-logo-icon"><Lock size={48} className="text-blue-500" /></div>
           <h1>Password Baru</h1>
         </div>
         <p className="login-subtitle">

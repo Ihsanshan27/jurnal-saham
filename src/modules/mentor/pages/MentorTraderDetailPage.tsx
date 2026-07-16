@@ -1,3 +1,4 @@
+import { Mailbox, FileText } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ReadOnlyNotice from '@/modules/shared/components/ReadOnlyNotice';
@@ -74,7 +75,7 @@ export default function MentorTraderDetailPage() {
   if (!journal) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">📭</div>
+        <div className="empty-state-icon"><Mailbox size={48} className="text-gray-400" /></div>
         <div className="empty-state-title">Jurnal trader tidak bisa dimuat</div>
         <Link to="/mentor/traders" className="btn btn-primary">Kembali ke daftar trader</Link>
       </div>
@@ -105,7 +106,7 @@ export default function MentorTraderDetailPage() {
 
       {trades.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📝</div>
+          <div className="empty-state-icon"><FileText size={48} className="text-gray-400" /></div>
           <div className="empty-state-title">Belum ada transaksi yang dibagikan</div>
           <div className="empty-state-desc">Trader ini belum punya data trade untuk direview.</div>
         </div>

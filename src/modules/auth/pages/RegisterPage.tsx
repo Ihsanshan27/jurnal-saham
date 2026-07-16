@@ -92,7 +92,7 @@ export default function RegisterPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">📈</div>
+          <div className="login-logo-icon"><TrendingUp size={48} className="text-blue-500" /></div>
           <h1>Jurnal Saham</h1>
         </div>
         <p className="login-subtitle">Buat akun untuk mulai mencatat trading Anda</p>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Search, Users } from 'lucide-react';
 import { useAuth } from '@/modules/auth/AuthContext';
 import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
@@ -179,7 +180,7 @@ export default function AdminUsersPage() {
         <div className="card-body">
           <div className="admin-users-toolbar">
             <div className="search-bar">
-              <span className="search-bar-icon">🔍</span>
+              <span className="search-bar-icon"><Search size={18} /></span>
               <input
                 placeholder="Cari nama, email, atau role..."
                 value={search}
@@ -210,7 +211,7 @@ export default function AdminUsersPage() {
         <div className="loading-spinner" />
       ) : filteredProfiles.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">👥</div>
+          <div className="empty-state-icon"><Users size={48} className="text-gray-400" /></div>
           <div className="empty-state-title">Belum ada user</div>
           <div className="empty-state-desc">User akan muncul setelah profile dibuat di Supabase.</div>
         </div>

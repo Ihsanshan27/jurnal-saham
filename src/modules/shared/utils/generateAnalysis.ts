@@ -15,11 +15,11 @@ const PATTERN_DESCRIPTIONS = {
 };
 
 const SIGNAL_DESCRIPTIONS = {
-    'BOW': '🎯 Buy on Weakness (BOW): Harga telah koreksi 5–25% dari high terbaru ke zona support, dengan indikator oversold yang mulai berbalik. Setup ideal untuk entry di harga diskon.',
-    'BOB': '💥 Buy on Breakout (BOB): Harga baru saja menembus resistance yang sudah bertahan lama, dikonfirmasi oleh volume yang meningkat signifikan. Setup breakout yang valid untuk entry momentum.',
-    'ACCUMULATION': '📦 Akumulasi: Harga konsolidasi dalam range sempit dengan volume yang perlahan membangun. Potensi breakout explosive di depan setelah akumulasi selesai.',
-    'OVERSOLD_BOUNCE': '🔄 Oversold Bounce: Sell-off yang dalam membawa price ke zona ekstrem oversold. Harga mulai memantul — peluang swing trade jangka pendek.',
-    'MOMENTUM': '🚀 Momentum Trend: Saham secara konsisten membentuk higher high dan higher low — tren naik yang sehat. Strategi trend following cocok diterapkan.',
+    'BOW': 'Buy on Weakness (BOW): Harga telah koreksi 5–25% dari high terbaru ke zona support, dengan indikator oversold yang mulai berbalik. Setup ideal untuk entry di harga diskon.',
+    'BOB': 'Buy on Breakout (BOB): Harga baru saja menembus resistance yang sudah bertahan lama, dikonfirmasi oleh volume yang meningkat signifikan. Setup breakout yang valid untuk entry momentum.',
+    'ACCUMULATION': 'Akumulasi: Harga konsolidasi dalam range sempit dengan volume yang perlahan membangun. Potensi breakout explosive di depan setelah akumulasi selesai.',
+    'OVERSOLD_BOUNCE': 'Oversold Bounce: Sell-off yang dalam membawa price ke zona ekstrem oversold. Harga mulai memantul — peluang swing trade jangka pendek.',
+    'MOMENTUM': 'Momentum Trend: Saham secara konsisten membentuk higher high dan higher low — tren naik yang sehat. Strategi trend following cocok diterapkan.',
 };
 
 const INDICATOR_DESCRIPTIONS = {
@@ -86,7 +86,7 @@ export function generateAnalysis({
     if (sentiment === 'Positive') {
         bullets.push('Sentimen berita positif — katalis fundamental mendukung potensi kenaikan harga.');
     } else if (sentiment === 'Negative') {
-        bullets.push('⚠️ Sentimen berita negatif — waspadai risiko downside meski teknikal terlihat bullish.');
+        bullets.push('Sentimen berita negatif — waspadai risiko downside meski teknikal terlihat bullish.');
     }
 
     if (bullets.length === 0) {
@@ -99,9 +99,9 @@ export function generateAnalysis({
 
     let conclusion = '';
     if (signals.includes('BOW') || signals.includes('BOB')) {
-        conclusion = `\n\n💡 **Setup aktif teridentifikasi.** Perhatikan level entry, stop loss, dan konfirmasi volume sebelum eksekusi.`;
+        conclusion = `\n\n**Setup aktif teridentifikasi.** Perhatikan level entry, stop loss, dan konfirmasi volume sebelum eksekusi.`;
     } else if (bullets.length >= 3) {
-        conclusion = `\n\n💡 Konfluensi ${bullets.length} sinyal memberikan probabilitas keberhasilan yang lebih tinggi.`;
+        conclusion = `\n\nKonfluensi ${bullets.length} sinyal memberikan probabilitas keberhasilan yang lebih tinggi.`;
     }
 
     return `${header}\n${body}${conclusion}`;
