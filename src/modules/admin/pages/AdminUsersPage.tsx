@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, Users } from 'lucide-react';
+import { Search, Users, Key, Edit2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/modules/auth/AuthContext';
 import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
@@ -8,7 +8,7 @@ import CustomSelect from '@/modules/shared/components/CustomSelect';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { USER_ROLES, listProfiles, updateProfileRole } from '@/modules/shared/services/profileService';
 import { createAuditLog, createAuditLogSafe } from '@/modules/admin/services/auditLogService';
-import { createUserAsAdmin } from '@/modules/admin/services/adminUserService';
+import { createUserAsAdmin, resetUserPasswordAsAdmin, deleteUserAsAdmin, updateUserAsAdmin } from '@/modules/admin/services/adminUserService';
 import { getRegistrationEnabled, setRegistrationEnabled } from '@/modules/shared/services/appSettingsService';
 import { formatDate } from '@/modules/shared/utils/formatters';
 
@@ -39,6 +39,12 @@ export default function AdminUsersPage() {
     password: '',
     role: 'trader',
   });
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<any>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ email: '', displayName: '' });
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -129,6 +135,75 @@ export default function AdminUsersPage() {
       showToast(`Gagal update registrasi: ${err.message}`, 'error');
     } finally {
       setSettingSaving(false);
+    }
+  };
+
+  const handleResetPassword = (profile: any) => {
+    setResetPasswordTarget(profile);
+    setResetPasswordValue('');
+    setResetPasswordOpen(true);
+  };
+
+  const submitResetPassword = async (event: any) => {
+    event.preventDefault();
+    if (!resetPasswordTarget) return;
+
+    if (resetPasswordValue.length < 6) {
+      showToast('Password harus minimal 6 karakter', 'error');
+      return;
+    }
+    setSavingId(resetPasswordTarget.id);
+    setResetPasswordOpen(false);
+
+    try {
+      await resetUserPasswordAsAdmin(resetPasswordTarget.id, resetPasswordValue);
+      showToast(`Password untuk ${resetPasswordTarget.displayName} berhasil direset`);
+    } catch (err: any) {
+      showToast(`Gagal reset password: ${err.message}`, 'error');
+    } finally {
+      setSavingId('');
+      setResetPasswordTarget(null);
+      setResetPasswordValue('');
+    }
+  };
+
+  const handleEditUser = (profile: any) => {
+    setEditTarget(profile);
+    setEditForm({ email: profile.email || '', displayName: profile.displayName || '' });
+    setEditOpen(true);
+  };
+
+  const submitEditUser = async (event: any) => {
+    event.preventDefault();
+    if (!editTarget) return;
+
+    setSavingId(editTarget.id);
+    setEditOpen(false);
+
+    try {
+      await updateUserAsAdmin(editTarget.id, editForm);
+      showToast(`User ${editTarget.displayName} berhasil diupdate`);
+      await loadUsers();
+    } catch (err: any) {
+      showToast(`Gagal update user: ${err.message}`, 'error');
+    } finally {
+      setSavingId('');
+      setEditTarget(null);
+    }
+  };
+
+  const handleDeleteUser = async (profile: any) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus user ${profile.displayName}? Tindakan ini tidak bisa dibatalkan.`)) return;
+
+    setSavingId(profile.id);
+    try {
+      await deleteUserAsAdmin(profile.id);
+      showToast(`User ${profile.displayName} berhasil dihapus`);
+      await loadUsers();
+    } catch (err: any) {
+      showToast(`Gagal menghapus user: ${err.message}`, 'error');
+    } finally {
+      setSavingId('');
     }
   };
 
@@ -246,11 +321,40 @@ export default function AdminUsersPage() {
                     {profile.createdAt ? formatDate(profile.createdAt) : '-'}
                   </td>
                   <td>
-                    <CustomSelect
-                      value={profile.role}
-                      onChange={(value) => handleRoleChange(profile, value)}
-                      options={USER_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
-                    />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <CustomSelect
+                        value={profile.role}
+                        onChange={(value) => handleRoleChange(profile, value)}
+                        options={USER_ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
+                      />
+                      <button
+                        className="btn btn-sm"
+                        style={{ padding: '0.4rem', borderRadius: '0.4rem', backgroundColor: 'var(--warning, #f59e0b)', color: '#fff', border: 'none' }}
+                        title="Reset Password"
+                        onClick={() => handleResetPassword(profile)}
+                        disabled={savingId === profile.id}
+                      >
+                        <Key size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ padding: '0.4rem', borderRadius: '0.4rem', backgroundColor: 'var(--blue, #3b82f6)', color: '#fff', border: 'none' }}
+                        title="Edit User"
+                        onClick={() => handleEditUser(profile)}
+                        disabled={savingId === profile.id}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ padding: '0.4rem', borderRadius: '0.4rem', backgroundColor: 'var(--red, #ef4444)', color: '#fff', border: 'none' }}
+                        title="Hapus User"
+                        onClick={() => handleDeleteUser(profile)}
+                        disabled={savingId === profile.id || profile.id === user?.id}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -324,6 +428,97 @@ export default function AdminUsersPage() {
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={creating}>
                   {creating ? 'Membuat...' : 'Buat User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {resetPasswordOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Reset Password</h3>
+              <button
+                className="btn btn-ghost btn-icon"
+                type="button"
+                onClick={() => setResetPasswordOpen(false)}
+              >
+                x
+              </button>
+            </div>
+            <form onSubmit={submitResetPassword}>
+              <div className="modal-body">
+                <p style={{ marginBottom: 16, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Masukkan password baru untuk user <strong>{resetPasswordTarget?.displayName}</strong>.
+                </p>
+                <div className="form-group">
+                  <label className="form-label">Password Baru</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={resetPasswordValue}
+                    onChange={e => setResetPasswordValue(e.target.value)}
+                    minLength={6}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setResetPasswordOpen(false)}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ backgroundColor: 'var(--warning)', borderColor: 'var(--warning)', color: '#fff' }}>
+                  Reset Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Edit User</h3>
+              <button
+                className="btn btn-ghost btn-icon"
+                type="button"
+                onClick={() => setEditOpen(false)}
+              >
+                x
+              </button>
+            </div>
+            <form onSubmit={submitEditUser}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={editForm.email}
+                    onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nama Tampilan</label>
+                  <input
+                    className="form-input"
+                    value={editForm.displayName}
+                    onChange={e => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setEditOpen(false)}>
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Simpan Perubahan
                 </button>
               </div>
             </form>

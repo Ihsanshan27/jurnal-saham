@@ -50,6 +50,7 @@ export interface Cashflow {
   portfolioId?: string;
   createdAt?: string;
   linkedFinanceTransactionId?: string;
+  market?: 'ID' | 'US';
 }
 
 export interface Dividend {
