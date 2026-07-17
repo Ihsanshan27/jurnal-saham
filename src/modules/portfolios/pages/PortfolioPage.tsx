@@ -23,6 +23,7 @@ export default function PortfolioPage() {
   const { trades, cashflows, dividends, settings, updateSettings, activePortfolioId, marketPrices, updateMarketPrice, fetchLivePrices, canWrite } = useData();
   const { isViewer } = usePermissions();
   const [activeTab, setActiveTab] = useState('ID');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isDefaultPort = activePortfolioId === 'default';
   const initialCap = isDefaultPort ? (activeTab === 'US' ? (settings.initialCapitalUS ?? 1000) : (settings.initialCapital ?? 10000000)) : 0;
@@ -116,15 +117,21 @@ export default function PortfolioPage() {
           {canWrite && openTrades.length > 0 ? (
             <button
               type="button"
-              onClick={() => {
-                const tickers = openTrades.map(t => t.stockCode).filter(Boolean);
-                fetchLivePrices(tickers);
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  const tickers = openTrades.map(t => t.stockCode).filter(Boolean);
+                  await fetchLivePrices(tickers);
+                } finally {
+                  setIsRefreshing(false);
+                }
               }}
               className="btn btn-secondary"
               title="Perbarui harga dari Yahoo Finance"
+              disabled={isRefreshing}
             >
-              <Icons.RefreshCw size={16} />
-              <span>Perbarui Harga Live</span>
+              {isRefreshing ? <Icons.Loader size={16} className="spin" /> : <Icons.RefreshCw size={16} />}
+              <span>{isRefreshing ? 'Memperbarui...' : 'Perbarui Harga Live'}</span>
             </button>
           ) : null}
           <Link to="/history" className="btn btn-secondary">

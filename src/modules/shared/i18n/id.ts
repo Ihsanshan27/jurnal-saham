@@ -164,11 +164,16 @@ export const id = {
   'nav.Watchlist': 'Watchlist',
   'nav.Kalkulator': 'Kalkulator',
   'nav.Catatan': 'Catatan',
-  'nav.Admin': 'Admin',
+  'nav.Dasbor Admin': 'Dasbor Admin',
+  'nav.Users': 'Users',
+  'nav.Audit Logs': 'Audit Logs',
+  'nav.Profil Saya': 'Profil Saya',
   'nav.Pengaturan': 'Pengaturan',
   'nav.Keluar': 'Keluar',
   'section.MENU': 'MENU',
   'section.TOOLS': 'TOOLS',
+  'section.ADMIN': 'ADMIN',
+  'section.LAINNYA': 'LAINNYA',
   'section.SISTEM': 'SISTEM',
 
   // Settings Tabs

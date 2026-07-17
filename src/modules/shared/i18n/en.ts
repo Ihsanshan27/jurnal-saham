@@ -164,11 +164,16 @@ export const en = {
   'nav.Watchlist': 'Watchlist',
   'nav.Kalkulator': 'Calculators',
   'nav.Catatan': 'Notes',
-  'nav.Admin': 'Admin',
+  'nav.Dasbor Admin': 'Admin Dashboard',
+  'nav.Users': 'Users',
+  'nav.Audit Logs': 'Audit Logs',
+  'nav.Profil Saya': 'My Profile',
   'nav.Pengaturan': 'Settings',
   'nav.Keluar': 'Logout',
   'section.MENU': 'MENU',
   'section.TOOLS': 'TOOLS',
+  'section.ADMIN': 'ADMIN',
+  'section.LAINNYA': 'OTHERS',
   'section.SISTEM': 'SYSTEM',
 
   // Settings Tabs
