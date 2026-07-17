@@ -2,11 +2,13 @@ import { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { NAV_ITEMS } from '@/modules/shared/utils/constants';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
+import { useTranslation } from '@/modules/shared/i18n/useTranslation';
 import * as Icons from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { role } = usePermissions();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -42,7 +44,7 @@ export default function Sidebar({ isOpen, onClose }) {
         <nav className="sidebar-nav">
           {Object.entries(sections).map(([section, items]) => (
             <div key={section}>
-              <div className="sidebar-section-title">{section}</div>
+              <div className="sidebar-section-title">{t(`section.${section}`)}</div>
               {items.map(item => {
                 const IconComponent = (Icons as any)[item.icon];
                 return (
@@ -58,7 +60,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     <span className="nav-item-icon">
                       {IconComponent && <IconComponent size={18} strokeWidth={2} />}
                     </span>
-                    <span>{item.label}</span>
+                    <span>{t(`nav.${item.label}`)}</span>
                   </NavLink>
                 );
               })}

@@ -7,6 +7,9 @@ import { formatDate, formatRupiah, formatUSD } from '@/modules/shared/utils/form
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
 import MarketTabBar from '@/modules/shared/components/MarketTabBar';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
+import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import { format } from 'date-fns';
 import * as Icons from 'lucide-react';
 import '@/modules/portfolios/portfolios.css';
 
@@ -67,6 +70,7 @@ export default function PortfoliosPage() {
     allCashflows,
     allDividends,
     financeAccounts,
+    addCashflow,
   } = useData();
   const { confirm } = useDialog();
   const blurStyle = usePrivacyStyle();
@@ -77,6 +81,14 @@ export default function PortfoliosPage() {
   const [activeMarketTab, setActiveMarketTab] = useState<'ID' | 'US'>('ID');
   const [draggedPortfolioId, setDraggedPortfolioId] = useState<string | null>(null);
   const [dragOverPortfolioId, setDragOverPortfolioId] = useState<string | null>(null);
+  const [depositTargetPortfolio, setDepositTargetPortfolio] = useState<any>(null);
+  const [depositForm, setDepositForm] = useState({
+    type: 'deposit',
+    market: 'ID',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    notes: '',
+  });
   const composerRef = useRef<HTMLDivElement>(null);
   const activeFinanceAccounts = financeAccounts.filter((account: any) => account.isActive !== false);
 
@@ -148,6 +160,32 @@ export default function PortfoliosPage() {
     setEditId(null);
     setForm(createInitialPortfolioForm());
     setComposerMode((prev) => prev === 'create' ? 'closed' : 'create');
+  };
+
+  const openDepositModal = (portfolio: any) => {
+    setDepositTargetPortfolio(portfolio);
+    setDepositForm({
+      type: 'deposit',
+      market: activeMarketTab,
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      notes: '',
+    });
+  };
+
+  const handleDepositSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!depositForm.amount || !depositTargetPortfolio) return;
+    
+    addCashflow({
+      type: depositForm.type as any,
+      amount: parseFloat(depositForm.amount),
+      date: depositForm.date,
+      notes: depositForm.notes,
+      market: depositForm.market as any,
+      portfolioId: depositTargetPortfolio.id,
+    });
+    setDepositTargetPortfolio(null);
   };
 
   const startEdit = (portfolio: any) => {
@@ -466,6 +504,10 @@ export default function PortfoliosPage() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-color)' }}>
+                  <button className="btn btn-ghost btn-sm text-profit" onClick={() => openDepositModal(portfolio)} title="Tambah/Tarik Dana RDN" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Icons.Coins size={12} />
+                    <span>RDN</span>
+                  </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => startEdit(portfolio)} title="Edit Nama/Deskripsi" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Icons.Edit2 size={12} />
                     <span>Edit</span>
@@ -482,6 +524,78 @@ export default function PortfoliosPage() {
           );
         })}
       </div>
+      {depositTargetPortfolio && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 450 }}>
+            <div className="modal-header">
+              <h3>RDN: {depositTargetPortfolio.name}</h3>
+              <button className="btn btn-ghost btn-icon" onClick={() => setDepositTargetPortfolio(null)}><Icons.X size={16} /></button>
+            </div>
+            <form onSubmit={handleDepositSubmit}>
+              <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="form-label">Jenis Transaksi</label>
+                    <CustomSelect
+                      value={depositForm.type}
+                      onChange={(value) => setDepositForm(prev => ({ ...prev, type: value }))}
+                      options={[
+                        { value: 'deposit', label: 'Deposit (Top-up)' },
+                        { value: 'withdraw', label: 'Withdraw (Tarik)' }
+                      ]}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="form-label">Market</label>
+                    <CustomSelect
+                      value={depositForm.market}
+                      onChange={(value) => setDepositForm(prev => ({ ...prev, market: value as 'ID' | 'US' }))}
+                      options={[
+                        { value: 'ID', label: 'Indonesia (IDR)' },
+                        { value: 'US', label: 'Amerika (USD)' }
+                      ]}
+                    />
+                  </div>
+                </div>
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label className="form-label">Jumlah Kas *</label>
+                  <CurrencyInput
+                    placeholder={depositForm.market === 'US' ? '1.000' : '1.000.000'}
+                    value={depositForm.amount}
+                    onChange={v => setDepositForm(prev => ({ ...prev, amount: v }))}
+                    allowDecimal={depositForm.market === 'US'}
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="form-label">Tanggal</label>
+                    <CustomDatePicker
+                      value={depositForm.date}
+                      onChange={(date) => setDepositForm(prev => ({ ...prev, date: format(date, 'yyyy-MM-dd') }))}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label className="form-label">Catatan</label>
+                    <input
+                      className="form-input"
+                      placeholder="Bonus tahunan, tarik profit, dsb..."
+                      value={depositForm.notes}
+                      onChange={e => setDepositForm(prev => ({ ...prev, notes: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setDepositTargetPortfolio(null)}>Batal</button>
+                <button type="submit" className="btn btn-primary" disabled={!depositForm.amount}>
+                  <Icons.Save size={16} />
+                  <span>Simpan Transaksi Kas</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

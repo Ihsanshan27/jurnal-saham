@@ -293,6 +293,7 @@ export default function BsjpRecapPage() {
     let totalKeluar = 0;
     let openCount = 0;
     let closedCount = 0;
+    let winCount = 0;
 
     rowData.forEach(item => {
       totalLots += item.lots;
@@ -301,12 +302,16 @@ export default function BsjpRecapPage() {
       if (!item.isOpen) {
         totalMasuk += item.totalMasuk;
         closedCount++;
+        if (item.displayPnL > 0) {
+          winCount++;
+        }
       } else {
         openCount++;
       }
     });
 
     const avgReturnPct = totalKeluar > 0 ? (totalProfit / totalKeluar) * 100 : 0;
+    const winRatePct = closedCount > 0 ? (winCount / closedCount) * 100 : 0;
 
     return {
       totalLots,
@@ -316,6 +321,8 @@ export default function BsjpRecapPage() {
       avgReturnPct,
       openCount,
       closedCount,
+      winCount,
+      winRatePct,
       totalCount: rowData.length
     };
   }, [rowData]);
@@ -385,22 +392,27 @@ export default function BsjpRecapPage() {
             icon: Icons.FileText, color: 'var(--accent-purple)', dim: 'var(--accent-purple-dim)'
           },
           {
-            label: 'Total Lot Diputar', value: `${stats.totalLots.toLocaleString('id-ID')} lot`,
-            desc: 'Akumulasi kuantitas',
-            icon: Icons.Layers, color: 'var(--accent-blue)', dim: 'var(--accent-blue-dim)'
+            label: 'Win Rate', value: `${stats.winRatePct.toFixed(1)}%`,
+            desc: `${stats.winCount} profit dari ${stats.closedCount} trade`,
+            icon: Icons.Target, color: 'var(--accent-blue)', dim: 'var(--accent-blue-dim)'
           },
           {
-            label: 'Total Uang Keluar (Modal)', value: formatRupiah(stats.totalKeluar),
+            label: 'Total Lot Diputar', value: `${stats.totalLots.toLocaleString('id-ID')} lot`,
+            desc: 'Akumulasi kuantitas',
+            icon: Icons.Layers, color: 'var(--accent-indigo)', dim: 'var(--accent-indigo-dim)'
+          },
+          {
+            label: 'Total Uang Keluar', value: formatRupiah(stats.totalKeluar),
             desc: 'Pembelian + Komisi',
             icon: Icons.ArrowUpRight, color: 'var(--accent-red)', dim: 'var(--accent-red-dim)', valueColor: 'var(--accent-red)'
           },
           {
-            label: 'Total Uang Masuk (Sell)', value: formatRupiah(stats.totalMasuk),
+            label: 'Total Uang Masuk', value: formatRupiah(stats.totalMasuk),
             desc: 'Penjualan bersih',
             icon: Icons.ArrowDownLeft, color: 'var(--accent-green)', dim: 'var(--accent-green-dim)', valueColor: 'var(--accent-green)'
           },
           {
-            label: 'Total Keuntungan Bersih', value: `${stats.totalProfit >= 0 ? '+' : ''}${formatRupiah(stats.totalProfit)}`,
+            label: 'Keuntungan Bersih', value: `${stats.totalProfit >= 0 ? '+' : ''}${formatRupiah(stats.totalProfit)}`,
             desc: `${stats.avgReturnPct >= 0 ? '+' : ''}${stats.avgReturnPct.toFixed(2)}% avg return`,
             icon: stats.totalProfit >= 0 ? Icons.TrendingUp : Icons.TrendingDown,
             color: stats.totalProfit >= 0 ? 'var(--accent-green)' : 'var(--accent-red)',

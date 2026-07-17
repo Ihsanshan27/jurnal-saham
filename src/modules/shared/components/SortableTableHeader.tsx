@@ -41,6 +41,8 @@ export default function SortableTableHeader<K extends string>({
         fontWeight: 700,
         cursor: 'pointer',
         textAlign: 'left',
+        textTransform: 'inherit',
+        letterSpacing: 'inherit',
         ...style,
       }}
       title={title || `Urutkan berdasarkan ${label}`}

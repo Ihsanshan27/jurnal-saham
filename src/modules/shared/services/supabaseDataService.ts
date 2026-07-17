@@ -61,13 +61,13 @@ export async function replaceAllUserData(data, userId) {
   );
 }
 
-export async function clearUserData(userId) {
+export async function clearUserData(userId: string, keysToDelete = DATA_KEYS) {
   const ownerId = getRequiredUserId(userId);
   const { error } = await supabase
     .from(TABLE_NAME)
     .delete()
     .eq('user_id', ownerId)
-    .in('data_key', DATA_KEYS);
+    .in('data_key', keysToDelete);
 
   if (error) throw error;
 }

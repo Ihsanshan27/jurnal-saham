@@ -107,6 +107,7 @@ export interface AppSettings {
   defaultRiskPercent?: number;
   defaultTargetRR?: number;
   themePreference?: 'light' | 'dark' | 'system';
+  language?: 'id' | 'en';
   logRetentionDays?: number;
   privacyMode?: boolean;
   behaviorDailyTradeLimitEnabled?: boolean;

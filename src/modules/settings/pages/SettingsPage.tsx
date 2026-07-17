@@ -3,6 +3,7 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { useAuth } from '@/modules/auth/AuthContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
+import { useTranslation } from '@/modules/shared/i18n/useTranslation';
 import { cleanOldAuditLogs, createAuditLogSafe } from '@/modules/admin/services/auditLogService';
 import { listProfiles } from '@/modules/shared/services/profileService';
 import { ACCESS_LEVELS, listOwnedSharedAccess, revokeSharedAccess, upsertSharedAccess } from '@/modules/shared/services/sharedAccessService';
@@ -131,6 +132,7 @@ function ToggleRow({
 
 export default function SettingsPage() {
   const { settings, updateSettings, showToast, exportData, importData, clearData } = useData();
+  const { t } = useTranslation();
   const { user, updateUsername, logout } = useAuth();
   const { roleLabel, roleError, refreshProfile, can } = usePermissions();
   const { confirm } = useDialog();
@@ -149,6 +151,21 @@ export default function SettingsPage() {
   const [newStrategy, setNewStrategy] = useState('');
   const [newEmotionVal, setNewEmotionVal] = useState('');
   const [newEmotionLbl, setNewEmotionLbl] = useState('');
+
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearSelections, setClearSelections] = useState({
+    trades: true,
+    watchlist: true,
+    notes: true,
+    cashflows: true,
+    dividends: true,
+    settings: false,
+    portfolios: false,
+    tradingPlans: true,
+    ipo: true,
+    bsjp: true,
+    finance: true,
+  });
 
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportSelections, setExportSelections] = useState({
@@ -309,6 +326,7 @@ export default function SettingsPage() {
       defaultRiskPercent: toNumberOrDefault(form.defaultRiskPercent, 2),
       defaultTargetRR: toNumberOrDefault(form.defaultTargetRR, 2),
       themePreference: form.themePreference || 'system',
+      language: form.language || 'id',
       logRetentionDays: nextLogRetentionDays,
       privacyMode: !!form.privacyMode,
       behaviorDailyTradeLimitEnabled: !!form.behaviorDailyTradeLimitEnabled,
@@ -432,26 +450,32 @@ export default function SettingsPage() {
     reader.readAsText(file);
   };
 
-  const handleClearData = async () => {
-    const isConfirmed = await confirm('PERINGATAN: Semua data transaksi, watchlist, dan catatan akan dihapus permanen. Lanjutkan?', {
-      title: 'Hapus Semua Data',
+  const handleClearData = () => {
+    setShowClearModal(true);
+  };
+
+  const executeClearData = async () => {
+    const isConfirmed = await confirm('PERINGATAN: Semua data yang dipilih akan dihapus secara permanen. Lanjutkan?', {
+      title: 'Hapus Data Terpilih',
       severity: 'danger',
       confirmText: 'Hapus Permanen'
     });
     if (!isConfirmed) return;
 
-    clearData()
+    clearData(clearSelections)
       .then(async () => {
         await createAuditLogSafe({
           actorId: user?.id,
           action: 'data.cleared',
           targetType: 'journal_data',
           targetId: user?.id,
+          metadata: { selections: clearSelections }
         });
-        showToast('Semua data telah dihapus');
+        showToast('Data yang dipilih telah dihapus');
+        setShowClearModal(false);
         setTimeout(() => window.location.reload(), 1000);
       })
-      .catch((error) => showToast(error.message, 'error'));
+      .catch((error: any) => showToast(error.message, 'error'));
   };
 
   const handleDeleteAccount = async () => {
@@ -558,8 +582,8 @@ export default function SettingsPage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Pengaturan</h1>
-          <p className="page-subtitle">Kelola profil, preferensi, perilaku trading, dan data aplikasi</p>
+          <h1 className="page-title">{t('settings.title')}</h1>
+          <p className="page-subtitle">{t('settings.subtitle')}</p>
         </div>
       </div>
 
@@ -709,46 +733,62 @@ export default function SettingsPage() {
 
           {activeTab === 'preferences' ? (
             <>
-              <SectionCard title="Preferensi Tampilan" description="Atur tema, privasi nominal, dan preferensi UI utama." actionLabel="Simpan Preferensi" onAction={handleSaveSettings}>
+              <SectionCard title={t('settings.ui.title')} description={t('settings.ui.desc')} actionLabel={t('settings.ui.save_btn')} onAction={handleSaveSettings}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Tema Aplikasi</label>
+                    <label className="form-label">{t('settings.ui.theme_label')}</label>
                     <CustomSelect
                       value={form.themePreference || 'system'}
                       onChange={(value) => handleThemePreferenceChange(value as any)}
                       options={[
-                        { value: 'system', label: 'Ikuti Sistem' },
-                        { value: 'light', label: 'Light Mode' },
-                        { value: 'dark', label: 'Dark Mode' }
+                        { value: 'system', label: t('settings.ui.theme_system') },
+                        { value: 'light', label: t('settings.ui.theme_light') },
+                        { value: 'dark', label: t('settings.ui.theme_dark') }
                       ]}
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Mode Privasi Nominal</label>
+                    <label className="form-label">{t('settings.language.title')}</label>
+                    <CustomSelect
+                      value={form.language || 'id'}
+                      onChange={(value) => set('language', value)}
+                      options={[
+                        { value: 'id', label: 'Bahasa Indonesia' },
+                        { value: 'en', label: 'English' }
+                      ]}
+                    />
+                  </div>
+                </div>
+                <div className="form-row" style={{ marginTop: 16 }}>
+                  <div className="form-group">
+                    <label className="form-label">{t('settings.ui.privacy_label')}</label>
                     <div style={{ paddingTop: 10 }}>
                       <SelectionToggleCard
                         checked={!!form.privacyMode}
                         onToggle={() => set('privacyMode', !form.privacyMode)}
-                        title="Sembunyikan nominal"
-                        description="Nominal di area portofolio dan statistik akan diburamkan."
+                        title={t('settings.ui.privacy_title')}
+                        description={t('settings.ui.privacy_desc')}
                         compact
                       />
                     </div>
                   </div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Kurs Konversi USD ke IDR (Rp)</label>
-                  <input type="number" className="form-input" value={form.usdToIdrRate} onChange={e => set('usdToIdrRate', e.target.value)} />
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                    Digunakan untuk mengonversi total aset portofolio gabungan dan tampilan IDR Eq.
-                  </div>
+                  <label className="form-label">{t('settings.ui.rate_label')}</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={form.usdToIdrRate}
+                    onChange={e => set('usdToIdrRate', e.target.value)}
+                  />
+                  <div className="form-hint">{t('settings.ui.rate_desc')}</div>
                 </div>
               </SectionCard>
 
-              <SectionCard title="Default Risk Management" description="Tetapkan angka dasar yang akan dipakai berulang saat mengisi form trading." actionLabel="Simpan Default Risk" onAction={handleSaveSettings}>
+              <SectionCard title="Default Manajemen Modal & Risiko" description="Tetapkan angka dasar yang akan dipakai berulang saat mengisi form trading." actionLabel="Simpan Default" onAction={handleSaveSettings}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Default Toleransi Risiko per Trade (%)</label>
+                    <label className="form-label">Default Alokasi Modal per Trade (%)</label>
                     <input type="number" className="form-input" step="0.1" value={form.defaultRiskPercent} onChange={e => set('defaultRiskPercent', e.target.value)} />
                   </div>
                   <div className="form-group">
@@ -1198,6 +1238,118 @@ export default function SettingsPage() {
                 <button type="button" className="btn btn-primary" onClick={executeExport}>
                   <Database size={16} />
                   <span>Download Backup</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showClearModal && (
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 650 }}>
+            <div className="modal-header">
+              <h3>Pilih Data untuk Dihapus</h3>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowClearModal(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <SelectionToggleCard
+                checked={clearSelections.trades}
+                onToggle={() => setClearSelections(prev => ({ ...prev, trades: !prev.trades }))}
+                title="Transaksi Reguler"
+                description="Histori transaksi saham biasa."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.bsjp}
+                onToggle={() => setClearSelections(prev => ({ ...prev, bsjp: !prev.bsjp }))}
+                title="Transaksi BSJP"
+                description="Histori Beli Sore Jual Pagi."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.ipo}
+                onToggle={() => setClearSelections(prev => ({ ...prev, ipo: !prev.ipo }))}
+                title="Data IPO"
+                description="Event, akun, dan partisipasi IPO."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.cashflows}
+                onToggle={() => setClearSelections(prev => ({ ...prev, cashflows: !prev.cashflows }))}
+                title="Cashflow"
+                description="Riwayat deposit dan withdrawal dompet."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.dividends}
+                onToggle={() => setClearSelections(prev => ({ ...prev, dividends: !prev.dividends }))}
+                title="Dividen"
+                description="Catatan penerimaan dividen."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.finance}
+                onToggle={() => setClearSelections(prev => ({ ...prev, finance: !prev.finance }))}
+                title="Finance Tracker"
+                description="Rekening luar & transaksi harian."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.watchlist}
+                onToggle={() => setClearSelections(prev => ({ ...prev, watchlist: !prev.watchlist }))}
+                title="Watchlist"
+                description="Daftar pantauan saham."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.notes}
+                onToggle={() => setClearSelections(prev => ({ ...prev, notes: !prev.notes }))}
+                title="Catatan / Notes"
+                description="Semua catatan trading harian."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.tradingPlans}
+                onToggle={() => setClearSelections(prev => ({ ...prev, tradingPlans: !prev.tradingPlans }))}
+                title="Trading Plans"
+                description="Rencana trading yang belum terealisasi."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.portfolios}
+                onToggle={() => setClearSelections(prev => ({ ...prev, portfolios: !prev.portfolios }))}
+                title="Portofolio (Dompet Trading)"
+                description="Menghapus dompet khusus (Dompet utama tidak dihapus, hanya di-reset)."
+                compact
+              />
+              <SelectionToggleCard
+                checked={clearSelections.settings}
+                onToggle={() => setClearSelections(prev => ({ ...prev, settings: !prev.settings }))}
+                title="Pengaturan Aplikasi"
+                description="Kembalikan semua pengaturan ke nilai default."
+                compact
+              />
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setClearSelections({
+                    trades: true, watchlist: true, notes: true, cashflows: true,
+                    dividends: true, settings: true, portfolios: true, tradingPlans: true,
+                    ipo: true, bsjp: true, finance: true
+                  })}
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  Pilih Semua
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowClearModal(false)}>Batal</button>
+                <button type="button" className="btn btn-danger" onClick={executeClearData}>
+                  <Trash2 size={16} />
+                  <span>Hapus Permanen</span>
                 </button>
               </div>
             </div>

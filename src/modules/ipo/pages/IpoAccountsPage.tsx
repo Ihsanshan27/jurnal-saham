@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import * as Icons from "lucide-react";
 import { useData } from "@/modules/shared/context/DataContext";
 import { useDialog } from "@/modules/shared/context/DialogContext";
+import { useTranslation } from "@/modules/shared/i18n/useTranslation";
 import CurrencyInput from "@/modules/shared/components/CurrencyInput";
 import { usePrivacyStyle } from "@/modules/shared/hooks/usePrivacyStyle";
 import { formatDate, formatRupiah } from "@/modules/shared/utils/formatters";
@@ -41,6 +42,7 @@ export default function IpoAccountsPage() {
     reorderIpoAccounts,
     canWrite,
   } = useData();
+  const { t } = useTranslation();
   const { confirm } = useDialog();
   const blurStyle = usePrivacyStyle();
   const formCardRef = useRef<HTMLDivElement | null>(null);
@@ -439,11 +441,10 @@ export default function IpoAccountsPage() {
             style={{ display: "flex", alignItems: "center", gap: 10 }}
           >
             <Icons.Users size={24} style={{ color: "var(--accent-green)" }} />
-            Master IPO Accounts
+            {t('ipo.accounts.title')}
           </h1>
           <p className="page-subtitle ipo-accounts-subtitle">
-            Kelola akun partisipan IPO agar entry tetap konsisten, mudah
-            dipilih, dan rapi di ringkasan.
+            {t('ipo.accounts.subtitle')}
           </p>
         </div>
         <div className="ipo-actions-row">
@@ -474,7 +475,7 @@ export default function IpoAccountsPage() {
               onClick={() => (showForm ? resetForm() : setShowForm(true))}
             >
               {showForm ? <Icons.X size={16} /> : <Icons.Plus size={16} />}
-              {showForm ? "Batal" : "Tambah Akun"}
+              {showForm ? t('common.cancel') : t('ipo.accounts.add')}
             </button>
           )}
         </div>
@@ -485,51 +486,51 @@ export default function IpoAccountsPage() {
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}
       >
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Total Master Akun</div>
+          <div className="stat-card-label">{t('ipo.accounts.stats.total')}</div>
           <div className="stat-card-value">{summary.total}</div>
           <div className="ipo-accounts-stat-foot">
-            Seluruh akun yang tersimpan
+            {t('ipo.accounts.stats.total_foot')}
           </div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Akun Aktif</div>
+          <div className="stat-card-label">{t('ipo.accounts.stats.active')}</div>
           <div className="stat-card-value">{summary.active}</div>
           <div className="ipo-accounts-stat-foot">
-            Siap dipakai untuk entry baru
+            {t('ipo.accounts.stats.active_foot')}
           </div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Akun Nonaktif</div>
+          <div className="stat-card-label">{t('ipo.accounts.stats.inactive')}</div>
           <div className="stat-card-value">{summary.inactive}</div>
           <div className="ipo-accounts-stat-foot">
-            Tetap aman untuk histori lama
+            {t('ipo.accounts.stats.inactive_foot')}
           </div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Saldo Total</div>
+          <div className="stat-card-label">{t('ipo.accounts.stats.balance')}</div>
           <div className="stat-card-value">
             {formatRupiah(summary.totalBalance)}
           </div>
           <div className="ipo-accounts-stat-foot">
-            Akumulasi saldo awal semua akun
+            {t('ipo.accounts.stats.balance_foot')}
           </div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Saldo Terpakai</div>
+          <div className="stat-card-label">{t('ipo.accounts.stats.used')}</div>
           <div className="stat-card-value">
             {formatRupiah(summary.totalUsedBalance)}
           </div>
           <div className="ipo-accounts-stat-foot">
-            Total modal yang sudah dipakai entry IPO
+            {t('ipo.accounts.stats.used_foot')}
           </div>
         </div>
         <div className="stat-card ipo-accounts-stat-card">
-          <div className="stat-card-label">Saldo Sisa</div>
+          <div className="stat-card-label">{t('ipo.accounts.stats.remaining')}</div>
           <div className="stat-card-value">
             {formatRupiah(summary.totalRemainingBalance)}
           </div>
           <div className="ipo-accounts-stat-foot">
-            Sisa saldo yang masih bisa dipakai
+            {t('ipo.accounts.stats.remaining_foot')}
           </div>
         </div>
       </div>
@@ -539,11 +540,10 @@ export default function IpoAccountsPage() {
           <div className="card-header">
             <div>
               <h3 className="card-title">
-                {editingId ? "Edit Master Akun IPO" : "Tambah Master Akun IPO"}
+                {editingId ? t('ipo.accounts.edit') : t('ipo.accounts.add')}
               </h3>
               <p className="page-subtitle" style={{ marginTop: 6 }}>
-                Nama akun menjadi sumber utama yang akan dipakai ulang di form
-                entry IPO.
+                {t('ipo.accounts.form_hint')}
               </p>
             </div>
           </div>
@@ -555,13 +555,13 @@ export default function IpoAccountsPage() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-name">
-                  Nama Akun *
+                  {t('ipo.accounts.field.name')} *
                 </label>
                 <input
                   ref={nameInputRef}
                   id="ipo-master-name"
                   className="form-input"
-                  placeholder="Contoh: Akun Pribadi Utama"
+                  placeholder={t('ipo.accounts.field.name_placeholder')}
                   value={form.name}
                   onChange={(event) => setValue("name", event.target.value)}
                   required
@@ -569,7 +569,7 @@ export default function IpoAccountsPage() {
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-email">
-                  Email
+                  {t('ipo.accounts.field.email')}
                 </label>
                 <input
                   id="ipo-master-email"
@@ -582,7 +582,7 @@ export default function IpoAccountsPage() {
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-balance">
-                  Saldo Kas RDN Saat Ini (Rp)
+                  {t('ipo.accounts.field.balance')}
                 </label>
                 <CurrencyInput
                   id="ipo-master-balance"
@@ -595,19 +595,19 @@ export default function IpoAccountsPage() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-notes">
-                  Catatan
+                  {t('ipo.accounts.field.notes')}
                 </label>
                 <input
                   id="ipo-master-notes"
                   className="form-input"
-                  placeholder="Contoh: dipakai untuk akun keluarga"
+                  placeholder={t('ipo.accounts.field.notes_placeholder')}
                   value={form.notes}
                   onChange={(event) => setValue("notes", event.target.value)}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="ipo-master-active">
-                  Status
+                  {t('ipo.accounts.field.status')}
                 </label>
                 <CustomSelect
                   id="ipo-master-active"
@@ -616,24 +616,24 @@ export default function IpoAccountsPage() {
                     setValue("isActive", value === "active")
                   }
                   options={[
-                    { value: "active", label: "Aktif" },
-                    { value: "inactive", label: "Nonaktif" }
+                    { value: "active", label: t('ipo.accounts.status.active') },
+                    { value: "inactive", label: t('ipo.accounts.status.inactive') }
                   ]}
                 />
               </div>
             </div>
 
             <div className="ipo-form-section">
-              <h4 className="ipo-form-section-title">Informasi RDN</h4>
+              <h4 className="ipo-form-section-title">{t('ipo.accounts.section.rdn')}</h4>
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="ipo-master-rdn-bank">
-                    Bank RDN
+                    {t('ipo.accounts.field.rdn_bank')}
                   </label>
                   <input
                     id="ipo-master-rdn-bank"
                     className="form-input"
-                    placeholder="Contoh: BCA / BNI / Permata"
+                    placeholder="BCA / BNI / Permata"
                     value={form.rdnBankName}
                     onChange={(event) =>
                       setValue("rdnBankName", event.target.value)
@@ -642,12 +642,12 @@ export default function IpoAccountsPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="ipo-master-rdn-number">
-                    Nomor RDN
+                    {t('ipo.accounts.field.rdn_number')}
                   </label>
                   <input
                     id="ipo-master-rdn-number"
                     className="form-input"
-                    placeholder="Nomor rekening dana nasabah"
+                    placeholder="1234567890"
                     value={form.rdnAccountNumber}
                     onChange={(event) =>
                       setValue("rdnAccountNumber", event.target.value)
@@ -658,19 +658,19 @@ export default function IpoAccountsPage() {
             </div>
 
             <div className="ipo-form-section">
-              <h4 className="ipo-form-section-title">Rekening Withdraw</h4>
+              <h4 className="ipo-form-section-title">{t('ipo.accounts.section.withdraw')}</h4>
               <div className="form-row">
                 <div className="form-group">
                   <label
                     className="form-label"
                     htmlFor="ipo-master-withdraw-bank"
                   >
-                    Bank Withdraw
+                    {t('ipo.accounts.field.withdraw_bank')}
                   </label>
                   <input
                     id="ipo-master-withdraw-bank"
                     className="form-input"
-                    placeholder="Contoh: BCA"
+                    placeholder="BCA"
                     value={form.withdrawBankName}
                     onChange={(event) =>
                       setValue("withdrawBankName", event.target.value)
@@ -682,12 +682,12 @@ export default function IpoAccountsPage() {
                     className="form-label"
                     htmlFor="ipo-master-withdraw-number"
                   >
-                    Nomor Rekening Withdraw
+                    {t('ipo.accounts.field.withdraw_number')}
                   </label>
                   <input
                     id="ipo-master-withdraw-number"
                     className="form-input"
-                    placeholder="Nomor rekening penarikan dana"
+                    placeholder="1234567890"
                     value={form.withdrawAccountNumber}
                     onChange={(event) =>
                       setValue("withdrawAccountNumber", event.target.value)
@@ -701,12 +701,12 @@ export default function IpoAccountsPage() {
                     className="form-label"
                     htmlFor="ipo-master-withdraw-holder"
                   >
-                    Nama Pemilik Rekening Withdraw
+                    {t('ipo.accounts.field.withdraw_holder')}
                   </label>
                   <input
                     id="ipo-master-withdraw-holder"
                     className="form-input"
-                    placeholder="Nama sesuai rekening tujuan"
+                    placeholder={t('ipo.accounts.field.withdraw_holder_placeholder')}
                     value={form.withdrawAccountHolderName}
                     onChange={(event) =>
                       setValue("withdrawAccountHolderName", event.target.value)
@@ -719,7 +719,7 @@ export default function IpoAccountsPage() {
             <div className="ipo-flex-wrap">
               <button type="submit" className="btn btn-primary">
                 <Icons.Save size={15} />
-                {editingId ? "Simpan Perubahan" : "Simpan Master Akun"}
+                {editingId ? t('common.save') : t('ipo.accounts.save')}
               </button>
               <button
                 type="button"
@@ -727,7 +727,7 @@ export default function IpoAccountsPage() {
                 onClick={resetForm}
               >
                 <Icons.RotateCcw size={15} />
-                Reset
+                {t('common.reset')}
               </button>
             </div>
           </form>
@@ -737,13 +737,12 @@ export default function IpoAccountsPage() {
       <div className="card">
         <div className="card-header">
           <div>
-            <h3 className="card-title">Daftar Master Akun</h3>
+            <h3 className="card-title">{t('ipo.accounts.list_title')}</h3>
             <p
               className="page-subtitle ipo-accounts-section-subtitle"
               style={{ marginTop: 6 }}
             >
-              Akun nonaktif tidak muncul sebagai pilihan utama saat input entry
-              baru, tapi histori lama tetap aman.
+              {t('ipo.accounts.list_hint')}
             </p>
           </div>
         </div>
@@ -751,14 +750,14 @@ export default function IpoAccountsPage() {
           <div className="ipo-filter-bar ipo-accounts-filter-bar">
             <div className="form-group ipo-filter-search" style={{ margin: 0 }}>
               <label className="form-label" htmlFor="ipo-account-search">
-                Cari Akun
+                {t('common.search')}
               </label>
               <div className="ipo-search-input-wrapper">
                 <Icons.Search size={16} className="ipo-search-icon" />
                 <input
                   id="ipo-account-search"
                   className="form-input ipo-search-input"
-                  placeholder="Cari nama akun, email, bank RDN, atau rekening withdraw..."
+                  placeholder={t('ipo.accounts.search_placeholder')}
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                 />
@@ -766,7 +765,7 @@ export default function IpoAccountsPage() {
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" htmlFor="ipo-account-status-filter">
-                Filter Status
+                {t('ipo.accounts.field.status')}
               </label>
               <CustomSelect
                 id="ipo-account-status-filter"
@@ -775,36 +774,36 @@ export default function IpoAccountsPage() {
                   setStatusFilter(value as StatusFilter)
                 }
                 options={[
-                  { value: "all", label: "Semua" },
-                  { value: "active", label: "Aktif" },
-                  { value: "inactive", label: "Nonaktif" }
+                  { value: "all", label: t('ipo.accounts.status.all') },
+                  { value: "active", label: t('ipo.accounts.status.active') },
+                  { value: "inactive", label: t('ipo.accounts.status.inactive') }
                 ]}
               />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label" htmlFor="ipo-account-sort">
-                Urutkan
+                {t('common.sort')}
               </label>
               <CustomSelect
                 id="ipo-account-sort"
                 value={sortField}
                 onChange={(value) => setSortField(value)}
                 options={[
-                  { value: "custom", label: "Kustom (Drag & Drop)" },
-                  { value: "name", label: "Nama Akun" },
-                  { value: "balance", label: "Saldo Tertinggi" },
-                  { value: "remainingBalance", label: "Sisa Saldo Tertinggi" },
-                  { value: "totalProfit", label: "Profit Tertinggi" },
-                  { value: "totalAsset", label: "Total Kas+Profit Tertinggi" }
+                  { value: "custom", label: t('ipo.accounts.sort.custom') },
+                  { value: "name", label: t('ipo.accounts.sort.name') },
+                  { value: "balance", label: t('ipo.accounts.sort.balance') },
+                  { value: "remainingBalance", label: t('ipo.accounts.sort.remaining') },
+                  { value: "totalProfit", label: t('ipo.accounts.sort.profit') },
+                  { value: "totalAsset", label: t('ipo.accounts.sort.total') }
                 ]}
               />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Mode Tampilan</label>
+              <label className="form-label">{t('ipo.accounts.view_mode')}</label>
               <div
                 className="ipo-view-toggle"
                 role="tablist"
-                aria-label="Mode tampilan akun IPO"
+                aria-label={t('ipo.accounts.view_mode')}
               >
                 <button
                   type="button"
@@ -813,7 +812,7 @@ export default function IpoAccountsPage() {
                   aria-pressed={viewMode === "card"}
                 >
                   <Icons.LayoutGrid size={15} />
-                  Grid View
+                  {t('ipo.accounts.mode.grid')}
                 </button>
                 <button
                   type="button"
@@ -822,7 +821,7 @@ export default function IpoAccountsPage() {
                   aria-pressed={viewMode === "list"}
                 >
                   <Icons.Rows3 size={15} />
-                  List View
+                  {t('ipo.accounts.mode.list')}
                 </button>
               </div>
             </div>
@@ -834,7 +833,7 @@ export default function IpoAccountsPage() {
                 <span className="ipo-accounts-selection-badge">
                   {selectedAccountsCount}
                 </span>
-                <span>{selectedAccountsCount} akun dipilih</span>
+                <span>{selectedAccountsCount} {t('ipo.accounts.selected_count')}</span>
               </div>
               <button
                 type="button"
@@ -842,7 +841,7 @@ export default function IpoAccountsPage() {
                 onClick={() => setSelectedAccountIds([])}
               >
                 <Icons.X size={14} />
-                Bersihkan pilihan
+                {t('common.clear')}
               </button>
             </div>
           )}
@@ -852,10 +851,9 @@ export default function IpoAccountsPage() {
               <div className="empty-state-icon">
                 <Icons.Users size={42} />
               </div>
-              <div className="empty-state-title">Belum ada master akun IPO</div>
+              <div className="empty-state-title">{t('ipo.accounts.empty.title')}</div>
               <div className="empty-state-desc">
-                Tambahkan akun IPO yang sering dipakai agar input entry
-                berikutnya lebih cepat dan konsisten.
+                {t('ipo.accounts.empty.desc')}
               </div>
             </div>
           ) : filteredAccounts.length === 0 ? (
@@ -863,10 +861,9 @@ export default function IpoAccountsPage() {
               <div className="empty-state-icon">
                 <Icons.SearchX size={42} />
               </div>
-              <div className="empty-state-title">Tidak ada akun yang cocok</div>
+              <div className="empty-state-title">{t('ipo.accounts.not_found.title')}</div>
               <div className="empty-state-desc">
-                Ubah kata kunci pencarian atau filter status untuk melihat akun
-                IPO lain.
+                {t('ipo.accounts.not_found.desc')}
               </div>
             </div>
           ) : viewMode === "list" ? (
@@ -874,7 +871,7 @@ export default function IpoAccountsPage() {
               <table className="table ipo-account-table">
                 <thead>
                   <tr>
-                    <th className="ipo-account-table-check-col">Pilih</th>
+                    <th className="ipo-account-table-check-col">{t('common.select')}</th>
                     <th
                       onClick={() => handleSort("name")}
                       style={{ cursor: "pointer", userSelect: "none" }}
@@ -886,7 +883,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Akun {renderSortIcon("name")}
+                        {t('ipo.accounts.table.name')} {renderSortIcon("name")}
                       </div>
                     </th>
                     <th
@@ -900,7 +897,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Email {renderSortIcon("email")}
+                        {t('ipo.accounts.table.email')} {renderSortIcon("email")}
                       </div>
                     </th>
                     <th
@@ -914,7 +911,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        RDN {renderSortIcon("rdn")}
+                        {t('ipo.accounts.table.rdn')} {renderSortIcon("rdn")}
                       </div>
                     </th>
                     <th
@@ -928,7 +925,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Withdraw {renderSortIcon("withdraw")}
+                        {t('ipo.accounts.table.withdraw')} {renderSortIcon("withdraw")}
                       </div>
                     </th>
                     <th
@@ -942,7 +939,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Kas Saat Ini {renderSortIcon("balance")}
+                        {t('ipo.accounts.table.balance')} {renderSortIcon("balance")}
                       </div>
                     </th>
                     <th
@@ -956,7 +953,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Terpakai {renderSortIcon("usedBalance")}
+                        {t('ipo.accounts.table.used')} {renderSortIcon("usedBalance")}
                       </div>
                     </th>
                     <th
@@ -970,7 +967,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Total Profit {renderSortIcon("totalProfit")}
+                        {t('ipo.accounts.table.profit')} {renderSortIcon("totalProfit")}
                       </div>
                     </th>
                     <th
@@ -984,7 +981,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Total (Kas + Profit) {renderSortIcon("totalAsset")}
+                        {t('ipo.accounts.table.total')} {renderSortIcon("totalAsset")}
                       </div>
                     </th>
                     <th
@@ -998,7 +995,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Sisa {renderSortIcon("remainingBalance")}
+                        {t('ipo.accounts.table.remaining')} {renderSortIcon("remainingBalance")}
                       </div>
                     </th>
                     <th
@@ -1012,7 +1009,7 @@ export default function IpoAccountsPage() {
                           gap: "4px",
                         }}
                       >
-                        Status {renderSortIcon("isActive")}
+                        {t('ipo.accounts.table.status')} {renderSortIcon("isActive")}
                       </div>
                     </th>
                     <th
