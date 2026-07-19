@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useData } from '@/modules/shared/context/DataContext';
@@ -16,10 +16,36 @@ export default function WealthDashboardPage() {
   const { allTrades: trades, allCashflows: cashflows, allDividends: dividends, settings, updateSettings, marketPrices, portfolios, financeAccounts, getFinanceAccountCurrentBalance } = useData();
   const blurStyle = usePrivacyStyle();
   const [selectedPortfolioId, setSelectedPortfolioId] = useState<string>('ALL');
-  const [excludedFinanceAccountIds, setExcludedFinanceAccountIds] = useState<Set<string>>(new Set());
+  
+  const [excludedFinanceAccountIds, setExcludedFinanceAccountIds] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('wealth_excludedFinanceAccountIds');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+  
+  const [excludedPortfolioIds, setExcludedPortfolioIds] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('wealth_excludedPortfolioIds');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wealth_excludedFinanceAccountIds', JSON.stringify(Array.from(excludedFinanceAccountIds)));
+  }, [excludedFinanceAccountIds]);
+
+  useEffect(() => {
+    localStorage.setItem('wealth_excludedPortfolioIds', JSON.stringify(Array.from(excludedPortfolioIds)));
+  }, [excludedPortfolioIds]);
 
   const toggleFinanceAccount = (id: string) => {
     setExcludedFinanceAccountIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const togglePortfolio = (id: string) => {
+    setExcludedPortfolioIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -83,53 +109,9 @@ export default function WealthDashboardPage() {
     },
   });
 
-  // 2. Calculate Trading Equity Across ALL Portfolios
-  // Since trades, cashflows, and dividends are global, we can calculate the overall balance.
-  // We need to convert US amounts to IDR.
-  
-  const totalTradingEquity = useMemo(() => {
-    const totalInvested = consolidatedOpenTrades.reduce((sum, t) => sum + t.totalBuyInIdr, 0);
-    const totalFloating = consolidatedOpenTrades.reduce((sum, t) => sum + t.floatingPnLIdr, 0);
-    
-    // For Buying Power, we need to calculate ID & US separately, then combine
-    const idTrades = trades.filter(t => t.market !== 'US');
-    const idCashflows = cashflows.filter(c => (c as any).market !== 'US');
-    const idDividends = dividends.filter(d => (d as any).market !== 'US');
-    const idInitial = settings.initialCapital ?? 10000000;
-    const idStats = calculatePortfolioBalance(idTrades, idCashflows, idDividends, idInitial);
-
-    const usTrades = trades.filter(t => t.market === 'US');
-    const usCashflows = cashflows.filter(c => (c as any).market === 'US');
-    const usDividends = dividends.filter(d => (d as any).market === 'US');
-    const usInitial = settings.initialCapitalUS ?? 1000;
-    const usStats = calculatePortfolioBalance(usTrades, usCashflows, usDividends, usInitial);
-
-    const totalBuyingPowerIdr = idStats.buyingPower + (usStats.buyingPower * usdToIdrRate);
-
-    return totalBuyingPowerIdr + totalInvested + totalFloating;
-  }, [consolidatedOpenTrades, trades, cashflows, dividends, settings, usdToIdrRate]);
-
-  // 3. Calculate Bank Balances
-  const totalBankBalance = useMemo(() => {
-    // Only active finance accounts and not excluded
-    return financeAccounts
-      .filter(a => a.isActive !== false && !excludedFinanceAccountIds.has(a.id))
-      .reduce((sum, a) => sum + (getFinanceAccountCurrentBalance(a.id) || 0), 0);
-  }, [financeAccounts, getFinanceAccountCurrentBalance, excludedFinanceAccountIds]);
-
-  // 4. Calculate Net Worth
-  const netWorth = totalTradingEquity + totalBankBalance;
-
-  const pieData = useMemo(() => {
-    return [
-      { name: 'Trading Portfolios', value: totalTradingEquity },
-      { name: 'Bank & E-Wallet', value: totalBankBalance }
-    ].filter(d => d.value > 0);
-  }, [totalTradingEquity, totalBankBalance]);
-
-  // 5. Portfolio Distribution
-  const portfolioDistribution = useMemo(() => {
-    const result: { name: string, value: number }[] = [];
+  // 2. Calculate Portfolio Stats
+  const portfolioStats = useMemo(() => {
+    const result: { id: string, name: string, equity: number, bp: number, inv: number, float: number }[] = [];
     
     portfolios.forEach(p => {
       const isDefault = p.id === 'default';
@@ -157,45 +139,81 @@ export default function WealthDashboardPage() {
       const float = openForP.reduce((sum, t) => sum + t.floatingPnLIdr, 0);
 
       const equity = bp + inv + float;
-      if (equity > 0) {
-        result.push({ name: p.name, value: equity });
-      }
+      result.push({ id: p.id, name: p.name, equity, bp, inv, float });
     });
 
-    return result.sort((a, b) => b.value - a.value);
+    return result.sort((a, b) => b.equity - a.equity);
   }, [portfolios, trades, cashflows, dividends, settings, usdToIdrRate, consolidatedOpenTrades]);
+
+  const totalTradingEquity = useMemo(() => {
+    return portfolioStats
+      .filter(p => !excludedPortfolioIds.has(p.id))
+      .reduce((sum, p) => sum + p.equity, 0);
+  }, [portfolioStats, excludedPortfolioIds]);
+
+  // 3. Calculate Bank Balances
+  const totalBankBalance = useMemo(() => {
+    // Only active finance accounts and not excluded
+    return financeAccounts
+      .filter(a => a.isActive !== false && !excludedFinanceAccountIds.has(a.id))
+      .reduce((sum, a) => sum + (getFinanceAccountCurrentBalance(a.id) || 0), 0);
+  }, [financeAccounts, getFinanceAccountCurrentBalance, excludedFinanceAccountIds]);
+
+  // 4. Calculate Net Worth
+  const netWorth = totalTradingEquity + totalBankBalance;
+
+  const pieData = useMemo(() => {
+    return [
+      { name: 'Trading Portfolios', value: totalTradingEquity },
+      { name: 'Bank & E-Wallet', value: totalBankBalance }
+    ].filter(d => d.value > 0);
+  }, [totalTradingEquity, totalBankBalance]);
+
+  // 5. Portfolio Distribution
+  const portfolioDistribution = useMemo(() => {
+    return portfolioStats
+      .filter(p => p.equity > 0 && !excludedPortfolioIds.has(p.id))
+      .map(p => ({ name: p.name, value: p.equity }));
+  }, [portfolioStats, excludedPortfolioIds]);
 
   // 6. Cash vs Invested
   const cashVsInvestedData = useMemo(() => {
-    const totalInvested = consolidatedOpenTrades.reduce((sum, t) => sum + t.totalBuyInIdr, 0);
-    const totalFloating = consolidatedOpenTrades.reduce((sum, t) => sum + t.floatingPnLIdr, 0);
-    const investedValue = totalInvested + totalFloating;
-    const cashValue = totalTradingEquity - investedValue;
+    const includedStats = portfolioStats.filter(p => !excludedPortfolioIds.has(p.id));
+    const cashValue = includedStats.reduce((sum, p) => sum + p.bp, 0);
+    const investedValue = includedStats.reduce((sum, p) => sum + p.inv + p.float, 0);
 
     return [
       { name: 'Kas (Buying Power)', value: Math.max(0, cashValue) },
       { name: 'Investasi Saham', value: Math.max(0, investedValue) }
     ].filter(d => d.value > 0);
-  }, [totalTradingEquity, consolidatedOpenTrades]);
+  }, [portfolioStats, excludedPortfolioIds]);
 
   // 7. IDR vs USD
   const currencyDistribution = useMemo(() => {
-    const idTrades = trades.filter(t => t.market !== 'US');
-    const idCashflows = cashflows.filter(c => (c as any).market !== 'US');
-    const idDividends = dividends.filter(d => (d as any).market !== 'US');
-    const idInit = settings.initialCapital ?? 10000000;
+    const includedTrades = trades.filter(t => !excludedPortfolioIds.has(t.portfolioId || 'default'));
+    const includedCashflows = cashflows.filter(c => !excludedPortfolioIds.has(c.portfolioId || 'default'));
+    const includedDividends = dividends.filter(d => !excludedPortfolioIds.has(d.portfolioId || 'default'));
+    const includedOpen = consolidatedOpenTrades.filter(t => !excludedPortfolioIds.has(t.portfolioId || 'default'));
+    
+    // For IDR, if default is excluded, initialCapital should be 0
+    const includeDefault = !excludedPortfolioIds.has('default');
+
+    const idTrades = includedTrades.filter(t => t.market !== 'US');
+    const idCashflows = includedCashflows.filter(c => (c as any).market !== 'US');
+    const idDividends = includedDividends.filter(d => (d as any).market !== 'US');
+    const idInit = includeDefault ? (settings.initialCapital ?? 10000000) : 0;
     const idStats = calculatePortfolioBalance(idTrades, idCashflows, idDividends, idInit);
-    const idOpen = consolidatedOpenTrades.filter(t => !t.isUS);
+    const idOpen = includedOpen.filter(t => !t.isUS);
     const idInvested = idOpen.reduce((sum, t) => sum + t.totalBuyInIdr, 0);
     const idFloat = idOpen.reduce((sum, t) => sum + t.floatingPnLIdr, 0);
     const idTradingEquity = idStats.buyingPower + idInvested + idFloat;
 
-    const usTrades = trades.filter(t => t.market === 'US');
-    const usCashflows = cashflows.filter(c => (c as any).market === 'US');
-    const usDividends = dividends.filter(d => (d as any).market === 'US');
-    const usInit = settings.initialCapitalUS ?? 1000;
+    const usTrades = includedTrades.filter(t => t.market === 'US');
+    const usCashflows = includedCashflows.filter(c => (c as any).market === 'US');
+    const usDividends = includedDividends.filter(d => (d as any).market === 'US');
+    const usInit = includeDefault ? (settings.initialCapitalUS ?? 1000) : 0;
     const usStats = calculatePortfolioBalance(usTrades, usCashflows, usDividends, usInit);
-    const usOpen = consolidatedOpenTrades.filter(t => t.isUS);
+    const usOpen = includedOpen.filter(t => t.isUS);
     const usInvested = usOpen.reduce((sum, t) => sum + t.totalBuyInIdr, 0);
     const usFloat = usOpen.reduce((sum, t) => sum + t.floatingPnLIdr, 0);
     const usTradingEquity = (usStats.buyingPower * usdToIdrRate) + usInvested + usFloat;
@@ -208,7 +226,7 @@ export default function WealthDashboardPage() {
       { name: 'Dollar (USD)', value: Math.max(0, totalUsd) }
     ].filter(d => d.value > 0);
 
-  }, [trades, cashflows, dividends, settings, usdToIdrRate, consolidatedOpenTrades, totalBankBalance]);
+  }, [trades, cashflows, dividends, settings, usdToIdrRate, consolidatedOpenTrades, totalBankBalance, excludedPortfolioIds]);
 
   return (
     <div>
@@ -268,7 +286,7 @@ export default function WealthDashboardPage() {
         </div>
       </div>
 
-      <div className="grid-2" style={{ alignItems: 'start' }}>
+      <div className="grid-3" style={{ alignItems: 'start' }}>
         <div className="card">
           <div className="card-header"><h3 className="card-title">Alokasi Kekayaan</h3></div>
           <div className="card-body" style={{ height: 300 }}>
@@ -279,7 +297,7 @@ export default function WealthDashboardPage() {
                     <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={60} paddingAngle={2}>
                       {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(value: number) => formatRupiah(value)} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
+                    <Tooltip formatter={(value: number) => formatRupiah(value)} itemStyle={{ color: 'var(--text-primary)' }} labelStyle={{ color: 'var(--text-secondary)' }} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 16px', marginTop: '-20px' }}>
@@ -297,6 +315,42 @@ export default function WealthDashboardPage() {
                  Belum ada data aset
                </div>
             )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header"><h3 className="card-title">Dompet Trading</h3></div>
+          <div className="table-container" style={{ border: 'none', maxHeight: 300, overflowY: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ width: 40, textAlign: 'center' }}>Aktif</th>
+                  <th>Nama Dompet</th>
+                  <th style={{ textAlign: 'right' }}>Ekuitas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {portfolioStats.map((portfolio) => (
+                  <tr key={portfolio.id} style={{ opacity: excludedPortfolioIds.has(portfolio.id) ? 0.5 : 1 }}>
+                    <td style={{ textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        className="form-checkbox"
+                        checked={!excludedPortfolioIds.has(portfolio.id)}
+                        onChange={() => togglePortfolio(portfolio.id)}
+                      />
+                    </td>
+                    <td><strong>{portfolio.name}</strong></td>
+                    <td style={{ textAlign: 'right', fontWeight: 600, ...blurStyle }}>
+                      {formatRupiah(portfolio.equity)}
+                    </td>
+                  </tr>
+                ))}
+                {portfolioStats.length === 0 && (
+                   <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Belum ada data dompet</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -352,7 +406,7 @@ export default function WealthDashboardPage() {
                       <Pie data={portfolioDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={45} paddingAngle={2}>
                         {portfolioDistribution.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                       </Pie>
-                      <Tooltip formatter={(value: number) => formatRupiah(value)} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
+                      <Tooltip formatter={(value: number) => formatRupiah(value)} itemStyle={{ color: 'var(--text-primary)' }} labelStyle={{ color: 'var(--text-secondary)' }} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -383,7 +437,7 @@ export default function WealthDashboardPage() {
                         <Cell fill="var(--accent-green)" />
                         <Cell fill="var(--accent-blue)" />
                       </Pie>
-                      <Tooltip formatter={(value: number) => formatRupiah(value)} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
+                      <Tooltip formatter={(value: number) => formatRupiah(value)} itemStyle={{ color: 'var(--text-primary)' }} labelStyle={{ color: 'var(--text-secondary)' }} contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -412,7 +466,7 @@ export default function WealthDashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
                     <XAxis dataKey="name" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} axisLine={false} tickLine={false} />
                     <YAxis tickFormatter={(val) => `Rp ${formatCompactNumber(val)}`} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} axisLine={false} tickLine={false} width={70} />
-                    <Tooltip formatter={(value: number) => formatRupiah(value)} cursor={{ fill: 'var(--bg-secondary)' }} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
+                    <Tooltip formatter={(value: number) => formatRupiah(value)} itemStyle={{ color: 'var(--text-primary)' }} labelStyle={{ color: 'var(--text-secondary)' }} cursor={{ fill: 'var(--bg-secondary)' }} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.8rem' }} />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {currencyDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={index === 0 ? '#10B981' : '#3B82F6'} />
