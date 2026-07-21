@@ -36,7 +36,7 @@ export interface DataContextType {
   cashflows: Cashflow[]; allCashflows: Cashflow[]; addCashflow: (cf: Partial<Cashflow>) => Cashflow | null; updateCashflow: (id: string, updates: Partial<Cashflow>) => Cashflow | null; deleteCashflow: (id: string) => Cashflow | null;
   dividends: Dividend[]; allDividends: Dividend[]; addDividend: (div: Partial<Dividend>) => void; deleteDividend: (id: string) => void;
   settings: AppSettings; updateSettings: (updates: Partial<AppSettings>) => void;
-  marketPrices: Record<string, number>; updateMarketPrice: (stockCode: string, price: string | number) => void; fetchLivePrices: (stockCodes: string[]) => Promise<void>;
+  marketPrices: Record<string, number>; updateMarketPrice: (stockCode: string, price: string | number) => void; fetchLivePrices: (stockCodes: string[], forceFetch?: boolean) => Promise<void>;
   portfolios: Portfolio[]; activePortfolioId: string; addPortfolio: (name: string, description?: string, financeAccountId?: string) => Portfolio | null; updatePortfolio: (id: string, updates: Partial<Portfolio>) => void; deletePortfolio: (id: string) => void; reorderPortfolios: (orderedIds: string[]) => Portfolio[] | null; selectPortfolio: (id: string) => void;
   tradingPlans: TradingPlan[]; addTradingPlan: (plan: Partial<TradingPlan>) => TradingPlan | null; updateTradingPlan: (id: string, updates: Partial<TradingPlan>) => void; deleteTradingPlan: (id: string) => void;
   ipoEvents: IpoEvent[]; ipoEntries: IpoEntry[]; ipoAccounts: IpoAccount[]; addIpoEvent: any; updateIpoEvent: any; deleteIpoEvent: any; reorderIpoEvents: any; reorderIpoAccounts: any; addIpoAccount: any; updateIpoAccount: any; toggleIpoAccountActive: any; deleteIpoAccount: any; addIpoEntry: any; updateIpoEntry: any; deleteIpoEntry: any; batchAddIpoEntries: any; batchDeleteIpoEntries: any; batchUpdateIpoEntries: any;
@@ -316,11 +316,11 @@ export function DataProvider({ children }) {
 
   const [initialPricesFetched, setInitialPricesFetched] = useState(false);
 
-  const fetchLivePrices = useCallback(async (stockCodes: string[]) => {
+  const fetchLivePrices = useCallback(async (stockCodes: string[], forceFetch: boolean = false) => {
     if (!stockCodes || stockCodes.length === 0) return;
     try {
-      console.log('[DataContext] Auto-fetching live prices for tickers:', stockCodes);
-      const quotes = await fetchQuotesBatch(stockCodes);
+      console.log('[DataContext] Auto-fetching live prices for tickers:', stockCodes, 'force:', forceFetch);
+      const quotes = await fetchQuotesBatch(stockCodes, 150, forceFetch);
       let updated = false;
       const pricesToMerge: Record<string, number> = {};
       for (const ticker of stockCodes) {

@@ -62,6 +62,7 @@ export interface Dividend {
   dateReceived: string;
   portfolioId?: string;
   createdAt?: string;
+  market?: 'ID' | 'US';
 }
 
 export interface WatchlistItem {
