@@ -537,6 +537,11 @@ function PositionSizeCalculator({ draft, setDraft }: CalcProps) {
           <ResultRow label="Total Investasi" value={formatRupiah(result.totalInvestment)} />
           <ResultRow label="Nilai Risiko" value={formatRupiah(result.riskAmount)} className="text-loss" />
           <ResultRow label="Risiko per Lembar" value={formatRupiah(result.riskPerShare)} />
+          {result.capped && (
+            <div style={{ color: 'var(--accent-yellow)', fontSize: '0.8rem', marginTop: 12, padding: '8px', background: 'var(--accent-yellow-dim)', borderRadius: 6 }}>
+               ⚠️ Hasil dibatasi modal. Anda butuh modal/margin lebih besar untuk bisa mencapai target risiko {currentRisk}% dengan stop loss setipis ini.
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -824,16 +824,26 @@ export function calcAveragePrice(purchases) {
 }
 
 export function calcPositionSize({ capital, riskPercent, entryPrice, stopLoss }) {
-  const riskAmount = capital * (riskPercent / 100);
+  let riskAmount = capital * (riskPercent / 100);
   const riskPerShare = Math.abs(entryPrice - stopLoss);
 
-  if (riskPerShare <= 0) return { lots: 0, riskAmount, totalInvestment: 0, riskPerShare: 0 };
+  if (riskPerShare <= 0) return { lots: 0, riskAmount: 0, totalInvestment: 0, riskPerShare: 0, shares: 0, capped: false };
 
-  const shares = Math.floor(riskAmount / riskPerShare);
+  let shares = Math.floor(riskAmount / riskPerShare);
+  let totalInvestment = shares * entryPrice;
+  let capped = false;
+
+  if (totalInvestment > capital) {
+    shares = Math.floor(capital / entryPrice);
+    capped = true;
+  }
+
   const lots = Math.floor(shares / 100);
-  const totalInvestment = lots * 100 * entryPrice;
+  const actualShares = lots * 100;
+  totalInvestment = actualShares * entryPrice;
+  const actualRiskAmount = actualShares * riskPerShare;
 
-  return { lots, riskAmount, totalInvestment, riskPerShare, shares: lots * 100 };
+  return { lots, riskAmount: actualRiskAmount, totalInvestment, riskPerShare, shares: actualShares, capped };
 }
 
 export function calcTargetPrice({ buyPrice, targetPercent, buyFee = 0.15, sellFee = 0.25 }) {
