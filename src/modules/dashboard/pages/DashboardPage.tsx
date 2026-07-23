@@ -569,9 +569,9 @@ export default function DashboardPage() {
                   <div className="bento-col-6">
                      <StatCard
                         icon={Wallet}
-                        label="Total Portfolio (Equity)"
-                        value={formatMoney(balance.realizedEquity)}
-                        subValue={`Modal Aktif: ${formatMoney(balance.totalCapital)}`}
+                        label="Total Aset (Equity)"
+                        value={formatMoney(balance.realizedEquity + totalFloating)}
+                        subValue={`Modal Awal: ${formatMoney(balance.initialCapital)}`}
                         bgColor="var(--accent-blue-dim)"
                         valueStyle={blurStyle}
                      />
@@ -579,9 +579,9 @@ export default function DashboardPage() {
                   <div className="bento-col-3">
                      <StatCard
                         icon={Wallet}
-                        label="Trading Balance"
+                        label="Nilai Pasar (Saham)"
                         value={formatMoney(tradingBalance)}
-                        subValue={`Investasi + Floating P/L`}
+                        subValue={`Modal Saham: ${formatMoney(balance.investedAmount)}`}
                         bgColor="var(--accent-blue-dim)"
                         valueStyle={blurStyle}
                      />
@@ -599,9 +599,9 @@ export default function DashboardPage() {
                   <div className="bento-col-3">
                      <StatCard
                         icon={Activity}
-                        label="Buying Power"
+                        label="Kas Tersedia (RDI)"
                         value={formatMoney(balance.buyingPower)}
-                        subValue={`Posisi Terbuka: ${balance.openPositionsCount}`}
+                        subValue={`Daya Beli (Buying Power)`}
                         colorClass="text-profit"
                         bgColor="rgba(16, 185, 129, 0.1)"
                         valueStyle={blurStyle}

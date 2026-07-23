@@ -620,14 +620,28 @@ export function calculateAnalyticsInsights(trades) {
 
   const items = [];
   const bestStrategy = strategyInsights[0];
-  const weakStrategy = strategyInsights.length > 0 ? [...strategyInsights].sort((a, b) => compareByStrategyInsight(a, b)).reverse()[0] : null;
+  let weakStrategy = strategyInsights.length > 1 ? [...strategyInsights].sort((a, b) => compareByStrategyInsight(a, b)).reverse()[0] : null;
+  if (weakStrategy && weakStrategy.expectancy >= 0) weakStrategy = null;
+
   const bestEmotion = emotionInsights[0];
-  const riskEmotion = emotionInsights.length > 0
+  let riskEmotion = emotionInsights.length > 1
     ? [...emotionInsights].sort((a, b) => a.totalPnL - b.totalPnL || a.winRate - b.winRate || b.count - a.count)[0]
     : null;
+  if (riskEmotion && riskEmotion.totalPnL >= 0) riskEmotion = null;
+
   const bestTag = tagInsights[0];
-  const worstDay = timingInsights.worstDay;
-  const bestDay = timingInsights.bestDay;
+  let worstDay = timingInsights.worstDay;
+  let bestDay = timingInsights.bestDay;
+
+  // Prevent same day being best and worst if there's only 1 day of trades
+  if (worstDay && bestDay && worstDay.day === bestDay.day) {
+    if (worstDay.pnl >= 0) worstDay = null;
+    else bestDay = null;
+  } else {
+    // Hide worst day insight if there are no actual losing days
+    if (worstDay && worstDay.pnl >= 0) worstDay = null;
+  }
+
   const holdingPattern = timingInsights.holdingPattern;
 
   if (bestStrategy) {

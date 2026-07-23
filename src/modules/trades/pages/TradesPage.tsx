@@ -171,7 +171,7 @@ export default function TradesPage() {
 
   const handleBulkUpdateLivePrice = async () => {
     const selectedTrades = trades.filter(t => selectedIds.includes(t.id));
-    const tickers = Array.from(new Set(selectedTrades.map(t => t.stockCode).filter(Boolean)));
+    const tickers = Array.from(new Set(selectedTrades.map(t => t.market === 'US' ? `${t.stockCode}.US` : t.stockCode).filter(Boolean)));
     if (tickers.length > 0) {
       fetchLivePrices(tickers, true);
       showToast(`Memperbarui harga live untuk ${tickers.length} ticker...`);

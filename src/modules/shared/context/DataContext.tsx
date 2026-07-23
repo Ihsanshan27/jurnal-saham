@@ -34,7 +34,7 @@ export interface DataContextType {
   watchlist: WatchlistItem[]; addWatchlistItem: (item: Partial<WatchlistItem>) => void; updateWatchlistItem: (id: string, updates: Partial<WatchlistItem>) => void; deleteWatchlistItem: (id: string) => void;
   notes: Note[]; addNote: (note: Partial<Note>) => void; updateNote: (id: string, updates: Partial<Note>) => void; deleteNote: (id: string) => void;
   cashflows: Cashflow[]; allCashflows: Cashflow[]; addCashflow: (cf: Partial<Cashflow>) => Cashflow | null; updateCashflow: (id: string, updates: Partial<Cashflow>) => Cashflow | null; deleteCashflow: (id: string) => Cashflow | null;
-  dividends: Dividend[]; allDividends: Dividend[]; addDividend: (div: Partial<Dividend>) => void; deleteDividend: (id: string) => void;
+  dividends: Dividend[]; allDividends: Dividend[]; addDividend: (div: Partial<Dividend>) => void; updateDividend: (id: string, updates: Partial<Dividend>) => void; deleteDividend: (id: string) => void;
   settings: AppSettings; updateSettings: (updates: Partial<AppSettings>) => void;
   marketPrices: Record<string, number>; updateMarketPrice: (stockCode: string, price: string | number) => void; fetchLivePrices: (stockCodes: string[], forceFetch?: boolean) => Promise<void>;
   portfolios: Portfolio[]; activePortfolioId: string; addPortfolio: (name: string, description?: string, financeAccountId?: string) => Portfolio | null; updatePortfolio: (id: string, updates: Partial<Portfolio>) => void; deletePortfolio: (id: string) => void; reorderPortfolios: (orderedIds: string[]) => Portfolio[] | null; selectPortfolio: (id: string) => void;
@@ -325,7 +325,8 @@ export function DataProvider({ children }) {
       const pricesToMerge: Record<string, number> = {};
       for (const ticker of stockCodes) {
         if (quotes[ticker] && quotes[ticker].price != null) {
-          pricesToMerge[ticker] = quotes[ticker].price;
+          const originalTicker = ticker.replace('.US', '');
+          pricesToMerge[originalTicker] = quotes[ticker].price;
           updated = true;
         }
       }
@@ -349,7 +350,7 @@ export function DataProvider({ children }) {
     if (dataLoading || initialPricesFetched) return;
 
     const openTrades = allTrades.filter(t => !t.sellPrice || !t.dateSell);
-    const tickers = Array.from(new Set(openTrades.map(t => t.stockCode).filter(Boolean)));
+    const tickers = Array.from(new Set(openTrades.map(t => t.market === 'US' ? `${t.stockCode}.US` : t.stockCode).filter(Boolean)));
     if (tickers.length > 0) {
       fetchLivePrices(tickers);
       setInitialPricesFetched(true);
@@ -1136,6 +1137,22 @@ export function DataProvider({ children }) {
     showToast('Catatan dividen ditambahkan');
   };
 
+  const updateDividend = (id: string, updates: Partial<Dividend>) => {
+    if (!ensureWritable()) return;
+    const existingDividend = allDividends.find(d => d.id === id);
+    if (!existingDividend) return;
+
+    const updatedDividend = { ...existingDividend, ...updates, updatedAt: new Date().toISOString() };
+    const updated = allDividends.map(d => d.id === id ? updatedDividend : d);
+    setAllDividends(updated);
+    persistData('dividends', updated);
+    logUserActivity('dividend.updated', 'dividend', id, {
+      stockCode: updates.stockCode || existingDividend.stockCode || null,
+      fieldsUpdated: Object.keys(updates || {}),
+    });
+    showToast('Catatan dividen diperbarui');
+  };
+
   const deleteDividend = (id: string) => {
     if (!ensureWritable()) return;
     const existingDividend = allDividends.find(d => d.id === id);
@@ -1535,6 +1552,7 @@ export function DataProvider({ children }) {
       dividends: filteredDividends,
       allDividends,
       addDividend,
+      updateDividend,
       deleteDividend,
       settings,
       updateSettings,

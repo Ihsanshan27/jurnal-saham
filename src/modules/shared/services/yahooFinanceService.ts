@@ -81,6 +81,9 @@ const YF_CHART = 'https://query1.finance.yahoo.com/v8/finance/chart';
 
 function normalizeYahooSymbol(ticker) {
     if (!ticker) return ticker;
+    if (ticker.endsWith('.US')) {
+        return ticker.replace('.US', '');
+    }
     if (ticker.startsWith('^') || ticker.includes('=') || ticker.includes('.')) {
         return ticker;
     }
@@ -140,9 +143,12 @@ export async function fetchQuote(ticker, force = false) {
         if (!result) throw new Error('no result');
 
         const meta = result.meta || {};
-        const closes = result.indicators.quote[0].close.filter(Boolean);
-        const last = closes[closes.length - 1];
-        const prev = closes[closes.length - 2] || last;
+        const closes = result.indicators?.quote?.[0]?.close?.filter(Boolean) || [];
+        const candleLast = closes[closes.length - 1];
+        const candlePrev = closes[closes.length - 2] || candleLast;
+        
+        const last = meta.regularMarketPrice || candleLast;
+        const prev = meta.chartPreviousClose || meta.previousClose || candlePrev;
         const changePct = ((last - prev) / prev) * 100;
         const name = meta.longName || meta.shortName || null;
 

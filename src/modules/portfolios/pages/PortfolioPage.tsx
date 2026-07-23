@@ -120,7 +120,7 @@ export default function PortfolioPage() {
               onClick={async () => {
                 setIsRefreshing(true);
                 try {
-                  const tickers = openTrades.map(t => t.stockCode).filter(Boolean);
+                  const tickers = openTrades.map(t => t.market === 'US' ? `${t.stockCode}.US` : t.stockCode).filter(Boolean);
                   await fetchLivePrices(tickers);
                 } finally {
                   setIsRefreshing(false);

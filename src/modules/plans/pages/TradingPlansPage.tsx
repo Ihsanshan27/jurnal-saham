@@ -31,7 +31,7 @@ export default function TradingPlansPage() {
   const { t } = useTranslation();
   
   useEffect(() => {
-    const codes = [...new Set(tradingPlans.map((p: any) => p.stockCode))];
+    const codes = [...new Set(tradingPlans.map((p: any) => p.market === 'US' ? `${p.stockCode}.US` : p.stockCode))].filter(Boolean);
     if (codes.length > 0 && fetchLivePrices) {
       fetchLivePrices(codes);
     }

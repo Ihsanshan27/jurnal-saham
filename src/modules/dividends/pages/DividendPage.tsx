@@ -4,14 +4,14 @@ import { useDialog } from '@/modules/shared/context/DialogContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { formatRupiah, formatUSD, formatDate } from '@/modules/shared/utils/formatters';
-import { Coins, Plus, X, Trash2, Save, TrendingUp, Sparkles } from 'lucide-react';
+import { Coins, Plus, X, Trash2, Save, TrendingUp, Sparkles, Edit2 } from 'lucide-react';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import { format } from 'date-fns';
 
 export default function DividendPage() {
-  const { dividends, addDividend, deleteDividend, trades, dividendFormDraft, setDividendFormDraft } = useData();
+  const { dividends, addDividend, updateDividend, deleteDividend, trades, dividendFormDraft, setDividendFormDraft } = useData();
   const { confirm } = useDialog();
 
   const [showForm, setShowForm] = useState(() => {
@@ -36,9 +36,14 @@ export default function DividendPage() {
     return 'ID';
   });
 
+  const [editingId, setEditingId] = useState<string | null>(() => {
+    if (dividendFormDraft) return dividendFormDraft.editingId || null;
+    return null;
+  });
+
   useEffect(() => {
-    setDividendFormDraft({ form, showForm, activeTab });
-  }, [form, showForm, activeTab, setDividendFormDraft]);
+    setDividendFormDraft({ form, showForm, activeTab, editingId });
+  }, [form, showForm, activeTab, editingId, setDividendFormDraft]);
 
   const isUS = activeTab === 'US';
 
@@ -81,11 +86,26 @@ export default function DividendPage() {
   const handleCancelOrToggle = () => {
     if (showForm) {
       setShowForm(false);
+      setEditingId(null);
       setForm({ stockCode: '', shareCount: '', dividendPerShare: '', cumDate: '', payDate: '', notes: '' });
       setDividendFormDraft(null);
     } else {
       setShowForm(true);
     }
+  };
+
+  const handleEdit = (div: any) => {
+    setForm({
+      stockCode: div.stockCode,
+      shareCount: div.shareCount.toString(),
+      dividendPerShare: div.dividendPerShare.toString(),
+      cumDate: div.cumDate || '',
+      payDate: div.payDate || '',
+      notes: div.notes || ''
+    });
+    setEditingId(div.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -96,16 +116,23 @@ export default function DividendPage() {
     const dps = parseFloat(form.dividendPerShare) || 0;
     const total = count * dps;
 
-    addDividend({
+    const payload = {
       ...form,
       market: activeTab,
       stockCode: form.stockCode.toUpperCase(),
       shareCount: count,
       dividendPerShare: dps,
       totalAmount: total,
-    });
+    };
+
+    if (editingId) {
+      updateDividend(editingId, payload);
+    } else {
+      addDividend(payload);
+    }
 
     setForm({ stockCode: '', shareCount: '', dividendPerShare: '', cumDate: '', payDate: '', notes: '' });
+    setEditingId(null);
     setShowForm(false);
     setDividendFormDraft(null);
   };
@@ -191,7 +218,7 @@ export default function DividendPage() {
         <div className="card" style={{ marginBottom: 24, animation: 'fadeInUp 0.3s ease' }}>
           <div className="card-body">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0 }}>Catat Dividen {isUS ? 'Pasar US' : 'Pasar ID'}</h3>
+              <h3 style={{ margin: 0 }}>{editingId ? 'Edit Dividen' : 'Catat Dividen'} {isUS ? 'Pasar US' : 'Pasar ID'}</h3>
 
               {portfolioStocks.length > 0 && (
                 <CustomSelect
@@ -318,9 +345,14 @@ export default function DividendPage() {
                     <td style={{ fontSize: '0.85rem' }}>{div.payDate ? formatDate(div.payDate) : '-'}</td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{div.notes || '-'}</td>
                     <td>
-                      <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDelete(div.id)} aria-label="Hapus rekam dividen">
-                        <Trash2 size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn btn-ghost btn-sm text-accent" onClick={() => handleEdit(div)} aria-label="Edit rekam dividen">
+                          <Edit2 size={14} />
+                        </button>
+                        <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDelete(div.id)} aria-label="Hapus rekam dividen">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
