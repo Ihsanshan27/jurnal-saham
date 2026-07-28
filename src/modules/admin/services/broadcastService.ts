@@ -6,6 +6,7 @@ export interface SystemBroadcast {
   title: string;
   message: string;
   severity: 'info' | 'warning' | 'danger';
+  authorName?: string;
   createdAt: string;
 }
 

@@ -36,6 +36,7 @@ export default function AdminDashboardPage() {
         title: broadcastTitle,
         message: broadcastMessage,
         severity: broadcastSeverity,
+        authorName: user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin',
       }, user?.id || 'system');
       showToast('Berhasil mengirim push notifikasi ke seluruh pengguna!', 'success');
       setBroadcastTitle('');

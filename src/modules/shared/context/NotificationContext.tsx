@@ -6,7 +6,7 @@ import { getScopedItem, setScopedItem } from '@/modules/shared/utils/storage';
 import { buildNotificationItems, isNotificationExpired, type NotificationItem, type ReportShareLike } from '@/modules/shared/utils/notificationCenter';
 import { listReportShares } from '@/modules/shared/services/reportShareService';
 import { getSystemBroadcasts, type SystemBroadcast } from '@/modules/admin/services/broadcastService';
-import { isSupabaseConfigured } from '@/modules/shared/services/supabaseClient';
+import { isSupabaseConfigured, supabase } from '@/modules/shared/services/supabaseClient';
 
 export interface NotificationWithReadStatus extends NotificationItem {
   isRead: boolean;
@@ -122,11 +122,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
     fetchBroadcasts();
     
-    // Auto-refresh broadcasts every 5 minutes
+    // Auto-refresh fallback every 5 minutes
     const interval = setInterval(fetchBroadcasts, 300000);
+
+    // Supabase Realtime subscription
+    let channel: any;
+    if (isSupabaseConfigured && supabase) {
+      channel = supabase.channel('system_broadcasts_realtime')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'app_settings',
+          filter: 'key=eq.system_broadcasts'
+        }, (payload: any) => {
+          if (payload.new && payload.new.value) {
+            setBroadcasts(payload.new.value as SystemBroadcast[]);
+          }
+        })
+        .subscribe();
+    }
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
@@ -183,7 +204,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       typeId: 'admin-broadcast',
       module: 'System',
       title: b.title,
-      message: b.message,
+      message: b.authorName ? `${b.message}\n\n— Dikirim oleh: ${b.authorName}` : b.message,
       severity: b.severity,
       delivery: 'hybrid' as const,
       ctaLabel: 'Tutup',
