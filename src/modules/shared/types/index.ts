@@ -138,6 +138,10 @@ export interface BsjpTrade {
   buyFee: number;
   sellFee: number;
   updatedAt?: string;
+  indicatorStoch533K?: number | null;
+  indicatorStoch533D?: number | null;
+  indicatorMfi14?: number | null;
+  indicatorRsi14?: number | null;
 }
 
 export interface TradingPlan {

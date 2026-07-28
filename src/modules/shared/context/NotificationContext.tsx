@@ -5,6 +5,7 @@ import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import { getScopedItem, setScopedItem } from '@/modules/shared/utils/storage';
 import { buildNotificationItems, isNotificationExpired, type NotificationItem, type ReportShareLike } from '@/modules/shared/utils/notificationCenter';
 import { listReportShares } from '@/modules/shared/services/reportShareService';
+import { getSystemBroadcasts, type SystemBroadcast } from '@/modules/admin/services/broadcastService';
 import { isSupabaseConfigured } from '@/modules/shared/services/supabaseClient';
 
 export interface NotificationWithReadStatus extends NotificationItem {
@@ -67,6 +68,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   } = useData();
   const { role, can } = usePermissions();
   const [reportShares, setReportShares] = useState<ReportShareLike[]>([]);
+  const [broadcasts, setBroadcasts] = useState<SystemBroadcast[]>([]);
   const [readState, setReadState] = useState<NotificationReadState>(() => (
     userId ? getScopedItem(STORAGE_KEY_READS, userId) || {} : {}
   ));
@@ -107,6 +109,26 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       cancelled = true;
     };
   }, [can, userId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchBroadcasts = async () => {
+      try {
+        const data = await getSystemBroadcasts();
+        if (!cancelled) setBroadcasts(data);
+      } catch (err) {
+        if (!cancelled) setBroadcasts([]);
+      }
+    };
+    fetchBroadcasts();
+    
+    // Auto-refresh broadcasts every 5 minutes
+    const interval = setInterval(fetchBroadcasts, 300000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const roleChangeNotification = useMemo(() => {
     if (!userId || !role) return null;
@@ -155,7 +177,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (roleChangeNotification) {
       items.unshift(roleChangeNotification);
     }
-    return items;
+    
+    const broadcastItems = broadcasts.map(b => ({
+      key: b.id,
+      typeId: 'admin-broadcast',
+      module: 'System',
+      title: b.title,
+      message: b.message,
+      severity: b.severity,
+      delivery: 'hybrid' as const,
+      ctaLabel: 'Tutup',
+      ctaTarget: '#',
+      fingerprint: b.id,
+      createdAt: b.createdAt,
+    } as NotificationItem));
+    
+    return [...broadcastItems, ...items];
   }, [
     ipoEvents,
     ipoEntries,
@@ -171,6 +208,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     reportShares,
     usedLocalCacheFallback,
     roleChangeNotification,
+    broadcasts,
   ]);
 
   const persistReadState = useCallback((nextState: NotificationReadState) => {
@@ -190,36 +228,38 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (dataLoading) return;
     const now = new Date();
-    const nextMetaState = generatedNotifications.reduce<NotificationMetaState>((acc, notification) => {
-      const existingMeta = metaState[notification.key];
+    
+    // Retain existing meta states to avoid purging when data briefly disappears, but expire after 30 days
+    const nextMetaState: NotificationMetaState = {};
+    for (const [key, meta] of Object.entries(metaState)) {
+      if (now.getTime() - new Date(meta.firstSeenAt).getTime() < 30 * 86400000) {
+        nextMetaState[key] = meta;
+      }
+    }
+
+    generatedNotifications.forEach((notification) => {
+      const existingMeta = nextMetaState[notification.key];
       const firstSeenAt = existingMeta?.fingerprint === notification.fingerprint
         ? existingMeta.firstSeenAt
         : notification.createdAt;
-      acc[notification.key] = {
+      nextMetaState[notification.key] = {
         fingerprint: notification.fingerprint,
         firstSeenAt,
       };
-      return acc;
-    }, {});
+    });
 
     const metaChanged = !isMetaEqual(nextMetaState, metaState);
     if (metaChanged) {
       persistMetaState(nextMetaState);
     }
 
-    const validKeys = new Set(Object.keys(nextMetaState));
-    const nextReadState = Object.entries(readState).reduce<NotificationReadState>((acc, [key, fingerprint]) => {
-      if (!validKeys.has(key)) return acc;
-      const notification = generatedNotifications.find((item) => item.key === key);
-      const currentMeta = nextMetaState[key];
-      if (!notification || !currentMeta) return acc;
-      if (fingerprint !== notification.fingerprint) return acc;
-      if (isNotificationExpired({ severity: notification.severity, createdAt: currentMeta.firstSeenAt }, now)) {
-        return acc;
+    const nextReadState: NotificationReadState = {};
+    for (const [key, fingerprint] of Object.entries(readState)) {
+      const meta = nextMetaState[key];
+      if (meta && meta.fingerprint === fingerprint) {
+        nextReadState[key] = fingerprint;
       }
-      acc[key] = fingerprint;
-      return acc;
-    }, {});
+    }
 
     const readChanged = !isReadEqual(nextReadState, readState);
     if (readChanged) {

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/modules/shared/services/supabaseClient';
 import { useData } from '@/modules/shared/context/DataContext';
 import { formatDateTime } from '@/modules/shared/utils/formatters';
-import { Activity, Users, Database, Briefcase } from 'lucide-react';
+import { useAuth } from '@/modules/auth/AuthContext';
+import { pushSystemBroadcast } from '@/modules/admin/services/broadcastService';
+import { Activity, Users, Database, Briefcase, Bell, Send } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -15,8 +17,36 @@ import {
 
 export default function AdminDashboardPage() {
   const { showToast } = useData();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastSeverity, setBroadcastSeverity] = useState<'info'|'warning'|'danger'>('info');
+  const [pushingBroadcast, setPushingBroadcast] = useState(false);
+
+  const handlePushBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) return;
+    
+    setPushingBroadcast(true);
+    try {
+      await pushSystemBroadcast({
+        title: broadcastTitle,
+        message: broadcastMessage,
+        severity: broadcastSeverity,
+      }, user?.id || 'system');
+      showToast('Berhasil mengirim push notifikasi ke seluruh pengguna!', 'success');
+      setBroadcastTitle('');
+      setBroadcastMessage('');
+      setBroadcastSeverity('info');
+    } catch (err: any) {
+      showToast(`Gagal mengirim broadcast: ${err.message}`, 'error');
+    } finally {
+      setPushingBroadcast(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchStats() {
@@ -169,6 +199,58 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 24, padding: 20 }}>
+        <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <Bell size={20} style={{ color: 'var(--accent-purple)' }} />
+          Kirim Pengumuman Global (Push Notification)
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 20 }}>
+          Pengumuman ini akan muncul sebagai notifikasi lonceng bagi seluruh pengguna.
+        </p>
+        <form onSubmit={handlePushBroadcast} style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 600 }}>
+          <div className="form-group">
+            <label className="form-label">Judul Pengumuman</label>
+            <input 
+              type="text" 
+              className="form-input" 
+              value={broadcastTitle}
+              onChange={e => setBroadcastTitle(e.target.value)}
+              placeholder="Contoh: Maintenance Server Malam Ini"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Isi Pesan</label>
+            <textarea 
+              className="form-textarea" 
+              value={broadcastMessage}
+              onChange={e => setBroadcastMessage(e.target.value)}
+              placeholder="Tulis pesan pengumuman..."
+              rows={3}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tipe (Tingkat Urgensi)</label>
+            <select 
+              className="form-input"
+              value={broadcastSeverity}
+              onChange={e => setBroadcastSeverity(e.target.value as any)}
+            >
+              <option value="info">Info (Biru)</option>
+              <option value="warning">Warning (Kuning)</option>
+              <option value="danger">Danger (Merah/Kritis)</option>
+            </select>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button type="submit" className="btn btn-primary" disabled={pushingBroadcast} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              {pushingBroadcast ? <div className="loading-spinner" style={{ width: 16, height: 16 }} /> : <Send size={16} />}
+              Kirim Broadcast Sekarang
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

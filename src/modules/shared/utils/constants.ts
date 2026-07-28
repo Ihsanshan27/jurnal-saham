@@ -58,6 +58,7 @@ export const NAV_ITEMS = [
   { path: '/ipo/accounts', label: 'IPO Accounts', icon: 'Users', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
   { path: '/plans', label: 'Rencana Trading', icon: 'BookOpen', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
   { path: '/bsjp-recap', label: 'BSJP Recap', icon: 'ClipboardList', section: 'TOOLS', roles: ['admin', 'mentor', 'trader', 'viewer'] },
+  { path: '/bsjp-analytics', label: 'BSJP Analytics', icon: 'BarChart2', section: 'TOOLS', roles: ['admin', 'mentor', 'trader', 'viewer'] },
   { path: '/watchlist', label: 'Watchlist', icon: 'Eye', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
   { path: '/notes', label: 'Catatan', icon: 'FileText', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
   { path: '/calculator', label: 'Kalkulator', icon: 'Calculator', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },

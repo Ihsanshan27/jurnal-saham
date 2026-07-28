@@ -377,7 +377,7 @@ export function buildNotificationItems({
         delivery: 'center_only',
         ctaLabel: 'Buka Portofolio',
         ctaTarget: '/portfolio',
-        fingerprintParts: [trade.id, snapshot.priceUsed, lossRatio.toFixed(4)],
+        fingerprintParts: [trade.id],
       }));
     }
     if (!snapshot.hasLivePrice) {
@@ -401,7 +401,7 @@ export function buildNotificationItems({
         delivery: 'center_only',
         ctaLabel: 'Review Trade',
         ctaTarget: `/trades/${trade.id}`,
-        fingerprintParts: [trade.id, livePrice, trade.sellPrice],
+        fingerprintParts: [trade.id, trade.sellPrice],
       }));
     }
 
@@ -438,7 +438,7 @@ export function buildNotificationItems({
         delivery: 'center_only',
         ctaLabel: 'Tinjau Alokasi',
         ctaTarget: '/portfolio',
-        fingerprintParts: [positionKey, weight.toFixed(4)],
+        fingerprintParts: [positionKey],
       }));
     });
   }
@@ -497,7 +497,7 @@ export function buildNotificationItems({
           delivery: 'center_only',
           ctaLabel: 'Lihat Rekening',
           ctaTarget: `/finance/${account.id}`,
-          fingerprintParts: [account.id, balance],
+          fingerprintParts: [account.id, balance < 0 ? 'negative' : 'low'],
         }));
       }
     }

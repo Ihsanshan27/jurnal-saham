@@ -161,6 +161,7 @@ export const id = {
   'nav.IPO Accounts': 'IPO Accounts',
   'nav.Rencana Trading': 'Rencana Trading',
   'nav.BSJP Recap': 'BSJP Recap',
+  'nav.BSJP Analytics': 'Analitik BSJP',
   'nav.Watchlist': 'Watchlist',
   'nav.Kalkulator': 'Kalkulator',
   'nav.Catatan': 'Catatan',

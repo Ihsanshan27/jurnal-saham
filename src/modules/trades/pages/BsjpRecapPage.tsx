@@ -79,7 +79,11 @@ export default function BsjpRecapPage() {
     buyPrice: '',
     sellPrice: '',
     market: 'ID',
-    sekuritas: ''
+    sekuritas: '',
+    indicatorStoch533K: '',
+    indicatorStoch533D: '',
+    indicatorMfi14: '',
+    indicatorRsi14: ''
   });
 
   const handleOpenAdd = () => {
@@ -93,7 +97,11 @@ export default function BsjpRecapPage() {
       buyPrice: '',
       sellPrice: '',
       market: 'ID',
-      sekuritas: settings.selectedBrokerID || 'Custom'
+      sekuritas: settings.selectedBrokerID || 'Custom',
+      indicatorStoch533K: '',
+      indicatorStoch533D: '',
+      indicatorMfi14: '',
+      indicatorRsi14: ''
     });
     setShowModal(true);
   };
@@ -109,7 +117,11 @@ export default function BsjpRecapPage() {
       buyPrice: String(trade.buyPrice || ''),
       sellPrice: trade.sellPrice != null ? String(trade.sellPrice) : '',
       market: trade.market || 'ID',
-      sekuritas: trade.sekuritas || ''
+      sekuritas: trade.sekuritas || '',
+      indicatorStoch533K: trade.indicatorStoch533K != null ? String(trade.indicatorStoch533K) : '',
+      indicatorStoch533D: trade.indicatorStoch533D != null ? String(trade.indicatorStoch533D) : '',
+      indicatorMfi14: trade.indicatorMfi14 != null ? String(trade.indicatorMfi14) : '',
+      indicatorRsi14: trade.indicatorRsi14 != null ? String(trade.indicatorRsi14) : ''
     });
     setShowModal(true);
   };
@@ -134,7 +146,11 @@ export default function BsjpRecapPage() {
       market: form.market as 'ID' | 'US',
       sekuritas: form.sekuritas || (form.market === 'US' ? (settings.selectedBrokerUS || 'Custom') : (settings.selectedBrokerID || 'Custom')),
       buyFee: form.market === 'US' ? (settings.defaultBuyFeeUS ?? 0) : (settings.defaultBuyFee ?? 0.15),
-      sellFee: form.market === 'US' ? (settings.defaultSellFeeUS ?? 0) : (settings.defaultSellFee ?? 0.25)
+      sellFee: form.market === 'US' ? (settings.defaultSellFeeUS ?? 0) : (settings.defaultSellFee ?? 0.25),
+      indicatorStoch533K: form.indicatorStoch533K ? parseFloat(form.indicatorStoch533K) : null,
+      indicatorStoch533D: form.indicatorStoch533D ? parseFloat(form.indicatorStoch533D) : null,
+      indicatorMfi14: form.indicatorMfi14 ? parseFloat(form.indicatorMfi14) : null,
+      indicatorRsi14: form.indicatorRsi14 ? parseFloat(form.indicatorRsi14) : null
     };
 
     if (editingTrade) {
@@ -569,6 +585,15 @@ export default function BsjpRecapPage() {
                           </td>
                           <td>
                             <strong>{row.stockCode}</strong> {row.isUS && <span style={{ fontSize: '0.78rem' }}><span style={{fontSize: '0.8em', marginLeft: '4px'}}>(US)</span></span>}
+                            {(row.indicatorStoch533K != null || row.indicatorStoch533D != null || row.indicatorMfi14 != null || row.indicatorRsi14 != null) && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                {(row.indicatorStoch533K != null || row.indicatorStoch533D != null) && (
+                                  <span style={{marginRight: 6}}>Stoch: {row.indicatorStoch533K ?? '-'} / {row.indicatorStoch533D ?? '-'}</span>
+                                )}
+                                {row.indicatorMfi14 != null && <span style={{marginRight: 6}}>MFI: {row.indicatorMfi14}</span>}
+                                {row.indicatorRsi14 != null && <span>RSI: {row.indicatorRsi14}</span>}
+                              </div>
+                            )}
                           </td>
                           <td className="font-mono">
                             {row.lots.toLocaleString('id-ID')}
@@ -742,6 +767,53 @@ export default function BsjpRecapPage() {
                       placeholder="Kosongkan jika belum dijual"
                       value={form.sellPrice} 
                       onChange={e => setForm(prev => ({ ...prev, sellPrice: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  <div className="form-group">
+                    <label className="form-label">Stoch %K</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="%K"
+                      value={form.indicatorStoch533K} 
+                      onChange={e => setForm(prev => ({ ...prev, indicatorStoch533K: e.target.value }))}
+                      step="any"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Stoch %D</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="%D"
+                      value={form.indicatorStoch533D} 
+                      onChange={e => setForm(prev => ({ ...prev, indicatorStoch533D: e.target.value }))}
+                      step="any"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">MFI (14)</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="e.g. 30"
+                      value={form.indicatorMfi14} 
+                      onChange={e => setForm(prev => ({ ...prev, indicatorMfi14: e.target.value }))}
+                      step="any"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">RSI (14)</label>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="e.g. 40"
+                      value={form.indicatorRsi14} 
+                      onChange={e => setForm(prev => ({ ...prev, indicatorRsi14: e.target.value }))}
+                      step="any"
                     />
                   </div>
                 </div>
