@@ -11,7 +11,7 @@ import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import { format } from 'date-fns';
 
 export default function NewTradePage() {
-  const { addTrade, allTrades, settings, portfolios, activePortfolioId, tradeFormDraft, setTradeFormDraft, deleteTradingPlan } = useData();
+  const { addTrade, updateTrade, allTrades, settings, portfolios, activePortfolioId, tradeFormDraft, setTradeFormDraft, deleteTradingPlan } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   const { alert, confirm } = useDialog();
@@ -20,6 +20,8 @@ export default function NewTradePage() {
     if (tradeFormDraft) return tradeFormDraft;
     const plan = location.state?.plan;
     return {
+      tradeMode: 'BUY',
+      selectedTradeId: '',
       assetType: 'stock',
       market: plan?.market || 'ID',
       stockCode: plan?.stockCode || '',
@@ -119,6 +121,71 @@ export default function NewTradePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (form.tradeMode === 'SELL') {
+      if (!form.selectedTradeId || !form.dateSell || !form.sellPrice || !form.lots) {
+        await alert('Posisi terbuka, tanggal jual, harga jual, dan jumlah lot wajib diisi', { title: 'Formulir Belum Lengkap', severity: 'warning' });
+        return;
+      }
+
+      const selectedTrade = allTrades.find((t: any) => t.id === form.selectedTradeId);
+      if (!selectedTrade) return;
+
+      const sellLots = parseFloat(form.lots);
+      if (sellLots <= 0 || sellLots > selectedTrade.lots) {
+        await alert('Jumlah lot tidak valid atau melebihi jumlah lot yang dimiliki.', { title: 'Gagal Menyimpan', severity: 'warning' });
+        return;
+      }
+
+      if (settings.behaviorRequireReason && !form.reasonExit?.trim()) {
+        await alert('Penyimpanan diblokir: Anda wajib mengisi alasan exit.', { title: 'Gagal Menyimpan', severity: 'warning' });
+        return;
+      }
+
+      if (sellLots < selectedTrade.lots) {
+        // Partial sell
+        const remainingLots = selectedTrade.lots - sellLots;
+        const isSplitConfirmed = await confirm(`Anda menjual ${sellLots} dari ${selectedTrade.lots} lot. Sisa ${remainingLots} lot akan dibuatkan posisi terbuka baru. Lanjutkan?`, {
+          title: 'Konfirmasi Jual Sebagian',
+          confirmText: 'Ya, Lanjutkan',
+          cancelText: 'Batal'
+        });
+
+        if (!isSplitConfirmed) return;
+
+        // Create new closed trade
+        addTrade({
+          ...selectedTrade,
+          id: undefined,
+          lots: sellLots,
+          sellPrice: parseFloat(form.sellPrice),
+          dateSell: form.dateSell,
+          sellFee: parseFloat(form.sellFee),
+          reasonExit: form.reasonExit,
+          notes: selectedTrade.notes ? `${selectedTrade.notes}\n- Jual sebagian ${sellLots} lot pada ${form.dateSell}` : `- Jual sebagian ${sellLots} lot pada ${form.dateSell}`
+        });
+
+        // Update existing open trade
+        updateTrade(selectedTrade.id, {
+          lots: remainingLots,
+          notes: selectedTrade.notes ? `${selectedTrade.notes}\n- Sisa ${remainingLots} lot setelah jual sebagian pada ${form.dateSell}` : `- Sisa ${remainingLots} lot setelah jual sebagian pada ${form.dateSell}`
+        });
+      } else {
+        // Full sell
+        updateTrade(selectedTrade.id, {
+          sellPrice: parseFloat(form.sellPrice),
+          dateSell: form.dateSell,
+          sellFee: parseFloat(form.sellFee),
+          reasonExit: form.reasonExit,
+          notes: selectedTrade.notes ? `${selectedTrade.notes}\n- Jual seluruh ${sellLots} lot pada ${form.dateSell}` : `- Jual seluruh ${sellLots} lot pada ${form.dateSell}`
+        });
+      }
+
+      setTradeFormDraft(null);
+      navigate('/trades');
+      return;
+    }
+
     if (!form.stockCode || !form.dateBuy || !form.buyPrice || !form.lots) {
       await alert('Kode saham, tanggal beli, harga beli, dan jumlah wajib diisi', {
         title: 'Formulir Belum Lengkap',
@@ -157,6 +224,59 @@ export default function NewTradePage() {
         severity: 'danger'
       });
       return;
+    }
+
+    const normalizedStockCode = isMutualFund ? form.stockCode.trim() : form.stockCode.toUpperCase();
+    
+    // Check for existing open trade to merge
+    const existingOpenTrade = allTrades.find((t: any) => 
+      !t.sellPrice && !t.dateSell &&
+      t.stockCode === normalizedStockCode && 
+      t.market === form.market &&
+      t.assetType === (form.assetType || 'stock') &&
+      t.portfolioId === (form.portfolioId || 'default')
+    );
+
+    if (existingOpenTrade) {
+      const formatMoneyUI = form.market === 'US' ? formatUSD : formatRupiah;
+      const isMergeConfirmed = await confirm(`Saham ${normalizedStockCode} sudah ada di portofolio dengan ${existingOpenTrade.lots} lot @ ${formatMoneyUI(existingOpenTrade.buyPrice)}. Apakah Anda ingin menggabungkannya (Average Up/Down)?`, {
+        title: 'Posisi Sudah Ada',
+        confirmText: 'Gabung (Average)',
+        cancelText: 'Catat Terpisah',
+        severity: 'info'
+      });
+
+      if (isMergeConfirmed) {
+         const existingLots = existingOpenTrade.lots;
+         const existingBuy = existingOpenTrade.buyPrice;
+         const newLots = parseFloat(form.lots);
+         const newBuy = parseFloat(form.buyPrice);
+         
+         const totalLots = existingLots + newLots;
+         const newAvgPrice = ((existingLots * existingBuy) + (newLots * newBuy)) / totalLots;
+         
+         const newHistoryText = `+ Beli ${newLots} lot @ ${formatMoneyUI(newBuy)} pada ${form.dateBuy}`;
+         const updatedNotes = existingOpenTrade.notes 
+           ? `${existingOpenTrade.notes}\n${newHistoryText}`
+           : newHistoryText;
+         
+         const newTags = form.tags ? form.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+         const combinedTags = Array.from(new Set([...(existingOpenTrade.tags || []), ...newTags]));
+
+         updateTrade(existingOpenTrade.id, {
+           lots: totalLots,
+           buyPrice: newAvgPrice,
+           notes: updatedNotes,
+           tags: combinedTags
+         });
+
+         const planId = location.state?.plan?.id;
+         if (planId) deleteTradingPlan(planId);
+
+         setTradeFormDraft(null);
+         navigate('/trades');
+         return;
+      }
     }
 
     addTrade({
@@ -233,6 +353,30 @@ export default function NewTradePage() {
               <div className="card-header"><h3 className="card-title">Detail Transaksi</h3></div>
               <div className="card-body">
                 <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label className="form-label">Tipe Transaksi</label>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="tradeMode"
+                        checked={form.tradeMode !== 'SELL'}
+                        onChange={() => setForm(prev => ({ ...prev, tradeMode: 'BUY' }))}
+                      />
+                      Beli Baru / Average
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="tradeMode"
+                        checked={form.tradeMode === 'SELL'}
+                        onChange={() => setForm(prev => ({ ...prev, tradeMode: 'SELL', dateSell: prev.dateSell || new Date().toISOString().split('T')[0] }))}
+                      />
+                      Jual (Tutup Posisi)
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 16 }}>
                   <label className="form-label">Pilih Portofolio</label>
                   <CustomSelect
                     value={form.portfolioId}
@@ -242,8 +386,39 @@ export default function NewTradePage() {
                   />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 16 }}>
-                  <label className="form-label">Jenis Aset</label>
+                {form.tradeMode === 'SELL' ? (
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="form-label">Pilih Posisi Terbuka</label>
+                    <CustomSelect
+                      value={form.selectedTradeId || ''}
+                      onChange={(val) => {
+                        const t = allTrades.find((trade: any) => trade.id === val);
+                        if (t) {
+                          setForm(prev => ({
+                            ...prev,
+                            selectedTradeId: t.id,
+                            stockCode: t.stockCode,
+                            lots: String(t.lots),
+                            portfolioId: t.portfolioId || 'default',
+                            market: t.market,
+                            assetType: t.assetType
+                          }));
+                        }
+                      }}
+                      options={[
+                        { value: '', label: 'Pilih posisi terbuka...' },
+                        ...allTrades
+                           .filter((t: any) => !t.sellPrice && !t.dateSell && t.portfolioId === (form.portfolioId || 'default'))
+                           .map((t: any) => ({ value: t.id, label: `${t.stockCode} - ${t.lots} ${getTradeQuantityLabel(t)} @ ${formatMoney(t.buyPrice)}` }))
+                      ]}
+                    />
+                  </div>
+                ) : null}
+
+                {form.tradeMode === 'BUY' && (
+                  <>
+                    <div className="form-group" style={{ marginBottom: 16 }}>
+                      <label className="form-label">Jenis Aset</label>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                       <input
@@ -281,9 +456,12 @@ export default function NewTradePage() {
                     </label>
                   </div>
                 </div>
+                  </>
+                )}
 
-                <div className="form-group" style={{ marginBottom: 16 }}>
-                  <label className="form-label">Pilih Pasar</label>
+                {form.tradeMode === 'BUY' && (
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="form-label">Pilih Pasar</label>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                       <input
@@ -324,6 +502,7 @@ export default function NewTradePage() {
                     </div>
                   ) : null}
                 </div>
+                )}
 
                 <div className="form-row">
                   <div className="form-group">
@@ -334,6 +513,7 @@ export default function NewTradePage() {
                       value={form.stockCode}
                       onChange={e => set('stockCode', isMutualFund ? e.target.value : e.target.value.toUpperCase())}
                       style={isMutualFund ? undefined : { textTransform: 'uppercase' }}
+                      disabled={form.tradeMode === 'SELL'}
                     />
                   </div>
                   <div className="form-group">
@@ -353,15 +533,17 @@ export default function NewTradePage() {
                 </div>
 
                 <div className="form-row">
+                  {form.tradeMode === 'BUY' && (
+                    <div className="form-group">
+                      <label className="form-label">Tanggal Beli *</label>
+                      <CustomDatePicker 
+                        value={form.dateBuy} 
+                        onChange={(date) => set('dateBuy', format(date, 'yyyy-MM-dd'))} 
+                      />
+                    </div>
+                  )}
                   <div className="form-group">
-                    <label className="form-label">Tanggal Beli *</label>
-                    <CustomDatePicker 
-                      value={form.dateBuy} 
-                      onChange={(date) => set('dateBuy', format(date, 'yyyy-MM-dd'))} 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Tanggal Jual</label>
+                    <label className="form-label">{form.tradeMode === 'SELL' ? 'Tanggal Jual *' : 'Tanggal Jual'}</label>
                     <CustomDatePicker 
                       value={form.dateSell} 
                       onChange={(date) => set('dateSell', format(date, 'yyyy-MM-dd'))} 
@@ -371,21 +553,25 @@ export default function NewTradePage() {
                 </div>
 
                 <div className="form-row">
+                  {form.tradeMode === 'BUY' && (
+                    <div className="form-group">
+                      <label className="form-label">{isMutualFund ? 'NAB Beli per Unit *' : 'Harga Beli (per lembar) *'}</label>
+                      <input type="number" step="any" className="form-input" placeholder={isMutualFund ? 'Contoh: 1287.35' : isUS ? 'Contoh: 150.5' : 'Contoh: 8500'} value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
+                    </div>
+                  )}
                   <div className="form-group">
-                    <label className="form-label">{isMutualFund ? 'NAB Beli per Unit *' : 'Harga Beli (per lembar) *'}</label>
-                    <input type="number" step="any" className="form-input" placeholder={isMutualFund ? 'Contoh: 1287.35' : isUS ? 'Contoh: 150.5' : 'Contoh: 8500'} value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{isMutualFund ? 'NAB Jual per Unit' : 'Harga Jual (per lembar)'}</label>
+                    <label className="form-label">{form.tradeMode === 'SELL' ? (isMutualFund ? 'NAB Jual per Unit *' : 'Harga Jual (per lembar) *') : (isMutualFund ? 'NAB Jual per Unit' : 'Harga Jual (per lembar)')}</label>
                     <input type="number" step="any" className="form-input" placeholder="Kosongkan jika masih hold" value={form.sellPrice} onChange={e => set('sellPrice', e.target.value)} />
                   </div>
                 </div>
 
                 <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Fee Beli (%)</label>
-                    <input type="number" className="form-input" step="0.01" value={form.buyFee} onChange={e => set('buyFee', e.target.value)} />
-                  </div>
+                  {form.tradeMode === 'BUY' && (
+                    <div className="form-group">
+                      <label className="form-label">Fee Beli (%)</label>
+                      <input type="number" className="form-input" step="0.01" value={form.buyFee} onChange={e => set('buyFee', e.target.value)} />
+                    </div>
+                  )}
                   <div className="form-group">
                     <label className="form-label">Fee Jual (%)</label>
                     <input type="number" className="form-input" step="0.01" value={form.sellFee} onChange={e => set('sellFee', e.target.value)} />
@@ -397,56 +583,60 @@ export default function NewTradePage() {
             <div className="card" style={{ marginBottom: 20 }}>
               <div className="card-header"><h3 className="card-title">Analisis & Catatan</h3></div>
               <div className="card-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Strategi</label>
-                    <CustomSelect
-                      value={form.strategy}
-                      onChange={(value) => set('strategy', value)}
-                      options={[
-                        { value: '', label: 'Pilih strategi...' },
-                        ...strategiesList.map((strategy: string) => ({ value: strategy, label: strategy }))
-                      ]}
-                    />
+                {form.tradeMode === 'BUY' && (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Strategi</label>
+                      <CustomSelect
+                        value={form.strategy}
+                        onChange={(value) => set('strategy', value)}
+                        options={[
+                          { value: '', label: 'Pilih strategi...' },
+                          ...strategiesList.map((strategy: string) => ({ value: strategy, label: strategy }))
+                        ]}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Emosi</label>
+                      <CustomSelect
+                        value={form.emotion}
+                        onChange={(value) => set('emotion', value)}
+                        options={[
+                          { value: '', label: 'Pilih emosi...' },
+                          ...emotionsList.map((emotion: any) => ({ value: emotion.value, label: emotion.label }))
+                        ]}
+                      />
+                      {form.emotion && ['fearful', 'greedy', 'revenge', 'doubtful', 'fomo'].includes(form.emotion) && (settings.behaviorNegativeEmotionWarning || settings.behaviorBlockNegativeEmotion) ? (
+                        <div style={{
+                          marginTop: 6,
+                          fontSize: '0.8rem',
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          background: settings.behaviorBlockNegativeEmotion ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                          color: settings.behaviorBlockNegativeEmotion ? 'var(--accent-red)' : 'var(--accent-yellow)',
+                          border: `1px solid ${settings.behaviorBlockNegativeEmotion ? 'var(--accent-red)' : 'var(--accent-yellow)'}`,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 2
+                        }}>
+                          <strong>{settings.behaviorBlockNegativeEmotion ? 'Blokir Disiplin' : 'Kesadaran Emosi'}</strong>
+                          <span>
+                            {settings.behaviorBlockNegativeEmotion
+                              ? 'Mode disiplin ketat aktif. Simpan diblokir karena terdeteksi emosi negatif.'
+                              : `Peringatan: Anda trading saat merasa ${emotionsList.find((item) => item.value === form.emotion)?.label || form.emotion}. Tetap disiplin!`}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Emosi</label>
-                    <CustomSelect
-                      value={form.emotion}
-                      onChange={(value) => set('emotion', value)}
-                      options={[
-                        { value: '', label: 'Pilih emosi...' },
-                        ...emotionsList.map((emotion: any) => ({ value: emotion.value, label: emotion.label }))
-                      ]}
-                    />
-                    {form.emotion && ['fearful', 'greedy', 'revenge', 'doubtful', 'fomo'].includes(form.emotion) && (settings.behaviorNegativeEmotionWarning || settings.behaviorBlockNegativeEmotion) ? (
-                      <div style={{
-                        marginTop: 6,
-                        fontSize: '0.8rem',
-                        padding: '6px 10px',
-                        borderRadius: 6,
-                        background: settings.behaviorBlockNegativeEmotion ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                        color: settings.behaviorBlockNegativeEmotion ? 'var(--accent-red)' : 'var(--accent-yellow)',
-                        border: `1px solid ${settings.behaviorBlockNegativeEmotion ? 'var(--accent-red)' : 'var(--accent-yellow)'}`,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2
-                      }}>
-                        <strong>{settings.behaviorBlockNegativeEmotion ? 'Blokir Disiplin' : 'Kesadaran Emosi'}</strong>
-                        <span>
-                          {settings.behaviorBlockNegativeEmotion
-                            ? 'Mode disiplin ketat aktif. Simpan diblokir karena terdeteksi emosi negatif.'
-                            : `Peringatan: Anda trading saat merasa ${emotionsList.find((item) => item.value === form.emotion)?.label || form.emotion}. Tetap disiplin!`}
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
+                )}
 
-                <div className="form-group">
-                  <label className="form-label">Alasan Entry</label>
-                  <textarea className="form-textarea" placeholder="Kenapa beli saham ini?" value={form.reasonEntry} onChange={e => set('reasonEntry', e.target.value)} />
-                </div>
+                {form.tradeMode === 'BUY' && (
+                  <div className="form-group">
+                    <label className="form-label">Alasan Entry</label>
+                    <textarea className="form-textarea" placeholder="Kenapa beli saham ini?" value={form.reasonEntry} onChange={e => set('reasonEntry', e.target.value)} />
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Alasan Exit</label>
@@ -473,10 +663,12 @@ export default function NewTradePage() {
                   <input className="form-input" placeholder="Pisahkan dengan koma (contoh: bca, dividend)" value={form.tags} onChange={e => set('tags', e.target.value)} />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 16 }}>
-                  <label className="form-label">Tautan Gambar Setup Chart (URL)</label>
-                  <input className="form-input" placeholder="Contoh: https://s3.tradingview.com/x/xxxxxx.png" value={form.setupImageUrl} onChange={e => set('setupImageUrl', e.target.value)} />
-                </div>
+                {form.tradeMode === 'BUY' && (
+                  <div className="form-group" style={{ marginBottom: 16 }}>
+                    <label className="form-label">Tautan Gambar Setup Chart (URL)</label>
+                    <input className="form-input" placeholder="Contoh: https://s3.tradingview.com/x/xxxxxx.png" value={form.setupImageUrl} onChange={e => set('setupImageUrl', e.target.value)} />
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Catatan Tambahan</label>

@@ -17,7 +17,7 @@ export default function TradeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getTradeById, updateTrade, deleteTrade, marketPrices, showToast, portfolios, settings, tradeEditDraft, setTradeEditDraft } = useData();
+  const { getTradeById, updateTrade, addTrade, deleteTrade, marketPrices, showToast, portfolios, settings, tradeEditDraft, setTradeEditDraft } = useData();
   const { alert, confirm } = useDialog();
   const trade = getTradeById(id);
 
@@ -90,6 +90,47 @@ export default function TradeDetailPage() {
         title: 'Gagal Menyimpan',
         severity: 'danger'
       });
+      return;
+    }
+
+    const originalLots = trade.lots;
+    const newLots = parseFloat(form.lots);
+    const isSelling = !!form.sellPrice && form.sellPrice !== '';
+
+    if (isOpen && isSelling && newLots < originalLots) {
+      const remainingLots = originalLots - newLots;
+      const isSplitConfirmed = await confirm(`Anda menjual ${newLots} dari ${originalLots} lot. Sisa ${remainingLots} lot akan dibuatkan posisi terbuka baru. Lanjutkan?`, {
+        title: 'Konfirmasi Jual Sebagian',
+        confirmText: 'Ya, Lanjutkan',
+        cancelText: 'Batal'
+      });
+
+      if (!isSplitConfirmed) return;
+
+      updateTrade(id, {
+        ...form,
+        assetType: form.assetType || 'stock',
+        stockCode: form.assetType === 'mutual_fund' ? form.stockCode?.trim() : form.stockCode?.toUpperCase(),
+        buyPrice: parseFloat(form.buyPrice),
+        sellPrice: parseFloat(form.sellPrice),
+        lots: newLots,
+        portfolioId: form.portfolioId || 'default',
+        tags: typeof form.tags === 'string' ? form.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : form.tags,
+        setupImageUrl: form.setupImageUrl ? form.setupImageUrl.trim() : '',
+        notes: form.notes ? `${form.notes}\n- Jual sebagian ${newLots} lot` : `- Jual sebagian ${newLots} lot`
+      });
+
+      addTrade({
+        ...trade,
+        id: undefined, // Let addTrade generate a new ID
+        lots: remainingLots,
+        sellPrice: null,
+        dateSell: null,
+        notes: trade.notes ? `${trade.notes}\n- Sisa ${remainingLots} lot setelah jual sebagian` : `- Sisa ${remainingLots} lot setelah jual sebagian`
+      });
+
+      setEditing(false);
+      setTradeEditDraft(null);
       return;
     }
 

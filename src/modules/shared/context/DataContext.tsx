@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   generateId,
   migrateGlobalToUser,
@@ -112,6 +112,7 @@ export function DataProvider({ children }) {
   const userId = user?.id;
 
   const [allTrades, setAllTrades] = useState<Trade[]>([]);
+  const allTradesRef = useRef<Trade[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [allCashflows, setAllCashflows] = useState<Cashflow[]>([]);
@@ -156,6 +157,7 @@ export function DataProvider({ children }) {
   const applyData = useCallback((data: any) => {
     const normalizedIpo = normalizeIpoCollections(data.ipoEntries || [], data.ipoAccounts || []);
     setAllTrades(data.trades || []);
+    allTradesRef.current = data.trades || [];
     setWatchlist(data.watchlist || []);
     setNotes(data.notes || []);
     setAllCashflows(data.cashflows || []);
@@ -359,6 +361,7 @@ export function DataProvider({ children }) {
 
   // Persist trades
   const saveTrades = useCallback((newTrades: Trade[]) => {
+    allTradesRef.current = newTrades;
     setAllTrades(newTrades);
     persistData('trades', newTrades);
     return newTrades;
@@ -373,7 +376,7 @@ export function DataProvider({ children }) {
       createdAt: new Date().toISOString(),
       portfolioId: activePortfolioId
     };
-    const updated = [newTrade as any, ...allTrades];
+    const updated = [newTrade as any, ...allTradesRef.current];
     saveTrades(updated);
     logUserActivity('trade.created', 'trade', newTrade.id, {
       stockCode: newTrade.stockCode,
@@ -388,7 +391,7 @@ export function DataProvider({ children }) {
 
   const updateTrade = (id: string, updates: Partial<Trade>) => {
     if (!ensureWritable()) return;
-    const existingTrade = allTrades.find(t => t.id === id);
+    const existingTrade = allTradesRef.current.find(t => t.id === id);
     if (!existingTrade) return;
 
     const auditEntry = {
@@ -400,7 +403,7 @@ export function DataProvider({ children }) {
     delete auditEntry.before.history;
     delete auditEntry.after.history;
 
-    const updated = allTrades.map(t => t.id === id ? {
+    const updated = allTradesRef.current.map(t => t.id === id ? {
       ...t,
       ...updates,
       history: [...(t.history || []), auditEntry],
@@ -419,8 +422,8 @@ export function DataProvider({ children }) {
 
   const deleteTrade = (id: string) => {
     if (!ensureWritable()) return;
-    const existingTrade = allTrades.find(t => t.id === id);
-    const updated = allTrades.filter(t => t.id !== id);
+    const existingTrade = allTradesRef.current.find(t => t.id === id);
+    const updated = allTradesRef.current.filter(t => t.id !== id);
     saveTrades(updated);
     if (existingTrade) {
       logUserActivity('trade.deleted', 'trade', id, {
@@ -435,7 +438,7 @@ export function DataProvider({ children }) {
   const updateTrades = (ids: string[], updates: Partial<Trade> & { tagsAppend?: string[] }) => {
     if (!ensureWritable()) return;
     const { tagsAppend, ...otherUpdates } = updates as any;
-    const updated = allTrades.map(t => {
+    const updated = allTradesRef.current.map(t => {
       if (ids.includes(t.id)) {
         const finalUpdates = { ...otherUpdates };
         if (tagsAppend && Array.isArray(tagsAppend)) {
@@ -472,7 +475,7 @@ export function DataProvider({ children }) {
 
   const deleteTrades = (ids: string[]) => {
     if (!ensureWritable()) return;
-    const updated = allTrades.filter(t => !ids.includes(t.id));
+    const updated = allTradesRef.current.filter(t => !ids.includes(t.id));
     saveTrades(updated);
     logUserActivity('trade.batch_deleted', 'trade', ids.join(','), {
       count: ids.length,
@@ -480,7 +483,7 @@ export function DataProvider({ children }) {
     showToast(`${ids.length} transaksi berhasil dihapus`);
   };
 
-  const getTradeById = (id: string) => allTrades.find(t => t.id === id);
+  const getTradeById = (id: string) => allTradesRef.current.find(t => t.id === id);
 
   // === WATCHLIST CRUD ===
   const addWatchlistItem = (item: Partial<WatchlistItem>) => {
