@@ -31,6 +31,7 @@ const TABS = [
   { id: 'rr', label: 'Risk / Reward', icon: Scale },
   { id: 'position', label: 'Position Sizing', icon: Target },
   { id: 'target', label: 'Target Harga', icon: LineChart },
+  { id: 'dca', label: 'DCA Investasi', icon: TrendingUp },
   { id: 'compound', label: 'Compounding', icon: Coins },
   { id: 'pension', label: 'Pensiun', icon: Coffee },
   { id: 'zakat', label: 'Zakat Maal', icon: Heart },
@@ -59,7 +60,7 @@ const CALCULATOR_GROUPS = [
     id: 'growth',
     label: 'Growth & Zakat',
     description: 'Proyeksi pertumbuhan, target pensiun, dan zakat.',
-    tabs: ['compound', 'pension', 'zakat'],
+    tabs: ['dca', 'compound', 'pension', 'zakat'],
   },
 ] as const;
 
@@ -72,6 +73,7 @@ const TAB_DESCRIPTIONS = {
   rr: 'Ukur rasio risk/reward sebelum entry.',
   position: 'Cari jumlah lot ideal sesuai batas risiko.',
   target: 'Hitung target harga jual sesuai target profit.',
+  dca: 'Proyeksi hasil investasi rutin (SIP/DCA).',
   compound: 'Proyeksi pertumbuhan modal dari compounding.',
   pension: 'Hitung kebutuhan dana pensiun dan Coast FIRE.',
   zakat: 'Hitung kewajiban Zakat Maal (2.5%) atas harta.',
@@ -657,6 +659,83 @@ function CompoundingCalculator({ draft, setDraft }: CalcProps) {
         <div className="calc-result">
           <ResultRow label={`Nilai Akhir (Setelah ${m} Bulan)`} value={formatRupiah(result.finalValue)} className="text-profit" big />
           <ResultRow label="Total Profit Bersih" value={`+${formatRupiah(result.totalProfit)}`} className="text-profit" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DCAInvestmentCalculator({ draft, setDraft }: CalcProps) {
+  const { modalAwal, setoranBulanan, returnPerTahun, durasiTahun } = draft || { modalAwal: '', setoranBulanan: '', returnPerTahun: '', durasiTahun: '' };
+
+  const setModalAwal = (val: string) => setDraft({ ...draft, modalAwal: val });
+  const setSetoranBulanan = (val: string) => setDraft({ ...draft, setoranBulanan: val });
+  const setReturnPerTahun = (val: string) => setDraft({ ...draft, returnPerTahun: val });
+  const setDurasiTahun = (val: string) => setDraft({ ...draft, durasiTahun: val });
+
+  const modal = parseFloat(modalAwal) || 0;
+  const setoran = parseFloat(setoranBulanan) || 0;
+  const ret = parseFloat(returnPerTahun) || 0;
+  const tahun = parseInt(durasiTahun) || 0;
+
+  const calculate = () => {
+    if (tahun <= 0) return null;
+    let totalInvested = modal;
+    let totalValue = modal;
+    let monthlyRate = (ret / 100) / 12;
+    let totalMonths = tahun * 12;
+
+    for (let month = 1; month <= totalMonths; month++) {
+      totalInvested += setoran;
+      totalValue += setoran;
+      totalValue *= (1 + monthlyRate);
+    }
+
+    return {
+      totalInvested,
+      finalValue: totalValue,
+      totalProfit: totalValue - totalInvested
+    };
+  };
+
+  const result = calculate();
+
+  const reset = () => {
+    setDraft({ modalAwal: '0', setoranBulanan: '10000000', returnPerTahun: '8', durasiTahun: '10' });
+  };
+
+  return (
+    <div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Modal Awal (Rp)</label>
+          <CurrencyInput className="form-input" value={modalAwal} onChange={e => setModalAwal(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Setoran Rutin Bulanan (Rp)</label>
+          <CurrencyInput className="form-input" value={setoranBulanan} onChange={e => setSetoranBulanan(e.target.value)} />
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Asumsi Return / Tahun (%)</label>
+          <input type="number" className="form-input" step="0.1" value={returnPerTahun} onChange={e => setReturnPerTahun(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Durasi Investasi (Tahun)</label>
+          <input type="number" className="form-input" value={durasiTahun} onChange={e => setDurasiTahun(e.target.value)} />
+        </div>
+      </div>
+      <button className="btn btn-ghost btn-sm" onClick={reset} style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <RotateCcw size={14} />
+        Reset
+      </button>
+
+      {result && (
+        <div className="calc-result">
+          <ResultRow label={`Total Nilai Investasi (${tahun} Tahun)`} value={formatRupiah(result.finalValue)} className="text-profit" big />
+          <ResultRow label="Total Modal Disetor" value={formatRupiah(result.totalInvested)} />
+          <ResultRow label="Total Keuntungan (Bunga)" value={`+${formatRupiah(result.totalProfit)}`} className="text-profit" />
         </div>
       )}
     </div>
@@ -1649,6 +1728,12 @@ export default function CalculatorPage() {
             <CompoundingCalculator
               draft={calculatorDrafts.compound}
               setDraft={(val) => updateDraft('compound', val)}
+            />
+          )}
+          {calculatorActiveTab === 'dca' && (
+            <DCAInvestmentCalculator
+              draft={calculatorDrafts.dca}
+              setDraft={(val) => updateDraft('dca', val)}
             />
           )}
           {calculatorActiveTab === 'pension' && (

@@ -146,6 +146,7 @@ export function DataProvider({ children }) {
     position: { capital: '', risk: '2', entry: '', stopLoss: '' },
     target: { buyPrice: '', targetPct: '', buyFee: '0.15', sellFee: '0.25' },
     compound: { principal: '10000000', rate: '5', months: '12' },
+    dca: { modalAwal: '0', setoranBulanan: '10000000', returnPerTahun: '8', durasiTahun: '10' },
     pension: { currentAge: '25', retireAge: '55', monthlyExpense: '5000000', currentSavings: '10000000', inflationPercent: '4', returnPercent: '10', swrPercent: '4' },
     zakat: { goldPrice: '1400000', cash: '', gold: '', portfolio: '', business: '', receivables: '', debts: '' }
   });
