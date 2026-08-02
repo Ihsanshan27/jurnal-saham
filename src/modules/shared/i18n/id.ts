@@ -27,7 +27,7 @@ export const id = {
   'plans.form.entry': 'Harga Entry (Beli)',
   'plans.form.sl': 'Stop Loss (SL)',
   'plans.form.tp': 'Target Profit (TP)',
-  'plans.form.riskPct': 'Alokasi Modal per Trade (%)',
+  'plans.form.riskPct': 'Rencana Beli (Lot / Share)',
   'plans.form.buyingPower': 'Buying Power Dompet',
   'plans.form.reason': 'Alasan Entry / Catatan',
   'plans.form.reasonPlaceholder': 'Contoh: Buy on breakout, double bottom pattern...',

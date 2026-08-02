@@ -108,7 +108,7 @@ export default function TradingPlansPage() {
         entryPrice: '',
         stopLoss: '',
         targetProfit: '',
-        riskPercent: settings.defaultRiskPercent || 2,
+        lots: '',
         portfolioId: activePortfolioId || 'default',
         reason: '',
         planDate: new Date().toISOString().split('T')[0],
@@ -120,7 +120,7 @@ export default function TradingPlansPage() {
         entryPrice: '',
         stopLoss: '',
         targetProfit: '',
-        riskPercent: settings.defaultRiskPercent || 2,
+        lots: '',
         portfolioId: activePortfolioId || 'default',
         reason: '',
         planDate: new Date().toISOString().split('T')[0],
@@ -150,7 +150,7 @@ export default function TradingPlansPage() {
       entryPrice: '',
       stopLoss: '',
       targetProfit: '',
-      riskPercent: settings.defaultRiskPercent || 2,
+      lots: '',
       portfolioId: activePortfolioId || 'default',
       reason: '',
       planDate: new Date().toISOString().split('T')[0],
@@ -182,20 +182,15 @@ export default function TradingPlansPage() {
   const entry = parseFloat(form.entryPrice) || 0;
   const sl = parseFloat(form.stopLoss) || 0;
   const tp = parseFloat(form.targetProfit) || 0;
-  const riskPct = parseFloat(form.riskPercent as any) || 0;
+  const lotsInput = parseFloat(form.lots) || 0;
 
   const riskPerShare = entry - sl;
   const rewardPerShare = tp - entry;
 
   const rrRatio = riskPerShare > 0 && rewardPerShare > 0 ? (rewardPerShare / riskPerShare) : 0;
   
-  // Modal yang dialokasikan (Capital Allocation)
-  const allocatedCapital = Math.min(buyingPower * (riskPct / 100), buyingPower);
-
-  const rawShares = entry > 0 ? (allocatedCapital / entry) : 0;
-  
   const isUS = form.market === 'US';
-  const calculatedLots = isUS ? rawShares : Math.floor(rawShares / 100);
+  const calculatedLots = lotsInput;
   const actualShares = isUS ? calculatedLots : calculatedLots * 100;
   const requiredCapital = actualShares * entry;
   const actualRiskAmount = actualShares * riskPerShare;
@@ -232,7 +227,7 @@ export default function TradingPlansPage() {
       entryPrice: entry,
       stopLoss: sl,
       targetProfit: tp,
-      riskPercent: riskPct,
+
       lots: parseFloat(calculatedLots.toFixed(2)),
       rrRatio: parseFloat(rrRatio.toFixed(2)),
       requiredCapital: parseFloat(requiredCapital.toFixed(2)),
@@ -255,7 +250,7 @@ export default function TradingPlansPage() {
       entryPrice: plan.entryPrice ? String(plan.entryPrice) : '',
       stopLoss: plan.stopLoss ? String(plan.stopLoss) : '',
       targetProfit: plan.targetProfit ? String(plan.targetProfit) : '',
-      riskPercent: plan.riskPercent != null ? plan.riskPercent : (settings.defaultRiskPercent || 2),
+      lots: plan.lots ? String(plan.lots) : '',
       portfolioId: plan.portfolioId || activePortfolioId || 'default',
       reason: plan.reason || '',
       planDate: plan.planDate || new Date().toISOString().split('T')[0],
@@ -402,10 +397,10 @@ export default function TradingPlansPage() {
                   <label className="form-label">{t('plans.form.riskPct')}</label>
                   <input
                     type="number"
-                    step="0.1"
+                    step="any"
                     className="form-input"
-                    value={form.riskPercent}
-                    onChange={e => set('riskPercent', e.target.value)}
+                    value={form.lots}
+                    onChange={e => set('lots', e.target.value)}
                   />
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
                     {t('plans.form.buyingPower')}: <span style={blurStyle}>{formatMoney(buyingPower)}</span>
@@ -434,12 +429,7 @@ export default function TradingPlansPage() {
                         1 : {rrRatio.toFixed(2)}
                       </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{t('plans.preview.allocation')} ({form.riskPercent}%)</div>
-                      <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--accent-blue)', ...blurStyle }}>
-                        {formatMoney(allocatedCapital)}
-                      </div>
-                    </div>
+
                     <div>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{t('plans.preview.qty')}</div>
                       <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>
@@ -459,9 +449,9 @@ export default function TradingPlansPage() {
                       </div>
                     </div>
                   </div>
-                  {requiredCapital > allocatedCapital && (
+                  {requiredCapital > buyingPower && (
                     <div style={{ color: 'var(--accent-yellow)', fontSize: '0.75rem', marginTop: 10, fontWeight: 500 }}>
-                      ⚠️ {t('plans.preview.warning')}
+                      ⚠️ Modal yang dibutuhkan melebihi Buying Power saat ini.
                     </div>
                   )}
                 </div>

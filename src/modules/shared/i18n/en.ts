@@ -27,7 +27,7 @@ export const en = {
   'plans.form.entry': 'Entry Price (Buy)',
   'plans.form.sl': 'Stop Loss (SL)',
   'plans.form.tp': 'Target Profit (TP)',
-  'plans.form.riskPct': 'Capital Allocation per Trade (%)',
+  'plans.form.riskPct': 'Plan to Buy (Lots / Shares)',
   'plans.form.buyingPower': 'Wallet Buying Power',
   'plans.form.reason': 'Entry Reason / Notes',
   'plans.form.reasonPlaceholder': 'Example: Buy on breakout, double bottom pattern...',
