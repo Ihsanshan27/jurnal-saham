@@ -111,6 +111,7 @@ export default function TradingPlansPage() {
         riskPercent: settings.defaultRiskPercent || 2,
         portfolioId: activePortfolioId || 'default',
         reason: '',
+        planDate: new Date().toISOString().split('T')[0],
       };
     } catch {
       return {
@@ -122,6 +123,7 @@ export default function TradingPlansPage() {
         riskPercent: settings.defaultRiskPercent || 2,
         portfolioId: activePortfolioId || 'default',
         reason: '',
+        planDate: new Date().toISOString().split('T')[0],
       };
     }
   });
@@ -151,6 +153,7 @@ export default function TradingPlansPage() {
       riskPercent: settings.defaultRiskPercent || 2,
       portfolioId: activePortfolioId || 'default',
       reason: '',
+      planDate: new Date().toISOString().split('T')[0],
     });
     setShowFormState(false);
   };
@@ -255,6 +258,7 @@ export default function TradingPlansPage() {
       riskPercent: plan.riskPercent != null ? plan.riskPercent : (settings.defaultRiskPercent || 2),
       portfolioId: plan.portfolioId || activePortfolioId || 'default',
       reason: plan.reason || '',
+      planDate: plan.planDate || new Date().toISOString().split('T')[0],
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -322,6 +326,16 @@ export default function TradingPlansPage() {
                       { value: 'ID', label: t('plans.form.marketID') },
                       { value: 'US', label: t('plans.form.marketUS') }
                     ]}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t('plans.form.date')}</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={form.planDate}
+                    onChange={e => set('planDate', e.target.value)}
+                    required
                   />
                 </div>
                 <div className="form-group">
@@ -473,6 +487,7 @@ export default function TradingPlansPage() {
               <tr>
                 <th style={{ width: 40 }}>{t('common.no')}</th>
                 <th><SortableTableHeader label={t('plans.table.code')} sortKey="stockCode" sortConfig={sortConfig} onSort={requestSort} /></th>
+                <th><SortableTableHeader label={t('plans.table.date')} sortKey="planDate" sortConfig={sortConfig} onSort={requestSort} /></th>
                 <th><SortableTableHeader label={t('plans.table.market')} sortKey="market" sortConfig={sortConfig} onSort={requestSort} /></th>
                 <th><SortableTableHeader label={t('plans.table.entry')} sortKey="entryPrice" sortConfig={sortConfig} onSort={requestSort} /></th>
                 <th><SortableTableHeader label={t('plans.table.sl')} sortKey="stopLoss" sortConfig={sortConfig} onSort={requestSort} /></th>
@@ -494,6 +509,7 @@ export default function TradingPlansPage() {
                   <tr key={plan.id}>
                     <td style={{ color: 'var(--text-muted)' }}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td><strong>{plan.stockCode}</strong></td>
+                    <td style={{ fontSize: '0.85rem' }}>{plan.planDate ? new Date(plan.planDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                     <td><span className={`badge ${planIsUS ? 'badge-blue' : 'badge-green'}`}>{plan.market || 'ID'}</span></td>
                     <td>{fMoney(plan.entryPrice)}</td>
                     <td className="text-loss">{fMoney(plan.stopLoss)}</td>
