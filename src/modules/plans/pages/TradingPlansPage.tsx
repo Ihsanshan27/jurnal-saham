@@ -264,8 +264,16 @@ export default function TradingPlansPage() {
     navigate('/trades/new', { state: { plan } });
   };
 
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+
+  const filteredPlans = useMemo(() => {
+    return tradingPlans.filter((p: any) => 
+      activeTab === 'active' ? p.status !== 'completed' : p.status === 'completed'
+    );
+  }, [tradingPlans, activeTab]);
+
   const blurStyle = usePrivacyStyle();
-  const { sortConfig, sortedItems: sortedTradingPlans, requestSort } = useTableSort(tradingPlans, {
+  const { sortConfig, sortedItems: sortedTradingPlans, requestSort } = useTableSort(filteredPlans, {
     initialKey: 'createdAt',
     initialDirection: 'desc',
     getValue: (plan: any, key: string) => plan[key] || '',
@@ -304,6 +312,37 @@ export default function TradingPlansPage() {
             {showForm ? t('common.cancel') : t('plans.newBtn')}
           </button>
         )}
+      </div>
+
+      <div style={{ marginBottom: 24, borderBottom: '1px solid var(--border-color)', display: 'flex', gap: 16 }}>
+        <button 
+          onClick={() => { setActiveTab('active'); setCurrentPage(1); }}
+          style={{ 
+            padding: '8px 16px', 
+            background: 'none', 
+            border: 'none', 
+            borderBottom: activeTab === 'active' ? '2px solid var(--accent-blue)' : '2px solid transparent', 
+            color: activeTab === 'active' ? 'var(--text-primary)' : 'var(--text-secondary)', 
+            fontWeight: activeTab === 'active' ? 600 : 400, 
+            cursor: 'pointer' 
+          }}
+        >
+          {t('plans.tab.active') || 'Aktif'}
+        </button>
+        <button 
+          onClick={() => { setActiveTab('history'); setCurrentPage(1); }}
+          style={{ 
+            padding: '8px 16px', 
+            background: 'none', 
+            border: 'none', 
+            borderBottom: activeTab === 'history' ? '2px solid var(--accent-blue)' : '2px solid transparent', 
+            color: activeTab === 'history' ? 'var(--text-primary)' : 'var(--text-secondary)', 
+            fontWeight: activeTab === 'history' ? 600 : 400, 
+            cursor: 'pointer' 
+          }}
+        >
+          {t('plans.tab.history') || 'Riwayat'}
+        </button>
       </div>
 
       {showForm && (
@@ -532,12 +571,20 @@ export default function TradingPlansPage() {
                     <td style={{ maxWidth: 180, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{plan.reason || '-'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {canWrite && (
+                        {canWrite && activeTab === 'active' && (
                           <>
+                            <button
+                              className="btn btn-ghost btn-sm text-profit"
+                              onClick={() => updateTradingPlan(plan.id, { status: 'completed' })}
+                              title={t('plans.btn.done') || 'Tandai Selesai'}
+                              style={{ padding: '4px 6px', height: 26 }}
+                            >
+                              <Icons.CheckCircle size={14} />
+                            </button>
                             <button
                               className="btn btn-primary btn-sm"
                               onClick={() => handleConvert(plan)}
-                              title="Konversi rencana ini ke transaksi nyata"
+                              title={t('plans.btn.openTrade')}
                               style={{ padding: '4px 8px', fontSize: '0.75rem', height: 26 }}
                             >
                               {t('plans.btn.openTrade')}
@@ -545,12 +592,22 @@ export default function TradingPlansPage() {
                             <button
                               className="btn btn-ghost btn-sm"
                               onClick={() => handleEdit(plan)}
-                              title="Edit rencana trading ini"
+                              title={t('common.edit')}
                               style={{ padding: '4px 6px', height: 26 }}
                             >
                               <Icons.Edit2 size={14} />
                             </button>
                           </>
+                        )}
+                        {canWrite && activeTab === 'history' && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => updateTradingPlan(plan.id, { status: 'active' })}
+                            title={t('plans.btn.restore') || 'Kembalikan ke Aktif'}
+                            style={{ padding: '4px 6px', height: 26 }}
+                          >
+                            <Icons.RotateCcw size={14} />
+                          </button>
                         )}
                         <button
                           className="btn btn-ghost btn-sm text-loss"

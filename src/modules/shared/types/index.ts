@@ -149,5 +149,6 @@ export interface TradingPlan {
   createdAt: string;
   stockCode?: string;
   market?: string;
+  status?: 'active' | 'completed';
   [key: string]: any;
 }
