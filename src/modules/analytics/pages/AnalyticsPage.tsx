@@ -12,6 +12,7 @@ import {
    PieChart, Pie, Cell
 } from 'recharts';
 import { TrendingUp, Info } from "lucide-react";
+import MonthlyPnLHeatmap from "../components/MonthlyPnLHeatmap";
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
 const RANGES = ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as const;
@@ -185,7 +186,7 @@ export default function AnalyticsPage() {
          {/* Top Row */}
          <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
             {/* Total Equity Chart */}
-            <div className="card" style={{ flex: '2 1 300px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '2 1 300px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Total Equity <Info size={14} /></h3>
                   <span className="badge badge-primary">{timeRange}</span>
@@ -219,7 +220,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Total Equity Return Table */}
-            <div className="card" style={{ flex: '1.5 1 250px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '1.5 1 250px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Total Equity Return</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -263,7 +264,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Portfolio Allocation */}
-            <div className="card" style={{ flex: '1.5 1 250px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '1.5 1 250px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 className="card-title">Portfolio Allocation</h3>
                   <span className="badge badge-primary">Stocks</span>
@@ -324,7 +325,7 @@ export default function AnalyticsPage() {
          {/* Middle Row: Top Performers */}
          <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
             {/* Top Gainers */}
-            <div className="card" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header"><h3 className="card-title">Top Gainers</h3></div>
                <div className="card-body" style={{ padding: 0 }}>
                   <div className="table-container" style={{ border: 'none', maxHeight: '200px', overflowY: 'auto', margin: 0, borderRadius: '0 0 12px 12px' }}>
@@ -350,7 +351,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Top Losers */}
-            <div className="card" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header"><h3 className="card-title">Top Losers</h3></div>
                <div className="card-body" style={{ padding: 0 }}>
                   <div className="table-container" style={{ border: 'none', maxHeight: '200px', overflowY: 'auto', margin: 0, borderRadius: '0 0 12px 12px' }}>
@@ -376,7 +377,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Top Dividends */}
-            <div className="card" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '1 1 250px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header"><h3 className="card-title">Top Dividend Received</h3></div>
                <div className="card-body" style={{ padding: 0 }}>
                   <div className="table-container" style={{ border: 'none', maxHeight: '200px', overflowY: 'auto', margin: 0, borderRadius: '0 0 12px 12px' }}>
@@ -402,10 +403,17 @@ export default function AnalyticsPage() {
             </div>
          </div>
 
+         {/* Monthly PnL Heatmap */}
+         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+            <div style={{ flex: 1 }}>
+               <MonthlyPnLHeatmap trades={filteredClosedTrades} />
+            </div>
+         </div>
+
          {/* Bottom Row */}
          <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
             {/* Trade Summary */}
-            <div className="card" style={{ flex: '1.5 1 250px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '1.5 1 250px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header">
                   <h3 className="card-title">Trade Summary</h3>
                </div>
@@ -465,7 +473,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Total Realized Gain */}
-            <div className="card" style={{ flex: '2 1 400px', display: 'flex', flexDirection: 'column' }}>
+            <div className="card glass-card hover-lift" style={{ flex: '2 1 400px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header">
                   <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Total Realized Gain <Info size={14} /></h3>
                </div>

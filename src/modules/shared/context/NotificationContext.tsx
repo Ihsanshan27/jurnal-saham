@@ -17,11 +17,14 @@ export interface NotificationContextType {
   unreadCount: number;
   markAsRead: (notification: NotificationItem) => void;
   markAllAsRead: () => void;
+  deleteNotification: (notification: NotificationItem) => void;
+  clearReadNotifications: () => void;
 }
 
 const STORAGE_KEY_READS = 'notification_reads';
 const STORAGE_KEY_META = 'notification_meta';
 const STORAGE_KEY_LAST_ROLE = 'notification_last_role';
+const STORAGE_KEY_DELETED = 'notification_deleted';
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
@@ -72,6 +75,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [readState, setReadState] = useState<NotificationReadState>(() => (
     userId ? getScopedItem(STORAGE_KEY_READS, userId) || {} : {}
   ));
+  const [deletedState, setDeletedState] = useState<NotificationReadState>(() => (
+    userId ? getScopedItem(STORAGE_KEY_DELETED, userId) || {} : {}
+  ));
   const [metaState, setMetaState] = useState<NotificationMetaState>(() => (
     userId ? getScopedItem(STORAGE_KEY_META, userId) || {} : {}
   ));
@@ -79,10 +85,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!userId) {
       setReadState({});
+      setDeletedState({});
       setMetaState({});
       return;
     }
     setReadState(getScopedItem(STORAGE_KEY_READS, userId) || {});
+    setDeletedState(getScopedItem(STORAGE_KEY_DELETED, userId) || {});
     setMetaState(getScopedItem(STORAGE_KEY_META, userId) || {});
   }, [userId]);
 
@@ -239,6 +247,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [userId]);
 
+  const persistDeletedState = useCallback((nextState: NotificationReadState) => {
+    setDeletedState(nextState);
+    if (userId) {
+      setScopedItem(STORAGE_KEY_DELETED, userId, nextState);
+    }
+  }, [userId]);
+
   const persistMetaState = useCallback((nextState: NotificationMetaState) => {
     setMetaState(nextState);
     if (userId) {
@@ -286,7 +301,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (readChanged) {
       persistReadState(nextReadState);
     }
-  }, [generatedNotifications, metaState, persistMetaState, persistReadState, readState]);
+
+    const nextDeletedState: NotificationReadState = {};
+    for (const [key, fingerprint] of Object.entries(deletedState)) {
+      const meta = nextMetaState[key];
+      if (meta && meta.fingerprint === fingerprint) {
+        nextDeletedState[key] = fingerprint;
+      }
+    }
+
+    const deletedChanged = !isReadEqual(nextDeletedState, deletedState);
+    if (deletedChanged) {
+      persistDeletedState(nextDeletedState);
+    }
+  }, [generatedNotifications, metaState, persistMetaState, persistReadState, readState, deletedState, persistDeletedState]);
 
   const markAsRead = useCallback((notification: NotificationItem) => {
     const nextState = {
@@ -310,6 +338,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [generatedNotifications, persistReadState, readState, role, userId]);
 
+  const deleteNotification = useCallback((notification: NotificationItem) => {
+    const nextState = {
+      ...deletedState,
+      [notification.key]: notification.fingerprint,
+    };
+    persistDeletedState(nextState);
+  }, [persistDeletedState, deletedState]);
+
   const notifications = useMemo(() => {
     const now = new Date();
     return generatedNotifications
@@ -324,8 +360,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           isRead: readState[notification.key] === notification.fingerprint,
         };
       })
-      .filter((notification) => !isNotificationExpired(notification, now));
-  }, [generatedNotifications, metaState, readState]);
+      .filter((notification) => !isNotificationExpired(notification, now))
+      .filter((notification) => deletedState[notification.key] !== notification.fingerprint);
+  }, [generatedNotifications, metaState, readState, deletedState]);
+
+  const clearReadNotifications = useCallback(() => {
+    const nextState = { ...deletedState };
+    notifications.forEach((notif) => {
+      if (notif.isRead) {
+        nextState[notif.key] = notif.fingerprint;
+      }
+    });
+    persistDeletedState(nextState);
+  }, [deletedState, notifications, persistDeletedState]);
 
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
@@ -335,6 +382,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       unreadCount,
       markAsRead,
       markAllAsRead,
+      deleteNotification,
+      clearReadNotifications,
     }}>
       {children}
     </NotificationContext.Provider>

@@ -262,6 +262,30 @@ export function calculateMonthlyPnL(trades) {
     });
 }
 
+export function calculateYearlyMonthlyPnL(trades) {
+  const closed = trades.filter(isClosedTrade);
+  
+  // Group by year
+  const yearlyData: Record<string, { year: string, months: number[], totalPnL: number }> = {};
+  
+  for (const t of closed) {
+    const date = new Date(t.dateSell);
+    const year = String(date.getFullYear());
+    const monthIndex = date.getMonth(); // 0 to 11
+    
+    if (!yearlyData[year]) {
+      yearlyData[year] = { year, months: new Array(12).fill(0), totalPnL: 0 };
+    }
+    
+    const { pnl } = calculateTradePnL(t);
+    yearlyData[year].months[monthIndex] += pnl;
+    yearlyData[year].totalPnL += pnl;
+  }
+  
+  // Convert to array and sort by year descending
+  return Object.values(yearlyData).sort((a, b) => Number(b.year) - Number(a.year));
+}
+
 // === Strategy Stats ===
 
 export function calculateStrategyStats(trades) {

@@ -16,7 +16,7 @@ export default function Header({ pageTitle, onMenuToggle }) {
   useWorkspace();
   const { theme, toggleTheme } = useTheme();
   const { portfolios, activePortfolioId: activePortId, selectPortfolio, allTrades, allCashflows, allDividends, settings } = useData();
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearReadNotifications } = useNotifications();
   const [profileOpen, setProfileOpen] = useState(false);
   const [portfolioOpen, setPortfolioOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -167,9 +167,18 @@ export default function Header({ pageTitle, onMenuToggle }) {
                   </div>
                 </div>
                 {notifications.length > 0 && (
-                  <button type="button" className="btn btn-ghost btn-sm notification-mark-all" onClick={markAllAsRead}>
-                    Tandai semua
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {notifications.some(n => n.isRead) && (
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={clearReadNotifications}>
+                        Bersihkan
+                      </button>
+                    )}
+                    {unreadCount > 0 && (
+                      <button type="button" className="btn btn-ghost btn-sm notification-mark-all" onClick={markAllAsRead}>
+                        Tandai semua
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -211,13 +220,22 @@ export default function Header({ pageTitle, onMenuToggle }) {
                             >
                               {notification.ctaLabel}
                             </Link>
-                            {!notification.isRead && (
+                            {!notification.isRead ? (
                               <button
                                 type="button"
                                 className="btn btn-ghost btn-sm"
                                 onClick={() => markAsRead(notification)}
                               >
                                 Tandai dibaca
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => deleteNotification(notification)}
+                                title="Hapus notifikasi"
+                              >
+                                <Icons.Trash2 size={14} />
                               </button>
                             )}
                           </div>
