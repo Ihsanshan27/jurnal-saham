@@ -1,26 +1,143 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { useData } from "@/modules/shared/context/DataContext";
 import { formatRupiah, formatCompactNumber } from "@/modules/shared/utils/formatters";
 import {
    calculateStats,
    calculateEquityCurve,
    calculateMonthlyPnL,
-   calculateTopStocks
+   calculateTopStocks,
+   calculateTradePnL
 } from "@/modules/trades/calculations";
 import { 
    LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
    PieChart, Pie, Cell
 } from 'recharts';
-import { TrendingUp, Info } from "lucide-react";
+import { TrendingUp, Info, ChevronDown } from "lucide-react";
 import MonthlyPnLHeatmap from "../components/MonthlyPnLHeatmap";
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
 const RANGES = ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as const;
 type TimeRange = typeof RANGES[number];
 
+const YearSelector = ({ selectedYear, onSelect, years }: { selectedYear: string, onSelect: (y: string) => void, years: string[] }) => {
+   const [isOpen, setIsOpen] = useState(false);
+   const ref = useRef<HTMLDivElement>(null);
+
+   useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+         if (ref.current && !ref.current.contains(e.target as Node)) {
+            setIsOpen(false);
+         }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+   }, []);
+
+   return (
+      <div ref={ref} style={{ position: 'relative', zIndex: 11 }}>
+         <button 
+            className="btn btn-sm hover-lift"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: 8 }}
+            onClick={() => setIsOpen(!isOpen)}
+         >
+            {selectedYear === 'ALL' ? 'Semua Tahun' : `Tahun ${selectedYear}`}
+            <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+         </button>
+         
+         {isOpen && (
+            <div className="glass-card" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, padding: 12, minWidth: 160, borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxHeight: 300, overflowY: 'auto' }}>
+               <div
+                  style={{ padding: '8px 12px', borderRadius: 8, cursor: 'pointer', background: selectedYear === 'ALL' ? 'var(--accent-primary)' : 'var(--bg-card)', color: selectedYear === 'ALL' ? '#fff' : 'var(--text-primary)', fontWeight: selectedYear === 'ALL' ? 600 : 400, marginBottom: 8, transition: 'all 0.2s', textAlign: 'center', fontSize: '0.85rem' }}
+                  onClick={() => { onSelect('ALL'); setIsOpen(false); }}
+               >
+                  Semua Tahun
+               </div>
+               <div style={{ display: 'grid', gap: 4 }}>
+                  {years.map(y => (
+                     <div
+                        key={y}
+                        style={{ padding: '8px 12px', textAlign: 'center', fontSize: '0.85rem', fontWeight: selectedYear === y ? 600 : 400, borderRadius: 8, cursor: 'pointer', background: selectedYear === y ? 'var(--accent-primary)' : 'var(--bg-card)', color: selectedYear === y ? '#fff' : 'var(--text-primary)', transition: 'all 0.2s', border: selectedYear === y ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)' }}
+                        onClick={() => { onSelect(y); setIsOpen(false); }}
+                     >
+                        {y}
+                     </div>
+                  ))}
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
+const MonthSelector = ({ selectedMonth, onSelect }: { selectedMonth: string, onSelect: (m: string) => void }) => {
+   const [isOpen, setIsOpen] = useState(false);
+   const ref = useRef<HTMLDivElement>(null);
+
+   useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+         if (ref.current && !ref.current.contains(e.target as Node)) {
+            setIsOpen(false);
+         }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+   }, []);
+
+   const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+   const monthCodes = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+
+   const getLabel = () => {
+      if (selectedMonth === 'ALL') return 'Semua Bulan';
+      return monthNames[parseInt(selectedMonth) - 1];
+   };
+
+   return (
+      <div ref={ref} style={{ position: 'relative', zIndex: 10 }}>
+         <button 
+            className="btn btn-sm hover-lift"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: 8 }}
+            onClick={() => setIsOpen(!isOpen)}
+         >
+            {getLabel()}
+            <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+         </button>
+         
+         {isOpen && (
+            <div className="glass-card" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, padding: 12, minWidth: 260, borderRadius: 12, border: '1px solid var(--border-color)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxHeight: 350, overflowY: 'auto' }}>
+               <div
+                  style={{ padding: '8px 12px', borderRadius: 8, cursor: 'pointer', background: selectedMonth === 'ALL' ? 'var(--accent-primary)' : 'var(--bg-card)', color: selectedMonth === 'ALL' ? '#fff' : 'var(--text-primary)', fontWeight: selectedMonth === 'ALL' ? 600 : 400, marginBottom: 12, transition: 'all 0.2s', textAlign: 'center', fontSize: '0.85rem' }}
+                  onClick={() => { onSelect('ALL'); setIsOpen(false); }}
+               >
+                  Semua Bulan
+               </div>
+               
+               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {monthCodes.map((m, idx) => {
+                     const isSelected = selectedMonth === m;
+                     const label = monthNames[idx].slice(0, 3);
+                     
+                     return (
+                        <div
+                           key={m}
+                           style={{ padding: '8px 6px', textAlign: 'center', fontSize: '0.75rem', fontWeight: isSelected ? 600 : 400, borderRadius: 6, cursor: 'pointer', background: isSelected ? 'var(--accent-primary)' : 'var(--bg-card)', color: isSelected ? '#fff' : 'var(--text-primary)', transition: 'all 0.2s', border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)' }}
+                           onClick={() => { onSelect(m); setIsOpen(false); }}
+                        >
+                           {label}
+                        </div>
+                     );
+                  })}
+               </div>
+            </div>
+         )}
+      </div>
+   );
+};
+
 export default function AnalyticsPage() {
    const { trades, settings, marketPrices, financeAccounts, getFinanceAccountCurrentBalance, allDividends } = useData();
    const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
+   const [selectedHistoryYear, setSelectedHistoryYear] = useState<string>('ALL');
+   const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string>('ALL');
    
    const usdToIdrRate = settings.usdToIdrRate ?? 16200;
    const initialCapital = settings.initialCapital ?? 10000000;
@@ -85,6 +202,48 @@ export default function AnalyticsPage() {
    }, [fullEquityCurve, filterDate]);
    
    const monthlyPnL = useMemo(() => calculateMonthlyPnL(filteredClosedTrades), [filteredClosedTrades]);
+
+   // --- Trade History Feature ---
+   const historyYears = useMemo(() => {
+      const years = new Set<string>();
+      filteredClosedTrades.forEach(t => {
+         if (t.dateSell) {
+            years.add(new Date(t.dateSell).getFullYear().toString());
+         }
+      });
+      return Array.from(years).sort().reverse();
+   }, [filteredClosedTrades]);
+
+   const historyMonthTrades = useMemo(() => {
+      let base = filteredClosedTrades;
+      if (selectedHistoryYear !== 'ALL') {
+         base = base.filter(t => t.dateSell && new Date(t.dateSell).getFullYear().toString() === selectedHistoryYear);
+      }
+      if (selectedHistoryMonth !== 'ALL') {
+         base = base.filter(t => t.dateSell && String(new Date(t.dateSell).getMonth() + 1).padStart(2, '0') === selectedHistoryMonth);
+      }
+      return base.map(t => {
+         const pnlData = calculateTradePnL(t);
+         return { ...t, ...pnlData };
+      }).sort((a, b) => new Date(b.dateSell!).getTime() - new Date(a.dateSell!).getTime());
+   }, [filteredClosedTrades, selectedHistoryYear, selectedHistoryMonth]);
+
+   const historyMonthStats = useMemo(() => {
+      let totalTrades = historyMonthTrades.length;
+      let totalPnL = 0;
+      let winCount = 0;
+      let lossCount = 0;
+      
+      historyMonthTrades.forEach(t => {
+         totalPnL += t.pnl;
+         if (t.pnl > 0) winCount++;
+         else if (t.pnl < 0) lossCount++;
+      });
+      
+      const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+      
+      return { totalTrades, totalPnL, winRate, winCount, lossCount };
+   }, [historyMonthTrades]);
 
    // Portfolio Allocation (Open Trades)
    const portfolioAllocation = useMemo(() => {
@@ -407,6 +566,83 @@ export default function AnalyticsPage() {
          <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
             <div style={{ flex: 1 }}>
                <MonthlyPnLHeatmap trades={filteredClosedTrades} />
+            </div>
+         </div>
+
+         {/* Riwayat Trade Bulanan */}
+         <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+            <div className="card glass-card hover-lift" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                  <h3 className="card-title">Riwayat Trade</h3>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                     <YearSelector 
+                        selectedYear={selectedHistoryYear}
+                        onSelect={setSelectedHistoryYear}
+                        years={historyYears}
+                     />
+                     <MonthSelector 
+                        selectedMonth={selectedHistoryMonth} 
+                        onSelect={setSelectedHistoryMonth} 
+                     />
+                  </div>
+               </div>
+               
+               <div style={{ padding: '12px 16px', display: 'flex', gap: 16, borderBottom: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+                  <div>
+                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Trade</div>
+                     <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{historyMonthStats.totalTrades}</div>
+                  </div>
+                  <div style={{ width: 1, background: 'var(--border-color)' }}></div>
+                  <div>
+                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Win Rate</div>
+                     <div style={{ fontSize: '1.1rem', fontWeight: 600 }} className="text-profit">
+                        {historyMonthStats.winRate.toFixed(1)}%
+                     </div>
+                  </div>
+                  <div style={{ width: 1, background: 'var(--border-color)' }}></div>
+                  <div>
+                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total P&L</div>
+                     <div style={{ fontSize: '1.1rem', fontWeight: 600 }} className={historyMonthStats.totalPnL >= 0 ? 'text-profit' : 'text-loss'}>
+                        {historyMonthStats.totalPnL >= 0 ? '+' : ''}{formatRupiah(historyMonthStats.totalPnL)}
+                     </div>
+                  </div>
+               </div>
+
+               <div className="card-body" style={{ padding: 0 }}>
+                  <div className="table-container" style={{ border: 'none', maxHeight: '400px', overflowY: 'auto', margin: 0, borderRadius: '0 0 12px 12px' }}>
+                     <table className="table" style={{ margin: 0, minWidth: 600 }}>
+                        <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
+                           <tr>
+                              <th>Tanggal Jual</th>
+                              <th>Saham</th>
+                              <th style={{ textAlign: 'right' }}>LOT</th>
+                              <th style={{ textAlign: 'right' }}>Harga Beli</th>
+                              <th style={{ textAlign: 'right' }}>Harga Jual</th>
+                              <th style={{ textAlign: 'right' }}>Realized P&L</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {historyMonthTrades.map((t, idx) => (
+                              <tr key={t.id || idx}>
+                                 <td>{new Date(t.dateSell!).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                 <td><strong>{t.stockCode}</strong> {t.market === 'US' ? <span className="badge badge-sm badge-ghost">US</span> : ''}</td>
+                                 <td style={{ textAlign: 'right' }}>
+                                    {t.lots}
+                                 </td>
+                                 <td style={{ textAlign: 'right' }}>{formatRupiah(t.buyPrice)}</td>
+                                 <td style={{ textAlign: 'right' }}>{formatRupiah(t.sellPrice!)}</td>
+                                 <td style={{ textAlign: 'right', fontWeight: 600 }} className={t.pnl >= 0 ? 'text-profit' : 'text-loss'}>
+                                    {t.pnl >= 0 ? '+' : ''}{formatRupiah(t.pnl)} ({t.pnl >= 0 ? '+' : ''}{t.pnlPercent.toFixed(2)}%)
+                                 </td>
+                              </tr>
+                           ))}
+                           {historyMonthTrades.length === 0 && (
+                              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 16, color: 'var(--text-muted)' }}>Belum ada data history trade</td></tr>
+                           )}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
             </div>
          </div>
 
