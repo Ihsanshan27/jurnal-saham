@@ -6,7 +6,9 @@ import {
    calculateEquityCurve,
    calculateMonthlyPnL,
    calculateTopStocks,
-   calculateTradePnL
+   calculateTradePnL,
+   calculatePortfolioAssetMetrics,
+   calculatePortfolioAssetIdrEquivalent
 } from "@/modules/trades/calculations";
 import { 
    LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -16,7 +18,7 @@ import { TrendingUp, Info, ChevronDown } from "lucide-react";
 import MonthlyPnLHeatmap from "../components/MonthlyPnLHeatmap";
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
-const RANGES = ['1W', '1M', '3M', 'YTD', '1Y', 'ALL'] as const;
+const RANGES = ['1W', '1M', '3M', 'MTD', 'YTD', '1Y', 'ALL'] as const;
 type TimeRange = typeof RANGES[number];
 
 const YearSelector = ({ selectedYear, onSelect, years }: { selectedYear: string, onSelect: (y: string) => void, years: string[] }) => {
@@ -134,7 +136,7 @@ const MonthSelector = ({ selectedMonth, onSelect }: { selectedMonth: string, onS
 };
 
 export default function AnalyticsPage() {
-   const { trades, settings, marketPrices, financeAccounts, getFinanceAccountCurrentBalance, allDividends } = useData();
+   const { trades, settings, marketPrices, dividends, cashflows, activePortfolioId } = useData();
    const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
    const [selectedHistoryYear, setSelectedHistoryYear] = useState<string>('ALL');
    const [selectedHistoryMonth, setSelectedHistoryMonth] = useState<string>('ALL');
@@ -157,11 +159,11 @@ export default function AnalyticsPage() {
    }, [trades, usdToIdrRate]);
 
    const idrDividends = useMemo(() => {
-      return allDividends.map(d => ({
+      return dividends.map(d => ({
          ...d,
          totalAmount: d.market === 'US' ? d.totalAmount * usdToIdrRate : d.totalAmount
       }));
-   }, [allDividends, usdToIdrRate]);
+   }, [dividends, usdToIdrRate]);
 
    // 2. Filter data based on timeRange
    const filterDate = useMemo(() => {
@@ -171,6 +173,7 @@ export default function AnalyticsPage() {
        else if (timeRange === '1M') d.setMonth(d.getMonth() - 1);
        else if (timeRange === '3M') d.setMonth(d.getMonth() - 3);
        else if (timeRange === '1Y') d.setFullYear(d.getFullYear() - 1);
+       else if (timeRange === 'MTD') { d.setDate(1); }
        else if (timeRange === 'YTD') { d.setMonth(0); d.setDate(1); }
        return d.getTime();
    }, [timeRange]);
@@ -276,14 +279,25 @@ export default function AnalyticsPage() {
 
    const totalInvestedValue = useMemo(() => portfolioAllocation.reduce((sum, item) => sum + item.value, 0), [portfolioAllocation]);
    
-   // Bank Balances
-   const totalBankBalance = useMemo(() => {
-      return financeAccounts
-         .filter(a => a.isActive !== false)
-         .reduce((sum, a) => sum + (getFinanceAccountCurrentBalance(a.id) || 0), 0);
-   }, [financeAccounts, getFinanceAccountCurrentBalance]);
-
-   const currentTotalEquity = totalBankBalance + totalInvestedValue;
+   const currentTotalEquity = useMemo(() => {
+      const idMetrics = calculatePortfolioAssetMetrics(
+         trades,
+         cashflows,
+         dividends,
+         activePortfolioId === 'default' ? settings.initialCapital : 0,
+         marketPrices,
+         'ID'
+      );
+      const usMetrics = calculatePortfolioAssetMetrics(
+         trades,
+         cashflows,
+         dividends,
+         activePortfolioId === 'default' ? (settings.initialCapitalUS ?? 1000) : 0,
+         marketPrices,
+         'US'
+      );
+      return calculatePortfolioAssetIdrEquivalent(idMetrics, usMetrics, usdToIdrRate);
+   }, [trades, cashflows, dividends, activePortfolioId, settings.initialCapital, settings.initialCapitalUS, marketPrices, usdToIdrRate]);
    
    // Top Gainers / Losers
    const topPerformers = useMemo(() => calculateTopStocks(filteredClosedTrades), [filteredClosedTrades]);

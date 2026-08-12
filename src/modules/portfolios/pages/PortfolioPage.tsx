@@ -271,7 +271,31 @@ export default function PortfolioPage() {
                           )}
                         </td>
                         <td>
-                          {canWrite ? <Link to={`/trades/${trade.id}`} className="btn btn-ghost btn-sm">Lihat</Link> : <span style={{ color: 'var(--text-muted)' }}>Read-only</span>}
+                          {canWrite ? (
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <Link 
+                                to="/trades/new" 
+                                state={{ action: 'buy_existing', trade }} 
+                                className="btn btn-ghost btn-sm"
+                                title="Tambah muatan (Average)"
+                                style={{ color: 'var(--accent-blue)' }}
+                              >
+                                Beli
+                              </Link>
+                              <Link 
+                                to="/trades/new" 
+                                state={{ action: 'sell_existing', trade }} 
+                                className="btn btn-ghost btn-sm"
+                                title="Jual (Take Profit / Cut Loss)"
+                                style={{ color: 'var(--accent-red)' }}
+                              >
+                                Jual
+                              </Link>
+                              <Link to={`/trades/${trade.id}`} className="btn btn-ghost btn-sm">Lihat</Link>
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>Read-only</span>
+                          )}
                         </td>
                       </tr>
                     ))}

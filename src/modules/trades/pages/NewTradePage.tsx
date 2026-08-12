@@ -19,6 +19,61 @@ export default function NewTradePage() {
   const [form, setForm] = useState(() => {
     if (tradeFormDraft) return tradeFormDraft;
     const plan = location.state?.plan;
+    const action = location.state?.action;
+    const trade = location.state?.trade;
+
+    if (action === 'buy_existing' && trade) {
+      return {
+        tradeMode: 'BUY',
+        selectedTradeId: trade.id,
+        assetType: trade.assetType || 'stock',
+        market: trade.market || 'ID',
+        stockCode: trade.stockCode || '',
+        dateBuy: new Date().toISOString().split('T')[0],
+        dateSell: '',
+        buyPrice: '',
+        sellPrice: '',
+        lots: '',
+        buyFee: trade.market === 'US' ? (settings.defaultBuyFeeUS || 0) : (settings.defaultBuyFee || 0.15),
+        sellFee: trade.market === 'US' ? (settings.defaultSellFeeUS || 0) : (settings.defaultSellFee || 0.25),
+        strategy: trade.strategy || '',
+        reasonEntry: '',
+        reasonExit: '',
+        emotion: '',
+        rating: 0,
+        tags: trade.tags ? trade.tags.join(', ') : '',
+        notes: '',
+        setupImageUrl: '',
+        portfolioId: trade.portfolioId || activePortfolioId || 'default',
+      };
+    }
+
+    if (action === 'sell_existing' && trade) {
+      return {
+        tradeMode: 'SELL',
+        selectedTradeId: trade.id,
+        assetType: trade.assetType || 'stock',
+        market: trade.market || 'ID',
+        stockCode: trade.stockCode || '',
+        dateBuy: trade.dateBuy || '',
+        dateSell: new Date().toISOString().split('T')[0],
+        buyPrice: trade.buyPrice != null ? String(trade.buyPrice) : '',
+        sellPrice: '',
+        lots: trade.lots != null ? String(trade.lots) : '',
+        buyFee: trade.buyFee || 0,
+        sellFee: trade.market === 'US' ? (settings.defaultSellFeeUS || 0) : (settings.defaultSellFee || 0.25),
+        strategy: trade.strategy || '',
+        reasonEntry: trade.reasonEntry || '',
+        reasonExit: '',
+        emotion: '',
+        rating: 0,
+        tags: trade.tags ? trade.tags.join(', ') : '',
+        notes: '',
+        setupImageUrl: '',
+        portfolioId: trade.portfolioId || activePortfolioId || 'default',
+      };
+    }
+
     return {
       tradeMode: 'BUY',
       selectedTradeId: '',
@@ -43,6 +98,8 @@ export default function NewTradePage() {
       portfolioId: plan?.portfolioId || activePortfolioId || 'default',
     };
   });
+
+  const isLockedFromExisting = location.state?.action === 'buy_existing' || location.state?.action === 'sell_existing';
 
   useEffect(() => {
     setTradeFormDraft(form);
@@ -361,6 +418,7 @@ export default function NewTradePage() {
                         name="tradeMode"
                         checked={form.tradeMode !== 'SELL'}
                         onChange={() => setForm(prev => ({ ...prev, tradeMode: 'BUY' }))}
+                        disabled={isLockedFromExisting}
                       />
                       Beli Baru / Average
                     </label>
@@ -370,6 +428,7 @@ export default function NewTradePage() {
                         name="tradeMode"
                         checked={form.tradeMode === 'SELL'}
                         onChange={() => setForm(prev => ({ ...prev, tradeMode: 'SELL', dateSell: prev.dateSell || new Date().toISOString().split('T')[0] }))}
+                        disabled={isLockedFromExisting}
                       />
                       Jual (Tutup Posisi)
                     </label>
@@ -378,40 +437,44 @@ export default function NewTradePage() {
 
                 <div className="form-group" style={{ marginBottom: 16 }}>
                   <label className="form-label">Pilih Portofolio</label>
-                  <CustomSelect
-                    value={form.portfolioId}
-                    onChange={(value) => set('portfolioId', value)}
-                    options={portfolios.map((p: any) => ({ value: p.id, label: p.name }))}
-                    placeholder="Pilih portofolio..."
-                  />
+                  <div style={{ pointerEvents: isLockedFromExisting ? 'none' : 'auto', opacity: isLockedFromExisting ? 0.6 : 1 }}>
+                    <CustomSelect
+                      value={form.portfolioId}
+                      onChange={(value) => set('portfolioId', value)}
+                      options={portfolios.map((p: any) => ({ value: p.id, label: p.name }))}
+                      placeholder="Pilih portofolio..."
+                    />
+                  </div>
                 </div>
 
                 {form.tradeMode === 'SELL' ? (
                   <div className="form-group" style={{ marginBottom: 16 }}>
                     <label className="form-label">Pilih Posisi Terbuka</label>
-                    <CustomSelect
-                      value={form.selectedTradeId || ''}
-                      onChange={(val) => {
-                        const t = allTrades.find((trade: any) => trade.id === val);
-                        if (t) {
-                          setForm(prev => ({
-                            ...prev,
-                            selectedTradeId: t.id,
-                            stockCode: t.stockCode,
-                            lots: String(t.lots),
-                            portfolioId: t.portfolioId || 'default',
-                            market: t.market,
-                            assetType: t.assetType
-                          }));
-                        }
-                      }}
-                      options={[
-                        { value: '', label: 'Pilih posisi terbuka...' },
-                        ...allTrades
-                           .filter((t: any) => !t.sellPrice && !t.dateSell && t.portfolioId === (form.portfolioId || 'default'))
-                           .map((t: any) => ({ value: t.id, label: `${t.stockCode} - ${t.lots} ${getTradeQuantityLabel(t)} @ ${formatMoney(t.buyPrice)}` }))
-                      ]}
-                    />
+                    <div style={{ pointerEvents: isLockedFromExisting ? 'none' : 'auto', opacity: isLockedFromExisting ? 0.6 : 1 }}>
+                      <CustomSelect
+                        value={form.selectedTradeId || ''}
+                        onChange={(val) => {
+                          const t = allTrades.find((trade: any) => trade.id === val);
+                          if (t) {
+                            setForm(prev => ({
+                              ...prev,
+                              selectedTradeId: t.id,
+                              stockCode: t.stockCode,
+                              lots: String(t.lots),
+                              portfolioId: t.portfolioId || 'default',
+                              market: t.market,
+                              assetType: t.assetType
+                            }));
+                          }
+                        }}
+                        options={[
+                          { value: '', label: 'Pilih posisi terbuka...' },
+                          ...allTrades
+                             .filter((t: any) => !t.sellPrice && !t.dateSell && t.portfolioId === (form.portfolioId || 'default'))
+                             .map((t: any) => ({ value: t.id, label: `${t.stockCode} - ${t.lots} ${getTradeQuantityLabel(t)} @ ${formatMoney(t.buyPrice)}` }))
+                        ]}
+                      />
+                    </div>
                   </div>
                 ) : null}
 
@@ -434,6 +497,7 @@ export default function NewTradePage() {
                             sellFee: prev.market === 'US' ? (settings.defaultSellFeeUS || 0) : (settings.defaultSellFee || 0.25),
                           }));
                         }}
+                        disabled={isLockedFromExisting}
                       />
                       Saham
                     </label>
@@ -451,6 +515,7 @@ export default function NewTradePage() {
                             sellFee: 0,
                           }));
                         }}
+                        disabled={isLockedFromExisting}
                       />
                       Reksadana
                     </label>
@@ -476,6 +541,7 @@ export default function NewTradePage() {
                             sellFee: settings.defaultSellFee || 0.25
                           }));
                         }}
+                        disabled={isLockedFromExisting}
                       />
                       Indonesia (IDR)
                     </label>
@@ -492,6 +558,7 @@ export default function NewTradePage() {
                             sellFee: settings.defaultSellFeeUS || 0
                           }));
                         }}
+                        disabled={isLockedFromExisting}
                       />
                       Amerika (USD)
                     </label>
@@ -513,7 +580,7 @@ export default function NewTradePage() {
                       value={form.stockCode}
                       onChange={e => set('stockCode', isMutualFund ? e.target.value : e.target.value.toUpperCase())}
                       style={isMutualFund ? undefined : { textTransform: 'uppercase' }}
-                      disabled={form.tradeMode === 'SELL'}
+                      disabled={form.tradeMode === 'SELL' || isLockedFromExisting}
                     />
                   </div>
                   <div className="form-group">
