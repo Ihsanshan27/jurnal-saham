@@ -18,7 +18,7 @@ import { TrendingUp, Info, ChevronDown } from "lucide-react";
 import MonthlyPnLHeatmap from "../components/MonthlyPnLHeatmap";
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
-const RANGES = ['1W', '1M', '3M', 'MTD', 'YTD', '1Y', 'ALL'] as const;
+const RANGES = ['1D', '1W', '1M', '3M', 'MTD', 'YTD', '1Y', 'ALL'] as const;
 type TimeRange = typeof RANGES[number];
 
 const YearSelector = ({ selectedYear, onSelect, years }: { selectedYear: string, onSelect: (y: string) => void, years: string[] }) => {
@@ -169,7 +169,8 @@ export default function AnalyticsPage() {
    const filterDate = useMemo(() => {
        if (timeRange === 'ALL') return null;
        const d = new Date();
-       if (timeRange === '1W') d.setDate(d.getDate() - 7);
+       if (timeRange === '1D') d.setHours(0, 0, 0, 0);
+       else if (timeRange === '1W') d.setDate(d.getDate() - 7);
        else if (timeRange === '1M') d.setMonth(d.getMonth() - 1);
        else if (timeRange === '3M') d.setMonth(d.getMonth() - 3);
        else if (timeRange === '1Y') d.setFullYear(d.getFullYear() - 1);
@@ -361,11 +362,12 @@ export default function AnalyticsPage() {
             {/* Total Equity Chart */}
             <div className="card glass-card hover-lift" style={{ flex: '2 1 300px', display: 'flex', flexDirection: 'column' }}>
                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Total Equity <Info size={14} /></h3>
+                  <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Total Equity (Saat Ini) <Info size={14} /></h3>
                   <span className="badge badge-primary">{timeRange}</span>
                </div>
                <div className="card-body" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: 8 }}>{formatRupiah(currentTotalEquity)}</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 700, marginBottom: 4 }}>{formatRupiah(currentTotalEquity)}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 12 }}>*Nilai aset saat ini (Cash + Saham terbuka). Grafik di bawah hanya menampilkan pertumbuhan dari posisi yang sudah ditutup (Realized).</div>
                   <div style={{ flex: 1, minHeight: 200 }}>
                      <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={filteredEquityCurve} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
