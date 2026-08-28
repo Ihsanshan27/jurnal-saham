@@ -35,6 +35,7 @@ const ProfilePage = lazy(() => import('@/modules/profile/pages/ProfilePage'));
 const BsjpRecapPage = lazy(() => import('./modules/trades/pages/BsjpRecapPage'));
 const BsjpAnalyticsPage = lazy(() => import('./modules/trades/pages/BsjpAnalyticsPage'));
 const TradingPlansPage = lazy(() => import('@/modules/plans/pages/TradingPlansPage'));
+const PredictionsPage = lazy(() => import('@/modules/predictions/pages/PredictionsPage'));
 const CashflowPage = lazy(() => import('@/modules/cashflow/pages/CashflowPage'));
 const DividendPage = lazy(() => import('@/modules/dividends/pages/DividendPage'));
 const FinancePage = lazy(() => import('@/modules/finance/pages/FinancePage'));
@@ -164,6 +165,7 @@ function AppRoutes() {
         <Route path="/trades/:id" element={<PermissionRoute permission="journal:write"><LazyPage><TradeDetailPage /></LazyPage></PermissionRoute>} />
         <Route path="/wealth" element={<PermissionRoute permission="dashboard:read"><LazyPage><WealthDashboardPage /></LazyPage></PermissionRoute>} />
         <Route path="/analytics" element={<PermissionRoute permission="analytics:read"><LazyPage><AnalyticsPage /></LazyPage></PermissionRoute>} />
+        <Route path="/predictions" element={<PermissionRoute permission="analytics:read"><LazyPage><PredictionsPage /></LazyPage></PermissionRoute>} />
         <Route path="/history" element={<PermissionRoute permission="portfolio:read"><LazyPage><HistoryPage /></LazyPage></PermissionRoute>} />
         <Route path="/portfolio" element={<PermissionRoute permission="portfolio:read"><LazyPage><PortfolioPage /></LazyPage></PermissionRoute>} />
         <Route path="/cashflow" element={<PermissionRoute permission="journal:write"><LazyPage><CashflowPage /></LazyPage></PermissionRoute>} />

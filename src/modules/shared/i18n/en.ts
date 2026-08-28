@@ -161,6 +161,7 @@ export const en = {
   'nav.Finance Tracker': 'Finance Tracker',
   'nav.Dividen': 'Dividends',
   'nav.Analitik': 'Analytics',
+  'nav.Prediksi AI': 'AI Prediction',
   'nav.Reports': 'Reports',
   'nav.Dompet': 'Wallets',
   'nav.IPO Journey': 'IPO Journey',

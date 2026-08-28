@@ -51,6 +51,7 @@ export const NAV_ITEMS = [
   { path: '/finance', label: 'Finance Tracker', icon: 'Landmark', section: 'MENU', roles: ['admin', 'mentor', 'trader'] },
   { path: '/dividends', label: 'Dividen', icon: 'Coins', section: 'MENU', roles: ['admin', 'mentor', 'trader'] },
   { path: '/analytics', label: 'Analitik', icon: 'LineChart', section: 'MENU', roles: ['admin', 'mentor', 'trader', 'viewer'] },
+  { path: '/predictions', label: 'Prediksi AI', icon: 'Brain', section: 'MENU', roles: ['admin', 'mentor', 'trader', 'viewer'] },
   { path: '/reports', label: 'Reports', icon: 'FileText', section: 'MENU', roles: ['admin', 'mentor', 'trader'] },
   // [MENTOR DISABLED] { path: '/mentor/traders', label: 'Trader Share', icon: 'Compass', section: 'MENU', roles: ['mentor', 'admin'] },
   { path: '/portfolios', label: 'Dompet', icon: 'Wallet', section: 'TOOLS', roles: ['admin', 'mentor', 'trader'] },
