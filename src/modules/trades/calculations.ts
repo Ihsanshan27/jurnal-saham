@@ -1085,16 +1085,17 @@ export function calcPensionFund({
   const swr = swrPercent / 100;
   const totalFundNeeded = futureAnnualExpense / swr;
 
-  // Future value dari modal/tabungan yang sudah ada saat ini
+  // Menggunakan compounding bulanan agar konsisten
   const rAnnual = returnPercent / 100;
-  const currentSavingsFV = currentSavings * Math.pow(1 + rAnnual, yearsToRetire);
+  const rMonthly = rAnnual / 12;
+  const months = yearsToRetire * 12;
+
+  // Future value dari modal/tabungan yang sudah ada saat ini
+  const currentSavingsFV = currentSavings * Math.pow(1 + rMonthly, months);
 
   const shortfall = Math.max(0, totalFundNeeded - currentSavingsFV);
 
   // Hitung tabungan bulanan yang dibutuhkan (Anuitas)
-  const rMonthly = rAnnual / 12;
-  const months = yearsToRetire * 12;
-  
   let monthlySavingsNeeded = 0;
   if (shortfall > 0 && rMonthly > 0) {
     monthlySavingsNeeded = (shortfall * rMonthly) / (Math.pow(1 + rMonthly, months) - 1);
@@ -1106,8 +1107,8 @@ export function calcPensionFund({
   const currentFireNumber = (monthlyExpense * 12) / swr;
 
   // Coast FIRE: berapa dana yang dibutuhkan SEKARANG agar bisa diendapkan tanpa nabung lagi
-  // coastFireNumber = totalFundNeeded / (1 + r)^yearsToRetire
-  const coastFireNumber = totalFundNeeded / Math.pow(1 + rAnnual, yearsToRetire);
+  // Menggunakan compounding bulanan (konsisten)
+  const coastFireNumber = totalFundNeeded / Math.pow(1 + rMonthly, months);
   const isCoastFIRE = currentSavings >= coastFireNumber;
 
   return {
