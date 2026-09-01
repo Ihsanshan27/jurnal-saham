@@ -500,7 +500,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      <MarketTabBar activeTab={activeTab} onChange={setActiveTab} accentColor="var(--accent-blue-light)" />
+      <MarketTabBar activeTab={activeTab} onChange={(val) => setActiveTab(val as MarketTab)} accentColor="var(--accent-blue-light)" />
 
       {closedTrades.length === 0 ? (
         <div className="empty-state">
@@ -627,7 +627,7 @@ export default function HistoryPage() {
             <div className="card-body">
               {visibleTimelineItems.length > 0 ? (
                 <>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 500, overflowY: 'auto', paddingRight: 8 }}>
                     {visibleTimelineItems.map((item) => {
                       const isPositive = item.amountKind === 'positive';
                       const isNegative = item.amountKind === 'negative';
