@@ -1203,3 +1203,112 @@ export function calcRiskReward({
     rewardPercent,
   };
 }
+
+// === RDN Ledger / Mutasi RDN ===
+
+export function generateLedgerEntries(trades = [], cashflows = [], dividends = [], initialCapital = 10000000, market?: 'ID' | 'US') {
+  const entries: any[] = [];
+
+  const filteredTrades = market 
+    ? trades.filter(t => t.market === market || (!t.market && market === 'ID'))
+    : trades;
+  
+  const filteredCashflows = market
+    ? cashflows.filter(c => c.market === market || (!c.market && market === 'ID'))
+    : cashflows;
+
+  const filteredDividends = market
+    ? dividends.filter(d => d.market === market || (!d.market && market === 'ID'))
+    : dividends;
+
+  // 1. Tambahkan Cashflows
+  filteredCashflows.forEach(cf => {
+    entries.push({
+      id: cf.id,
+      date: cf.date || cf.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+      type: cf.type, // 'deposit' | 'withdraw'
+      description: cf.type === 'deposit' ? 'Deposit' : 'Withdraw',
+      notes: cf.notes,
+      amount: cf.type === 'deposit' ? cf.amount : -cf.amount,
+      createdAt: cf.createdAt || cf.date || new Date().toISOString(),
+    });
+  });
+
+  // 2. Tambahkan Dividends
+  filteredDividends.forEach(d => {
+    entries.push({
+      id: d.id,
+      date: d.dateReceived || d.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+      type: 'dividend',
+      description: `Dividen ${d.stockCode}`,
+      notes: `${d.lots} lot`,
+      amount: d.totalAmount || 0,
+      createdAt: d.createdAt || d.dateReceived || new Date().toISOString(),
+    });
+  });
+
+  // 3. Tambahkan Trades (Beli dan Jual terpisah)
+  filteredTrades.forEach(t => {
+    const { totalBuy, buyCommission, totalSell, sellCommission } = calculateTradePnL(t);
+    const totalBuyWithFee = totalBuy + buyCommission;
+    const totalSellWithFee = totalSell - sellCommission;
+
+    const buyPrice = Number(t.buyPrice) || 0;
+    const sellPrice = Number(t.sellPrice) || 0;
+    const lots = Number(t.lots) || 0;
+
+    // Entry Beli
+    if (t.dateBuy && buyPrice >= 0 && lots > 0) {
+      entries.push({
+        id: `${t.id}-buy`,
+        date: String(t.dateBuy).split('T')[0],
+        type: 'buy',
+        description: `Beli ${t.stockCode}`,
+        notes: `${lots} lot @ ${buyPrice}`,
+        amount: -totalBuyWithFee,
+        createdAt: t.createdAt || t.dateBuy || new Date().toISOString(),
+      });
+    }
+
+    // Entry Jual
+    if (isClosedTrade(t) && t.dateSell && sellPrice >= 0 && lots > 0) {
+      entries.push({
+        id: `${t.id}-sell`,
+        date: String(t.dateSell).split('T')[0],
+        type: 'sell',
+        description: `Jual ${t.stockCode}`,
+        notes: `${lots} lot @ ${sellPrice}`,
+        amount: totalSellWithFee,
+        createdAt: t.updatedAt || t.dateSell || new Date().toISOString(),
+      });
+    }
+  });
+
+  // Sort by date ASC (terlama ke terbaru) untuk menghitung running balance
+  entries.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if (dateA !== dateB) return dateA - dateB;
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+
+  // Hitung running balance
+  let currentBalance = initialCapital;
+  const ledger = entries.map(entry => {
+    currentBalance += entry.amount;
+    return {
+      ...entry,
+      balance: currentBalance
+    };
+  });
+
+  // Sort Descending (terbaru di atas) untuk ditampilkan di UI
+  ledger.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    if (dateA !== dateB) return dateB - dateA;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  return ledger;
+}
