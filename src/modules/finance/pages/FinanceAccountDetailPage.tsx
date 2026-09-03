@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRightLeft, Landmark, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Landmark, Pencil, Plus, Save, Trash2, TrendingUp } from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
@@ -199,7 +199,7 @@ export default function FinanceAccountDetailPage() {
 
     const payload = {
       accountId: account.id,
-      type: transactionForm.type,
+      type: transactionForm.type as any,
       amount,
       date: transactionForm.date,
       description: transactionForm.description,
@@ -298,12 +298,20 @@ export default function FinanceAccountDetailPage() {
     <div>
       <div className="finance-ledger-toolbar">
         <div>
-          <Link to="/finance" className="btn btn-secondary" style={{ marginBottom: 12 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ArrowLeft size={16} />
-              Kembali ke Daftar Rekening
-            </span>
-          </Link>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+            <Link to="/finance" className="btn btn-secondary">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ArrowLeft size={16} />
+                Kembali ke Daftar Rekening
+              </span>
+            </Link>
+            <Link to={`/finance/${account.id}/analytics`} className="btn btn-secondary">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <TrendingUp size={16} />
+                Analitik Rekening
+              </span>
+            </Link>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div className="text-zinc-600 dark:text-zinc-400">
               <Landmark size={28} />
@@ -399,7 +407,7 @@ export default function FinanceAccountDetailPage() {
                   <CustomSelect
                     value={transactionForm.type}
                     onChange={(value) => handleTransactionChange('type', value)}
-                    options={FINANCE_TRANSACTION_TYPE_OPTIONS}
+                    options={FINANCE_TRANSACTION_TYPE_OPTIONS as any}
                   />
                 </div>
                 <div className="form-group">
@@ -745,7 +753,14 @@ export default function FinanceAccountDetailPage() {
 
                     return (
                       <tr key={transaction.id}>
-                        <td>{formatDate(transaction.date)}</td>
+                        <td>
+                          <div>{formatDate(transaction.date)}</div>
+                          {transaction.createdAt && (
+                            <div className="finance-helper-text" style={{ fontSize: '0.75rem', marginTop: 2 }}>
+                              {format(new Date(transaction.createdAt), 'HH:mm')}
+                            </div>
+                          )}
+                        </td>
                         <td>
                           <div className="finance-pill">{getFinanceTransactionTypeLabel(transaction.type)}</div>
                         </td>

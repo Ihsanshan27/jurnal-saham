@@ -62,9 +62,9 @@ export default function DividendPage() {
   const totalDividendValue = filteredDividends.reduce((s: number, d: any) => s + (d.totalAmount || 0), 0);
   const formatMoney = isUS ? formatUSD : formatRupiah;
   const { sortConfig, sortedItems: sortedDividends, requestSort } = useTableSort(filteredDividends, {
-    initialKey: 'payDate',
+    initialKey: 'createdAt',
     initialDirection: 'desc',
-    getValue: (div: any, key: 'stockCode' | 'shareCount' | 'dividendPerShare' | 'totalAmount' | 'cumDate' | 'payDate' | 'notes') => {
+    getValue: (div: any, key: string) => {
       if (key === 'payDate') return div.payDate || div.createdAt || '';
       return div[key] || '';
     },
@@ -342,7 +342,14 @@ export default function DividendPage() {
                       +{formatMoney(div.totalAmount)}
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>{div.cumDate ? formatDate(div.cumDate) : '-'}</td>
-                    <td style={{ fontSize: '0.85rem' }}>{div.payDate ? formatDate(div.payDate) : '-'}</td>
+                    <td style={{ fontSize: '0.85rem' }}>
+                      <div>{div.payDate ? formatDate(div.payDate) : '-'}</div>
+                      {div.createdAt && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                          {format(new Date(div.createdAt), 'HH:mm')}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{div.notes || '-'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 8 }}>

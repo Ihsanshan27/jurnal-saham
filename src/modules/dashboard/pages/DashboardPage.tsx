@@ -215,7 +215,7 @@ export default function DashboardPage() {
       sortedItems: sortedRecentTrades,
       requestSort: requestRecentSort,
    } = useTableSort<typeof recentTrades[number], DashboardRecentTradeSortKey>(recentTrades, {
-      initialKey: "dateSell",
+      initialKey: "createdAt" as any,
       initialDirection: "desc",
       getValue: (trade, key) => {
          if (key === "pnl") return calculateTradePnL(trade).pnl;

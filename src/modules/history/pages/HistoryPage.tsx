@@ -355,9 +355,9 @@ export default function HistoryPage() {
   });
 
   const { sortConfig: tradeSortConfig, sortedItems: sortedClosedTrades, requestSort: requestTradeSort } = useTableSort(selectedRangeTrades, {
-    initialKey: 'dateSell',
+    initialKey: 'createdAt',
     initialDirection: 'desc',
-    getValue: (trade: any, key: 'stockCode' | 'dateSell' | 'buyPrice' | 'sellPrice' | 'lots' | 'pnl' | 'pnlPercent' | 'strategy') => trade[key] || '',
+    getValue: (trade: any, key: string) => trade[key] || '',
   });
 
   const totalRealized = closedTrades.reduce((sum: number, trade: any) => sum + trade.pnl, 0);
@@ -895,7 +895,14 @@ export default function HistoryPage() {
                   {sortedClosedTrades.length > 0 ? sortedClosedTrades.slice(0, 20).map((trade: any) => (
                     <tr key={trade.id}>
                       <td><strong>{trade.stockCode}</strong></td>
-                      <td>{formatDate(trade.dateSell)}</td>
+                      <td>
+                        <div>{formatDate(trade.dateSell)}</div>
+                        {trade.createdAt && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                            {format(new Date(trade.createdAt), 'HH:mm')}
+                          </div>
+                        )}
+                      </td>
                       <td className="font-mono">{formatMoney(trade.buyPrice)}</td>
                       <td className="font-mono">{formatMoney(trade.sellPrice)}</td>
                       <td>{trade.lots}</td>

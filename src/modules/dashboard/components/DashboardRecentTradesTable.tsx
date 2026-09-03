@@ -96,7 +96,14 @@ export default function DashboardRecentTradesTable({
                   <td>
                     <strong>{trade.stockCode}</strong>
                   </td>
-                  <td className="dashboard-table-secondary-text">{formatDate(trade.dateSell)}</td>
+                  <td className="dashboard-table-secondary-text">
+                    <div>{formatDate(trade.dateSell)}</div>
+                    {trade.createdAt && (
+                      <div style={{ fontSize: '0.75rem', marginTop: 2, opacity: 0.8 }}>
+                        {new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' }).format(new Date(trade.createdAt))}
+                      </div>
+                    )}
+                  </td>
                   <td className="font-mono">{formatMoney(trade.buyPrice)}</td>
                   <td className="font-mono">{formatMoney(trade.sellPrice)}</td>
                   <td className="font-mono">{trade.lots}</td>

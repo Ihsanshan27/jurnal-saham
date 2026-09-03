@@ -75,8 +75,9 @@ export default function PortfolioPage() {
   }, [openTrades, balanceStats.buyingPower]);
   const formatMoney = activeTab === 'US' ? formatUSD : formatRupiah;
   const { sortConfig, sortedItems: sortedOpenTrades, requestSort } = useTableSort(openTrades, {
-    initialKey: 'stockCode',
-    getValue: (trade: any, key: 'stockCode' | 'buyPrice' | 'lots' | 'totalBuy' | 'currentPrice' | 'floatingPnL' | 'allocationPercent') => {
+    initialKey: 'createdAt',
+    initialDirection: 'desc',
+    getValue: (trade: any, key: string) => {
       if (key === 'allocationPercent') return totalCapital > 0 ? (trade.totalBuy / totalCapital) * 100 : 0;
       return trade[key] || 0;
     },
