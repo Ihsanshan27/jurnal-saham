@@ -159,7 +159,8 @@ export default function CashflowPage() {
             amount: payload.amount,
             date: payload.date,
             description: payload.notes || "Deposit RDN",
-            portfolioId: activePortfolioId
+            portfolioId: activePortfolioId,
+            market: payload.market,
           });
         } else {
           createPortfolioToFinanceTransfer({
@@ -167,7 +168,8 @@ export default function CashflowPage() {
             amount: payload.amount,
             date: payload.date,
             description: payload.notes || "Withdraw RDN",
-            portfolioId: activePortfolioId
+            portfolioId: activePortfolioId,
+            market: payload.market,
           });
         }
       } else {

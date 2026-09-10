@@ -686,7 +686,8 @@ export function DataProvider({ children }) {
   const buildCashflowPayloadFromFinanceTransaction = useCallback((transaction: any) => {
     const delta = getFinanceTransactionDelta(transaction);
     const syncMode = transaction.cashflowSyncMode || 'mirror';
-    const normalizedAmount = Math.abs(Number(transaction.amount) || 0);
+    const normalizedAmount = Math.abs(Number(transaction.linkedCashflowAmount ?? transaction.amount) || 0);
+    const linkedMarket = transaction.linkedMarket || 'ID';
 
     if (syncMode === 'transfer_to_portfolio') {
       return {
@@ -694,7 +695,7 @@ export function DataProvider({ children }) {
         amount: normalizedAmount,
         date: transaction.date,
         notes: transaction.description || 'Transfer dari finance tracker ke dompet trading',
-        market: 'ID',
+        market: linkedMarket,
         linkedFinanceTransactionId: transaction.id,
       };
     }
@@ -705,17 +706,17 @@ export function DataProvider({ children }) {
         amount: normalizedAmount,
         date: transaction.date,
         notes: transaction.description || 'Transfer dari dompet trading ke finance tracker',
-        market: 'ID',
+        market: linkedMarket,
         linkedFinanceTransactionId: transaction.id,
       };
     }
 
     return {
       type: delta >= 0 ? 'deposit' : 'withdraw',
-      amount: Math.abs(delta),
+      amount: normalizedAmount,
       date: transaction.date,
       notes: transaction.description || 'Finance tracker linkage',
-      market: 'ID',
+      market: linkedMarket,
       linkedFinanceTransactionId: transaction.id,
     };
   }, []);
@@ -1013,11 +1014,14 @@ export function DataProvider({ children }) {
 
   const createFinancePortfolioTransfer = (transfer: any) => {
     if (!ensureWritable()) return null;
-    const amount = Math.abs(Number(transfer.amount) || 0);
-    if (!amount) return null;
+    const rawAmount = Math.abs(Number(transfer.amount) || 0);
+    if (!rawAmount) return null;
+
+    const isUS = transfer.market === 'US';
+    const amountInIdr = isUS ? rawAmount * (settings.usdToIdrRate || 16200) : rawAmount;
 
     const currentBalance = getFinanceAccountCurrentBalance(transfer.accountId);
-    if (amount > currentBalance) {
+    if (amountInIdr > currentBalance) {
       showToast('Gagal: Saldo rekening tidak mencukupi untuk transfer ke dompet trading.', 'error');
       return null;
     }
@@ -1025,13 +1029,15 @@ export function DataProvider({ children }) {
     const payload = {
       accountId: transfer.accountId,
       type: 'expense',
-      amount,
+      amount: amountInIdr,
       date: transfer.date,
       description: transfer.description || 'Transfer ke dompet trading',
       category: transfer.category || 'Transfer ke dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
       cashflowSyncMode: 'transfer_to_portfolio',
+      linkedMarket: transfer.market || 'ID',
+      linkedCashflowAmount: rawAmount,
     };
 
     const createdTransaction = addFinanceTransaction(payload);
@@ -1039,7 +1045,7 @@ export function DataProvider({ children }) {
       logUserActivity('finance_portfolio_transfer.created', 'finance_transaction', createdTransaction.id, {
         accountId: transfer.accountId,
         portfolioId: payload.linkedPortfolioId || null,
-        amount,
+        amount: amountInIdr,
       });
     }
     return createdTransaction;
@@ -1047,19 +1053,24 @@ export function DataProvider({ children }) {
 
   const createPortfolioToFinanceTransfer = (transfer: any) => {
     if (!ensureWritable()) return null;
-    const amount = Math.abs(Number(transfer.amount) || 0);
-    if (!amount) return null;
+    const rawAmount = Math.abs(Number(transfer.amount) || 0);
+    if (!rawAmount) return null;
+
+    const isUS = transfer.market === 'US';
+    const amountInIdr = isUS ? rawAmount * (settings.usdToIdrRate || 16200) : rawAmount;
 
     const payload = {
       accountId: transfer.accountId,
       type: 'income',
-      amount,
+      amount: amountInIdr,
       date: transfer.date,
       description: transfer.description || 'Transfer dari dompet trading',
       category: transfer.category || 'Transfer dari dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
       cashflowSyncMode: 'transfer_from_portfolio',
+      linkedMarket: transfer.market || 'ID',
+      linkedCashflowAmount: rawAmount,
     };
 
     const createdTransaction = addFinanceTransaction(payload);
@@ -1067,7 +1078,7 @@ export function DataProvider({ children }) {
       logUserActivity('portfolio_finance_transfer.created', 'finance_transaction', createdTransaction.id, {
         accountId: transfer.accountId,
         portfolioId: payload.linkedPortfolioId || null,
-        amount,
+        amount: amountInIdr,
       });
     }
     return createdTransaction;
