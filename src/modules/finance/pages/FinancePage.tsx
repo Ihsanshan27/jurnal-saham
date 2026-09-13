@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Landmark, Plus, Pencil, Power, WalletCards, ArrowRightLeft, Trash2 } from 'lucide-react';
+import { Landmark, Plus, Pencil, Power, WalletCards, ArrowRightLeft, Trash2, List } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
@@ -219,6 +219,7 @@ export default function FinancePage() {
     event.preventDefault();
     const payload = {
       ...form,
+      type: form.type as any,
       openingBalance: Number(form.openingBalance) || 0,
     };
 
@@ -284,12 +285,20 @@ export default function FinancePage() {
             <p className="page-subtitle">Ledger kas pribadi untuk rekening bank dan e-wallet. Satu rekening bisa dipakai banyak dompet, tapi tiap dompet hanya boleh memilih satu rekening.</p>
           </div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm((value) => !value)}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Plus size={16} />
-            {showForm ? 'Tutup Form' : 'Tambah Rekening'}
-          </span>
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Link to="/finance/transactions" className="btn btn-secondary">
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <List size={16} />
+              Semua Transaksi & Arus Kas
+            </span>
+          </Link>
+          <button className="btn btn-primary" onClick={() => setShowForm((value) => !value)}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Plus size={16} />
+              {showForm ? 'Tutup Form' : 'Tambah Rekening'}
+            </span>
+          </button>
+        </div>
       </div>
 
       <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 24 }}>
@@ -438,7 +447,7 @@ export default function FinancePage() {
                   <CustomSelect
                     value={form.type}
                     onChange={(value) => setValue('type', value)}
-                    options={FINANCE_ACCOUNT_TYPE_OPTIONS}
+                    options={FINANCE_ACCOUNT_TYPE_OPTIONS as any}
                   />
                 </div>
                 <div className="form-group">
