@@ -9,7 +9,7 @@ import SortableTableHeader from '@/modules/shared/components/SortableTableHeader
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
-import { Wallet, Landmark, Eye, EyeOff, CheckCircle, Trash2 } from 'lucide-react';
+import { Wallet, Landmark, Eye, EyeOff, CheckCircle, Trash2, Edit2 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -47,6 +47,7 @@ export default function WealthDashboardPage() {
   const [modalExcludedPortfolios, setModalExcludedPortfolios] = useState<Set<string>>(new Set());
   const [modalExcludedAccounts, setModalExcludedAccounts] = useState<Set<string>>(new Set());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editPresetId, setEditPresetId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('wealth_excludedFinanceAccountIds', JSON.stringify(Array.from(excludedFinanceAccountIds)));
@@ -74,26 +75,42 @@ export default function WealthDashboardPage() {
     }
   };
 
-  const openPresetModal = () => {
-    setNewPresetName('');
-    setModalExcludedPortfolios(new Set());
-    setModalExcludedAccounts(new Set());
+  const openPresetModal = (presetToEdit?: WealthPreset) => {
+    if (presetToEdit) {
+      setEditPresetId(presetToEdit.id);
+      setNewPresetName(presetToEdit.name);
+      setModalExcludedPortfolios(new Set(presetToEdit.excludedPortfolioIds));
+      setModalExcludedAccounts(new Set(presetToEdit.excludedFinanceAccountIds));
+    } else {
+      setEditPresetId(null);
+      setNewPresetName('');
+      setModalExcludedPortfolios(new Set());
+      setModalExcludedAccounts(new Set());
+    }
     setIsPresetModalOpen(true);
   };
 
   const handleSaveNewPreset = () => {
     if (!newPresetName.trim()) return;
-    const newPreset: WealthPreset = {
-      id: Date.now().toString(),
+    const newPresetData: WealthPreset = {
+      id: editPresetId || Date.now().toString(),
       name: newPresetName.trim(),
       excludedFinanceAccountIds: Array.from(modalExcludedAccounts),
       excludedPortfolioIds: Array.from(modalExcludedPortfolios),
     };
-    setPresets(prev => [...prev, newPreset]);
-    setActivePresetId(newPreset.id);
+
+    setPresets(prev => {
+      if (editPresetId) {
+        return prev.map(p => p.id === editPresetId ? newPresetData : p);
+      }
+      return [...prev, newPresetData];
+    });
+
+    setActivePresetId(newPresetData.id);
     setExcludedFinanceAccountIds(modalExcludedAccounts);
     setExcludedPortfolioIds(modalExcludedPortfolios);
     setIsPresetModalOpen(false);
+    setEditPresetId(null);
   };
 
   const handleDeletePreset = (id: string) => {
@@ -349,17 +366,27 @@ export default function WealthDashboardPage() {
         </div>
 
         {activePresetId !== 'ALL' && activePresetId !== 'CUSTOM' && (
-          <button 
-            className="btn btn-sm btn-ghost" 
-            onClick={() => handleDeletePreset(activePresetId)}
-            title="Hapus preset ini"
-            style={{ color: 'var(--text-loss)', padding: '6px' }}
-          >
-            <Trash2 size={16} />
-          </button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button 
+              className="btn btn-sm btn-ghost" 
+              onClick={() => openPresetModal(presets.find(p => p.id === activePresetId))}
+              title="Edit preset ini"
+              style={{ color: 'var(--text-secondary)', padding: '6px' }}
+            >
+              <Edit2 size={16} />
+            </button>
+            <button 
+              className="btn btn-sm btn-ghost" 
+              onClick={() => handleDeletePreset(activePresetId)}
+              title="Hapus preset ini"
+              style={{ color: 'var(--text-loss)', padding: '6px' }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         )}
 
-        <button className="btn btn-sm btn-primary" style={{ marginLeft: 'auto' }} onClick={openPresetModal}>
+        <button className="btn btn-sm btn-primary" style={{ marginLeft: 'auto' }} onClick={() => openPresetModal()}>
           + Buat Preset Baru
         </button>
       </div>
@@ -367,7 +394,7 @@ export default function WealthDashboardPage() {
       {isPresetModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="card" style={{ width: 400, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div className="card-header"><h3 className="card-title">Buat Preset Baru</h3></div>
+            <div className="card-header"><h3 className="card-title">{editPresetId ? 'Edit Preset' : 'Buat Preset Baru'}</h3></div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
                 <label className="form-label">Nama Preset</label>
@@ -412,7 +439,7 @@ export default function WealthDashboardPage() {
               
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
                 <button className="btn btn-ghost" onClick={() => setIsPresetModalOpen(false)}>Batal</button>
-                <button className="btn btn-primary" onClick={handleSaveNewPreset} disabled={!newPresetName.trim()}>Simpan</button>
+                <button className="btn btn-primary" onClick={handleSaveNewPreset} disabled={!newPresetName.trim()}>{editPresetId ? 'Update' : 'Simpan'}</button>
               </div>
             </div>
           </div>
