@@ -8,9 +8,17 @@ import StatCard from '@/modules/shared/components/StatCard';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/trades/calculations';
-import { Wallet, Landmark, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
+import { Wallet, Landmark, Eye, EyeOff, CheckCircle, Trash2 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
+
+interface WealthPreset {
+  id: string;
+  name: string;
+  excludedFinanceAccountIds: string[];
+  excludedPortfolioIds: string[];
+}
 
 export default function WealthDashboardPage() {
   const { allTrades: trades, allCashflows: cashflows, allDividends: dividends, settings, updateSettings, marketPrices, portfolios, financeAccounts, getFinanceAccountCurrentBalance } = useData();
@@ -27,6 +35,19 @@ export default function WealthDashboardPage() {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
+  const [activePresetId, setActivePresetId] = useState<string>('ALL');
+
+  const [presets, setPresets] = useState<WealthPreset[]>(() => {
+    const saved = localStorage.getItem('wealth_presets');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [modalExcludedPortfolios, setModalExcludedPortfolios] = useState<Set<string>>(new Set());
+  const [modalExcludedAccounts, setModalExcludedAccounts] = useState<Set<string>>(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   useEffect(() => {
     localStorage.setItem('wealth_excludedFinanceAccountIds', JSON.stringify(Array.from(excludedFinanceAccountIds)));
   }, [excludedFinanceAccountIds]);
@@ -35,7 +56,62 @@ export default function WealthDashboardPage() {
     localStorage.setItem('wealth_excludedPortfolioIds', JSON.stringify(Array.from(excludedPortfolioIds)));
   }, [excludedPortfolioIds]);
 
+  useEffect(() => {
+    localStorage.setItem('wealth_presets', JSON.stringify(presets));
+  }, [presets]);
+
+  const handlePresetChange = (value: string) => {
+    setActivePresetId(value);
+    if (value === 'ALL') {
+      setExcludedFinanceAccountIds(new Set());
+      setExcludedPortfolioIds(new Set());
+    } else if (value !== 'CUSTOM') {
+      const preset = presets.find(p => p.id === value);
+      if (preset) {
+        setExcludedFinanceAccountIds(new Set(preset.excludedFinanceAccountIds));
+        setExcludedPortfolioIds(new Set(preset.excludedPortfolioIds));
+      }
+    }
+  };
+
+  const openPresetModal = () => {
+    setNewPresetName('');
+    setModalExcludedPortfolios(new Set());
+    setModalExcludedAccounts(new Set());
+    setIsPresetModalOpen(true);
+  };
+
+  const handleSaveNewPreset = () => {
+    if (!newPresetName.trim()) return;
+    const newPreset: WealthPreset = {
+      id: Date.now().toString(),
+      name: newPresetName.trim(),
+      excludedFinanceAccountIds: Array.from(modalExcludedAccounts),
+      excludedPortfolioIds: Array.from(modalExcludedPortfolios),
+    };
+    setPresets(prev => [...prev, newPreset]);
+    setActivePresetId(newPreset.id);
+    setExcludedFinanceAccountIds(modalExcludedAccounts);
+    setExcludedPortfolioIds(modalExcludedPortfolios);
+    setIsPresetModalOpen(false);
+  };
+
+  const handleDeletePreset = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const executeDelete = () => {
+    if (deleteConfirmId) {
+      setPresets(prev => prev.filter(p => p.id !== deleteConfirmId));
+      setActivePresetId('ALL');
+      setExcludedFinanceAccountIds(new Set());
+      setExcludedPortfolioIds(new Set());
+      setDeleteConfirmId(null);
+    }
+  };
+
   const toggleFinanceAccount = (id: string) => {
+    setActivePresetId('CUSTOM');
     setExcludedFinanceAccountIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -45,6 +121,7 @@ export default function WealthDashboardPage() {
   };
 
   const togglePortfolio = (id: string) => {
+    setActivePresetId('CUSTOM');
     setExcludedPortfolioIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -255,6 +332,111 @@ export default function WealthDashboardPage() {
           <p className="page-subtitle">Pantau seluruh kekayaan Anda di satu tempat</p>
         </div>
       </div>
+
+      <div className="card" style={{ marginBottom: 24, padding: '12px 16px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Tampilan Preset:</span>
+        
+        <div style={{ width: 240 }}>
+          <CustomSelect 
+            value={activePresetId}
+            onChange={handlePresetChange}
+            options={[
+              { value: 'ALL', label: 'Semua Aset' },
+              ...presets.map(p => ({ value: p.id, label: p.name })),
+              ...(activePresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
+            ]}
+          />
+        </div>
+
+        {activePresetId !== 'ALL' && activePresetId !== 'CUSTOM' && (
+          <button 
+            className="btn btn-sm btn-ghost" 
+            onClick={() => handleDeletePreset(activePresetId)}
+            title="Hapus preset ini"
+            style={{ color: 'var(--text-loss)', padding: '6px' }}
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+
+        <button className="btn btn-sm btn-primary" style={{ marginLeft: 'auto' }} onClick={openPresetModal}>
+          + Buat Preset Baru
+        </button>
+      </div>
+
+      {isPresetModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: 400, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="card-header"><h3 className="card-title">Buat Preset Baru</h3></div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label className="form-label">Nama Preset</label>
+                <input type="text" className="form-input" value={newPresetName} onChange={e => setNewPresetName(e.target.value)} placeholder="Misal: Aset Pribadi" autoFocus />
+              </div>
+              
+              <div>
+                <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Pilih Dompet (Trading)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 150, overflowY: 'auto', padding: 8, border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                  {portfolios.map(p => (
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input type="checkbox" className="form-checkbox" checked={!modalExcludedPortfolios.has(p.id)} onChange={() => {
+                        setModalExcludedPortfolios(prev => {
+                          const next = new Set(prev);
+                          if (next.has(p.id)) next.delete(p.id); else next.add(p.id);
+                          return next;
+                        });
+                      }} />
+                      {p.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Pilih Rekening Bank & E-Wallet</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 150, overflowY: 'auto', padding: 8, border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                  {financeAccounts.filter(a => a.isActive !== false).map(a => (
+                    <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input type="checkbox" className="form-checkbox" checked={!modalExcludedAccounts.has(a.id)} onChange={() => {
+                        setModalExcludedAccounts(prev => {
+                          const next = new Set(prev);
+                          if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                          return next;
+                        });
+                      }} />
+                      {a.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                <button className="btn btn-ghost" onClick={() => setIsPresetModalOpen(false)}>Batal</button>
+                <button className="btn btn-primary" onClick={handleSaveNewPreset} disabled={!newPresetName.trim()}>Simpan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmId && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: 320, maxWidth: '90%' }}>
+            <div className="card-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+              <h3 className="card-title" style={{ color: 'var(--accent-red)' }}>Hapus Preset</h3>
+            </div>
+            <div className="card-body" style={{ paddingTop: 16 }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 24, fontSize: '0.95rem' }}>
+                Apakah Anda yakin ingin menghapus preset ini? Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => setDeleteConfirmId(null)}>Batal</button>
+                <button className="btn btn-danger" onClick={executeDelete}>Hapus</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bento-grid" style={{ marginBottom: 24 }}>
         <div className="bento-col-4">
