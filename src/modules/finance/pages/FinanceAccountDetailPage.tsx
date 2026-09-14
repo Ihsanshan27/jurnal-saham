@@ -131,14 +131,62 @@ export default function FinanceAccountDetailPage() {
     setPortfolioWithdrawalForm((prev) => ({ ...prev, portfolioId: prev.portfolioId || activePortfolioId || 'default' }));
   }, [activePortfolioId]);
 
-  const filteredTransactions = useMemo(() => {
-    return accountTransactions.filter((item: any) => {
+  const { filteredTransactions, saldoAwal, saldoAkhir, totalDebit, totalKredit } = useMemo(() => {
+    const baseOpeningBalance = Number(account?.openingBalance) || 0;
+
+    const chronologicallySorted = [...accountTransactions].sort((a: any, b: any) => {
+      const dateA = new Date(a.date + 'T' + (a.createdAt ? a.createdAt.split('T')[1] : '00:00:00')).getTime();
+      const dateB = new Date(b.date + 'T' + (b.createdAt ? b.createdAt.split('T')[1] : '00:00:00')).getTime();
+      return dateA - dateB;
+    });
+
+    let currentBalance = baseOpeningBalance;
+    const transactionsWithBalance = chronologicallySorted.map((t: any) => {
+      currentBalance += getFinanceTransactionAmountForDisplay(t);
+      return { ...t, runningBalance: currentBalance };
+    });
+
+    let calculatedSaldoAwal = baseOpeningBalance;
+    if (dateFrom) {
+      const beforeDateFrom = transactionsWithBalance.filter((t: any) => t.date < dateFrom);
+      if (beforeDateFrom.length > 0) {
+        calculatedSaldoAwal = beforeDateFrom[beforeDateFrom.length - 1].runningBalance;
+      }
+    }
+
+    let calculatedSaldoAkhir = currentBalance;
+    if (dateTo) {
+      const upToDateTo = transactionsWithBalance.filter((t: any) => t.date <= dateTo);
+      if (upToDateTo.length > 0) {
+        calculatedSaldoAkhir = upToDateTo[upToDateTo.length - 1].runningBalance;
+      } else {
+        calculatedSaldoAkhir = calculatedSaldoAwal;
+      }
+    }
+
+    let tDebit = 0;
+    let tKredit = 0;
+
+    const finalFiltered = transactionsWithBalance.filter((item: any) => {
       if (typeFilter !== 'all' && item.type !== typeFilter) return false;
       if (dateFrom && item.date < dateFrom) return false;
       if (dateTo && item.date > dateTo) return false;
+
+      const amount = getFinanceTransactionAmountForDisplay(item);
+      if (amount < 0) tDebit += Math.abs(amount);
+      else tKredit += amount;
+
       return true;
     });
-  }, [accountTransactions, dateFrom, dateTo, typeFilter]);
+
+    return {
+      filteredTransactions: finalFiltered,
+      saldoAwal: calculatedSaldoAwal,
+      saldoAkhir: calculatedSaldoAkhir,
+      totalDebit: tDebit,
+      totalKredit: tKredit
+    };
+  }, [accountTransactions, dateFrom, dateTo, typeFilter, account]);
 
   const { sortConfig, sortedItems, requestSort } = useTableSort(filteredTransactions, {
     initialKey: 'date',
@@ -732,74 +780,115 @@ export default function FinanceAccountDetailPage() {
               <div className="empty-state-desc">Tambahkan transaksi biasa atau transfer agar histori rekening ini mulai terbentuk.</div>
             </div>
           ) : (
-            <div className="table-container" style={{ border: 'none', margin: 0 }}>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th><SortableTableHeader label="Tanggal" sortKey="date" sortConfig={sortConfig} onSort={requestSort} /></th>
-                    <th><SortableTableHeader label="Tipe" sortKey="type" sortConfig={sortConfig} onSort={requestSort} /></th>
-                    <th><SortableTableHeader label="Deskripsi" sortKey="description" sortConfig={sortConfig} onSort={requestSort} /></th>
-                    <th><SortableTableHeader label="Nominal" sortKey="amount" sortConfig={sortConfig} onSort={requestSort} /></th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedItems.map((transaction: any) => {
-                    const signedAmount = getFinanceTransactionAmountForDisplay(transaction);
-                    const amountClass = signedAmount >= 0 ? 'positive' : 'negative';
-                    const counterparty = transaction.counterpartyAccountId
-                      ? financeAccounts.find((item: any) => item.id === transaction.counterpartyAccountId)
-                      : null;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, backgroundColor: 'var(--bg-card-hover)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
+                <div>
+                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Saldo Awal {dateFrom ? `(${formatDate(dateFrom)})` : ''}</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatRupiah(saldoAwal)}</div>
+                </div>
+                <div>
+                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Keluar (Debit)</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatRupiah(totalDebit)}</div>
+                </div>
+                <div>
+                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Masuk (Kredit)</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatRupiah(totalKredit)}</div>
+                </div>
+                <div>
+                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatRupiah(saldoAkhir)}</div>
+                </div>
+              </div>
+              
+              <div className="table-container" style={{ border: 'none', margin: 0 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th><SortableTableHeader label="Tanggal" sortKey="date" sortConfig={sortConfig} onSort={requestSort} /></th>
+                      <th>Keterangan</th>
+                      <th style={{ textAlign: 'right' }}>Debit (Keluar)</th>
+                      <th style={{ textAlign: 'right' }}>Kredit (Masuk)</th>
+                      <th style={{ textAlign: 'right' }}>Saldo Akhir</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{ backgroundColor: 'var(--bg-card-hover)', fontWeight: 600 }}>
+                      <td colSpan={4}>Saldo Awal {dateFrom ? `(${formatDate(dateFrom)})` : ''}</td>
+                      <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatRupiah(saldoAwal)}</div></td>
+                      <td></td>
+                    </tr>
+                    {sortedItems.map((transaction: any) => {
+                      const signedAmount = getFinanceTransactionAmountForDisplay(transaction);
+                      const isDebit = signedAmount < 0;
+                      const isCredit = signedAmount > 0;
+                      const counterparty = transaction.counterpartyAccountId
+                        ? financeAccounts.find((item: any) => item.id === transaction.counterpartyAccountId)
+                        : null;
 
-                    return (
-                      <tr key={transaction.id}>
-                        <td>
-                          <div>{formatDate(transaction.date)}</div>
-                          {transaction.createdAt && (
-                            <div className="finance-helper-text" style={{ fontSize: '0.75rem', marginTop: 2 }}>
-                              {format(new Date(transaction.createdAt), 'HH:mm')}
+                      return (
+                        <tr key={transaction.id}>
+                          <td>
+                            <div>{formatDate(transaction.date)}</div>
+                            {transaction.createdAt && (
+                              <div className="finance-helper-text" style={{ fontSize: '0.75rem', marginTop: 2 }}>
+                                {format(new Date(transaction.createdAt), 'HH:mm')}
+                              </div>
+                            )}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                              <span style={{ fontWeight: 600 }}>{transaction.description || '-'}</span>
+                              <span className="finance-pill" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{getFinanceTransactionTypeLabel(transaction.type)}</span>
                             </div>
-                          )}
-                        </td>
-                        <td>
-                          <div className="finance-pill">{getFinanceTransactionTypeLabel(transaction.type)}</div>
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{transaction.description || '-'}</div>
-                          <div className="finance-helper-text">
-                            {transaction.category || 'Tanpa kategori'}
-                            {counterparty ? ` • ${counterparty.name}` : ''}
-                            {transaction.linkedCashflowId ? ' • Linked cashflow' : ''}
-                          </div>
-                        </td>
-                        <td>
-                          <div className={`finance-table-amount ${amountClass}`} style={blurStyle}>
-                            {signedAmount > 0 ? '+' : ''}{formatRupiah(signedAmount)}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="finance-actions">
-                            {!transaction.transferGroupId ? (
-                              <button type="button" className="btn btn-ghost" onClick={() => handleEditTransaction(transaction)}>
+                            <div className="finance-helper-text" style={{ fontSize: '0.8rem' }}>
+                              <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
+                              {account?.institutionName ? ` (${account.institutionName})` : ''}
+                              {counterparty ? ` ➔ ${counterparty.name}` : ''}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ color: isDebit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
+                              {isDebit ? formatRupiah(Math.abs(signedAmount)) : '-'}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ color: isCredit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
+                              {isCredit ? formatRupiah(signedAmount) : '-'}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: 600, ...blurStyle }}>{formatRupiah(transaction.runningBalance)}</div>
+                          </td>
+                          <td>
+                            <div className="finance-actions">
+                              {!transaction.transferGroupId ? (
+                                <button type="button" className="btn btn-ghost" onClick={() => handleEditTransaction(transaction)}>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Pencil size={16} />
+                                    Edit
+                                  </span>
+                                </button>
+                              ) : null}
+                              <button type="button" className="btn btn-ghost" onClick={() => handleDeleteTransaction(transaction)}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <Pencil size={16} />
-                                  Edit
+                                  <Trash2 size={16} />
+                                  Hapus
                                 </span>
                               </button>
-                            ) : null}
-                            <button type="button" className="btn btn-ghost" onClick={() => handleDeleteTransaction(transaction)}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Trash2 size={16} />
-                                Hapus
-                              </span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr style={{ backgroundColor: 'var(--bg-card-hover)', fontWeight: 600 }}>
+                      <td colSpan={4}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</td>
+                      <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatRupiah(saldoAkhir)}</div></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
