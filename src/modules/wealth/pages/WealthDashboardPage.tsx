@@ -2,12 +2,12 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useData } from '@/modules/shared/context/DataContext';
-import { formatRupiah, formatCompactNumber } from '@/modules/shared/utils/formatters';
+import { formatRupiah, formatCompactNumber, formatPercent } from '@/modules/shared/utils/formatters';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import StatCard from '@/modules/shared/components/StatCard';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
-import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/trades/calculations';
+import { calculatePortfolioBalance, calculateUnrealizedPnL, getAggregatedOpenPositions, getTradeQuantityUnits } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import { Wallet, Landmark, Eye, EyeOff, CheckCircle, Trash2, Edit2 } from 'lucide-react';
 
@@ -151,12 +151,10 @@ export default function WealthDashboardPage() {
 
   // 1. Calculate Open Positions Across ALL Portfolios
   const consolidatedOpenTrades = useMemo(() => {
-    return trades
-      .filter((trade) => !trade.dateSell || trade.sellPrice == null)
-      .map((trade) => {
+    const aggregated = getAggregatedOpenPositions(trades);
+    return aggregated.map((trade) => {
         const isUS = trade.market === 'US';
-        const isMutualFund = trade.assetType === 'mutual_fund';
-        const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
+        const shares = getTradeQuantityUnits(trade);
         
         let buyPriceInIdr = trade.buyPrice;
         if (isUS) buyPriceInIdr = trade.buyPrice * usdToIdrRate;

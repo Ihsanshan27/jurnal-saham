@@ -8,7 +8,7 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
-import { calculateUnrealizedPnL, calculatePortfolioBalance } from '@/modules/trades/calculations';
+import { calculateUnrealizedPnL, calculatePortfolioBalance, getAggregatedOpenPositions, getTradeQuantityUnits } from '@/modules/trades/calculations';
 import { formatRupiah, formatUSD, formatPercent } from '@/modules/shared/utils/formatters';
 import ReconciliationNotice from '@/modules/trades/components/ReconciliationNotice';
 import * as Icons from 'lucide-react';
@@ -36,12 +36,14 @@ export default function PortfolioPage() {
   );
 
   const openTrades = useMemo(() => {
-    return trades
-      .filter((trade) => !isClosedTrade(trade) && (trade.market === activeTab || (activeTab === 'ID' && !trade.market)))
-      .map((trade) => {
+    const activeMarketTrades = trades.filter(trade => trade.market === activeTab || (activeTab === 'ID' && !trade.market));
+    const aggregated = getAggregatedOpenPositions(activeMarketTrades);
+    
+    return aggregated.map((trade) => {
         const isUS = activeTab === 'US';
         const isMutualFund = trade.assetType === 'mutual_fund';
-        const shares = isMutualFund ? trade.lots : (isUS ? trade.lots : trade.lots * 100);
+        const isSBN = trade.assetType === 'sbn';
+        const shares = getTradeQuantityUnits(trade);
         const totalBuy = trade.buyPrice * shares;
         const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
 

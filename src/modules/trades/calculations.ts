@@ -2,17 +2,19 @@
 
 export function getTradeQuantityUnits(trade) {
   const quantity = Number(trade?.lots) || 0;
-  if (trade?.assetType === 'mutual_fund') return quantity;
+  if (trade?.assetType === 'mutual_fund' || trade?.assetType === 'sbn') return quantity;
   return trade?.market === 'US' ? quantity : quantity * 100;
 }
 
 export function getTradeQuantityLabel(trade) {
-  if (trade?.assetType === 'mutual_fund') return 'unit';
+  if (trade?.assetType === 'mutual_fund' || trade?.assetType === 'sbn') return 'unit';
   return trade?.market === 'US' ? 'shares' : 'lot';
 }
 
 export function getTradeAssetTypeLabel(trade) {
-  return trade?.assetType === 'mutual_fund' ? 'Reksadana' : 'Saham';
+  if (trade?.assetType === 'mutual_fund') return 'Reksadana';
+  if (trade?.assetType === 'sbn') return 'SBN';
+  return 'Saham';
 }
 
 export function calculateTradePnL(trade) {
@@ -48,6 +50,50 @@ function isClosedTrade(trade) {
 
 function isOpenTrade(trade) {
   return !isClosedTrade(trade);
+}
+
+export function getAggregatedOpenPositions(trades) {
+  const openTrades = trades.filter(isOpenTrade);
+  const grouped = new Map();
+
+  for (const trade of openTrades) {
+    const key = `${trade.stockCode}_${trade.portfolioId || 'default'}_${trade.market || 'ID'}_${trade.assetType || 'stock'}`;
+    
+    if (!grouped.has(key)) {
+      // Create a deep copy to avoid mutating the original
+      grouped.set(key, { 
+        ...trade, 
+        aggregatedIds: [trade.id],
+        totalLots: Number(trade.lots),
+        totalBuyValue: calculateTradePnL(trade).totalBuy,
+        totalBuyFeeAmt: calculateTradePnL(trade).buyCommission
+      });
+    } else {
+      const existing = grouped.get(key);
+      existing.aggregatedIds.push(trade.id);
+      existing.totalLots += Number(trade.lots);
+      existing.totalBuyValue += calculateTradePnL(trade).totalBuy;
+      existing.totalBuyFeeAmt += calculateTradePnL(trade).buyCommission;
+      
+      // Calculate new weighted average buy price
+      const shares = getTradeQuantityUnits({ lots: existing.totalLots, market: existing.market, assetType: existing.assetType });
+      if (shares > 0) {
+        existing.buyPrice = existing.totalBuyValue / shares;
+      }
+      // Calculate new weighted average buy fee %
+      if (existing.totalBuyValue > 0) {
+        existing.buyFee = (existing.totalBuyFeeAmt / existing.totalBuyValue) * 100;
+      }
+      existing.lots = existing.totalLots;
+      
+      // Update dates to span the range
+      if (new Date(trade.dateBuy) < new Date(existing.dateBuy)) {
+        existing.dateBuy = trade.dateBuy;
+      }
+    }
+  }
+
+  return Array.from(grouped.values());
 }
 
 export function calculateUnrealizedPnL(buyPrice, currentPrice, lots, buyFee = 0.15, market = 'ID', assetType = 'stock') {

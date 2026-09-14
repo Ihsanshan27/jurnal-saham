@@ -8,7 +8,8 @@ import {
    calculateTopStocks,
    calculateTradePnL,
    calculatePortfolioAssetMetrics,
-   calculatePortfolioAssetIdrEquivalent
+   calculatePortfolioAssetIdrEquivalent,
+   getTradeQuantityUnits
 } from "@/modules/trades/calculations";
 import { 
    LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -252,8 +253,7 @@ export default function AnalyticsPage() {
    // Portfolio Allocation (Open Trades)
    const portfolioAllocation = useMemo(() => {
       const allocation = openTrades.reduce((acc, trade) => {
-         const isMutualFund = trade.assetType === 'mutual_fund';
-         const shares = isMutualFund ? trade.lots : (trade.market === 'US' ? trade.lots : trade.lots * 100);
+         const shares = getTradeQuantityUnits(trade);
          
          const currentPrice = marketPrices[trade.stockCode] || trade.buyPrice || 0;
          const currentPriceIdr = trade.market === 'US' ? currentPrice * usdToIdrRate : currentPrice;

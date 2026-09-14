@@ -16,7 +16,7 @@ export interface TradeAuditLog {
 
 export interface Trade {
   id: string;
-  assetType?: 'stock' | 'mutual_fund';
+  assetType?: 'stock' | 'mutual_fund' | 'sbn';
   market: 'ID' | 'US';
   stockCode: string;
   dateBuy: string;

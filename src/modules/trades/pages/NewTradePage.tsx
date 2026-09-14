@@ -5,7 +5,7 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import { STRATEGIES, EMOTIONS } from '@/modules/shared/utils/constants';
 import { formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
-import { getTradeQuantityLabel } from '@/modules/trades/calculations';
+import { calculateTradePnL, getTradeQuantityLabel, getAggregatedOpenPositions } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import { format } from 'date-fns';
@@ -49,9 +49,10 @@ export default function NewTradePage() {
     }
 
     if (action === 'sell_existing' && trade) {
+      const compositeKey = `${trade.stockCode}_${trade.portfolioId || 'default'}_${trade.market || 'ID'}_${trade.assetType || 'stock'}`;
       return {
         tradeMode: 'SELL',
-        selectedTradeId: trade.id,
+        selectedTradeId: compositeKey,
         assetType: trade.assetType || 'stock',
         market: trade.market || 'ID',
         stockCode: trade.stockCode || '',
@@ -185,11 +186,18 @@ export default function NewTradePage() {
         return;
       }
 
-      const selectedTrade = allTrades.find((t: any) => t.id === form.selectedTradeId);
-      if (!selectedTrade) return;
+      const [stockCode, portfolioId, market, assetType] = form.selectedTradeId.split('_');
 
-      const sellLots = parseFloat(form.lots);
-      if (sellLots <= 0 || sellLots > selectedTrade.lots) {
+      const openTradesToSell = allTrades
+        .filter((t: any) => !t.sellPrice && !t.dateSell && t.stockCode === stockCode && (t.portfolioId || 'default') === portfolioId && t.market === market && (t.assetType || 'stock') === assetType)
+        .sort((a: any, b: any) => new Date(a.dateBuy).getTime() - new Date(b.dateBuy).getTime());
+
+      if (openTradesToSell.length === 0) return;
+
+      const totalOpenLots = openTradesToSell.reduce((sum: number, t: any) => sum + t.lots, 0);
+      let remainingSellLots = parseFloat(form.lots);
+
+      if (remainingSellLots <= 0 || remainingSellLots > totalOpenLots) {
         await alert('Jumlah lot tidak valid atau melebihi jumlah lot yang dimiliki.', { title: 'Gagal Menyimpan', severity: 'warning' });
         return;
       }
@@ -199,43 +207,50 @@ export default function NewTradePage() {
         return;
       }
 
-      if (sellLots < selectedTrade.lots) {
-        // Partial sell
-        const remainingLots = selectedTrade.lots - sellLots;
-        const isSplitConfirmed = await confirm(`Anda menjual ${sellLots} dari ${selectedTrade.lots} lot. Sisa ${remainingLots} lot akan dibuatkan posisi terbuka baru. Lanjutkan?`, {
+      if (remainingSellLots < totalOpenLots) {
+        const isSplitConfirmed = await confirm(`Anda menjual ${remainingSellLots} dari ${totalOpenLots} lot. Sisa ${totalOpenLots - remainingSellLots} lot akan tetap terbuka. Lanjutkan?`, {
           title: 'Konfirmasi Jual Sebagian',
           confirmText: 'Ya, Lanjutkan',
           cancelText: 'Batal'
         });
-
         if (!isSplitConfirmed) return;
+      }
 
-        // Create new closed trade
-        addTrade({
-          ...selectedTrade,
-          id: undefined,
-          lots: sellLots,
-          sellPrice: parseFloat(form.sellPrice),
-          dateSell: form.dateSell,
-          sellFee: parseFloat(form.sellFee),
-          reasonExit: form.reasonExit,
-          notes: selectedTrade.notes ? `${selectedTrade.notes}\n- Jual sebagian ${sellLots} lot pada ${form.dateSell}` : `- Jual sebagian ${sellLots} lot pada ${form.dateSell}`
-        });
+      for (const openTrade of openTradesToSell) {
+        if (remainingSellLots <= 0) break;
+        
+        if (remainingSellLots >= openTrade.lots) {
+          // Full sell of this specific trade
+          updateTrade(openTrade.id, {
+            sellPrice: parseFloat(form.sellPrice),
+            dateSell: form.dateSell,
+            sellFee: parseFloat(form.sellFee),
+            reasonExit: form.reasonExit,
+            notes: openTrade.notes ? `${openTrade.notes}\n- Jual seluruh ${openTrade.lots} lot pada ${form.dateSell}` : `- Jual seluruh ${openTrade.lots} lot pada ${form.dateSell}`
+          });
+          remainingSellLots -= openTrade.lots;
+        } else {
+          // Partial sell of this specific trade
+          const remainingOpenLots = openTrade.lots - remainingSellLots;
+          
+          addTrade({
+            ...openTrade,
+            id: undefined,
+            lots: remainingSellLots,
+            sellPrice: parseFloat(form.sellPrice),
+            dateSell: form.dateSell,
+            sellFee: parseFloat(form.sellFee),
+            reasonExit: form.reasonExit,
+            notes: openTrade.notes ? `${openTrade.notes}\n- Jual sebagian ${remainingSellLots} lot pada ${form.dateSell}` : `- Jual sebagian ${remainingSellLots} lot pada ${form.dateSell}`
+          });
 
-        // Update existing open trade
-        updateTrade(selectedTrade.id, {
-          lots: remainingLots,
-          notes: selectedTrade.notes ? `${selectedTrade.notes}\n- Sisa ${remainingLots} lot setelah jual sebagian pada ${form.dateSell}` : `- Sisa ${remainingLots} lot setelah jual sebagian pada ${form.dateSell}`
-        });
-      } else {
-        // Full sell
-        updateTrade(selectedTrade.id, {
-          sellPrice: parseFloat(form.sellPrice),
-          dateSell: form.dateSell,
-          sellFee: parseFloat(form.sellFee),
-          reasonExit: form.reasonExit,
-          notes: selectedTrade.notes ? `${selectedTrade.notes}\n- Jual seluruh ${sellLots} lot pada ${form.dateSell}` : `- Jual seluruh ${sellLots} lot pada ${form.dateSell}`
-        });
+          updateTrade(openTrade.id, {
+            lots: remainingOpenLots,
+            notes: openTrade.notes ? `${openTrade.notes}\n- Sisa ${remainingOpenLots} lot setelah jual sebagian pada ${form.dateSell}` : `- Sisa ${remainingOpenLots} lot setelah jual sebagian pada ${form.dateSell}`
+          });
+
+          remainingSellLots = 0;
+        }
       }
 
       setTradeFormDraft(null);
@@ -283,64 +298,19 @@ export default function NewTradePage() {
       return;
     }
 
-    const normalizedStockCode = isMutualFund ? form.stockCode.trim() : form.stockCode.toUpperCase();
+    const isMutualFund = form.assetType === 'mutual_fund';
+    const isSBN = form.assetType === 'sbn';
+    const isMutualFundOrSBN = isMutualFund || isSBN;
+    const normalizedStockCode = isMutualFundOrSBN ? form.stockCode.trim() : form.stockCode.toUpperCase();
     
-    // Check for existing open trade to merge
-    const existingOpenTrade = allTrades.find((t: any) => 
-      !t.sellPrice && !t.dateSell &&
-      t.stockCode === normalizedStockCode && 
-      t.market === form.market &&
-      t.assetType === (form.assetType || 'stock') &&
-      t.portfolioId === (form.portfolioId || 'default')
-    );
-
-    if (existingOpenTrade) {
-      const formatMoneyUI = form.market === 'US' ? formatUSD : formatRupiah;
-      const isMergeConfirmed = await confirm(`Saham ${normalizedStockCode} sudah ada di portofolio dengan ${existingOpenTrade.lots} lot @ ${formatMoneyUI(existingOpenTrade.buyPrice)}. Apakah Anda ingin menggabungkannya (Average Up/Down)?`, {
-        title: 'Posisi Sudah Ada',
-        confirmText: 'Gabung (Average)',
-        cancelText: 'Catat Terpisah',
-        severity: 'info'
-      });
-
-      if (isMergeConfirmed) {
-         const existingLots = existingOpenTrade.lots;
-         const existingBuy = existingOpenTrade.buyPrice;
-         const newLots = parseFloat(form.lots);
-         const newBuy = parseFloat(form.buyPrice);
-         
-         const totalLots = existingLots + newLots;
-         const newAvgPrice = ((existingLots * existingBuy) + (newLots * newBuy)) / totalLots;
-         
-         const newHistoryText = `+ Beli ${newLots} lot @ ${formatMoneyUI(newBuy)} pada ${form.dateBuy}`;
-         const updatedNotes = existingOpenTrade.notes 
-           ? `${existingOpenTrade.notes}\n${newHistoryText}`
-           : newHistoryText;
-         
-         const newTags = form.tags ? form.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
-         const combinedTags = Array.from(new Set([...(existingOpenTrade.tags || []), ...newTags]));
-
-         updateTrade(existingOpenTrade.id, {
-           lots: totalLots,
-           buyPrice: newAvgPrice,
-           notes: updatedNotes,
-           tags: combinedTags
-         });
-
-         const planId = location.state?.plan?.id;
-         if (planId) deleteTradingPlan(planId);
-
-         setTradeFormDraft(null);
-         navigate('/trades');
-         return;
-      }
-    }
+    // Trades are now always created as separate records to preserve transaction history.
+    // Portfolio view will dynamically aggregate them.
 
     addTrade({
       ...form,
       assetType: form.assetType || 'stock',
       market: form.market,
-      stockCode: isMutualFund ? form.stockCode.trim() : form.stockCode.toUpperCase(),
+      stockCode: form.assetType === 'mutual_fund' || form.assetType === 'sbn' ? form.stockCode.trim() : form.stockCode.toUpperCase(),
       buyPrice: parseFloat(form.buyPrice),
       sellPrice: form.sellPrice ? parseFloat(form.sellPrice) : null,
       lots: parseFloat(form.lots),
@@ -362,10 +332,12 @@ export default function NewTradePage() {
 
   const isUS = form.market === 'US';
   const isMutualFund = form.assetType === 'mutual_fund';
+  const isSBN = form.assetType === 'sbn';
+  const isMutualFundOrSBN = isMutualFund || isSBN;
   const lots = parseFloat(form.lots) || 0;
   const buyPrice = parseFloat(form.buyPrice) || 0;
   const sellPrice = parseFloat(form.sellPrice) || 0;
-  const shares = isMutualFund ? lots : (isUS ? lots : lots * 100);
+  const shares = isMutualFundOrSBN ? lots : (isUS ? lots : lots * 100);
   const totalBuy = buyPrice * shares;
   const totalSell = sellPrice * shares;
   const buyComm = totalBuy * (parseFloat(form.buyFee) / 100);
@@ -454,24 +426,28 @@ export default function NewTradePage() {
                       <CustomSelect
                         value={form.selectedTradeId || ''}
                         onChange={(val) => {
-                          const t = allTrades.find((trade: any) => trade.id === val);
+                          const aggregatedOpenTrades = getAggregatedOpenPositions(allTrades);
+                          const t = aggregatedOpenTrades.find((trade: any) => `${trade.stockCode}_${trade.portfolioId || 'default'}_${trade.market || 'ID'}_${trade.assetType || 'stock'}` === val);
                           if (t) {
                             setForm(prev => ({
                               ...prev,
-                              selectedTradeId: t.id,
+                              selectedTradeId: val,
                               stockCode: t.stockCode,
                               lots: String(t.lots),
                               portfolioId: t.portfolioId || 'default',
                               market: t.market,
-                              assetType: t.assetType
+                              assetType: t.assetType || 'stock'
                             }));
                           }
                         }}
                         options={[
                           { value: '', label: 'Pilih posisi terbuka...' },
-                          ...allTrades
-                             .filter((t: any) => !t.sellPrice && !t.dateSell && t.portfolioId === (form.portfolioId || 'default'))
-                             .map((t: any) => ({ value: t.id, label: `${t.stockCode} - ${t.lots} ${getTradeQuantityLabel(t)} @ ${formatMoney(t.buyPrice)}` }))
+                          ...getAggregatedOpenPositions(allTrades)
+                             .filter((t: any) => t.portfolioId === (form.portfolioId || 'default'))
+                             .map((t: any) => ({ 
+                               value: `${t.stockCode}_${t.portfolioId || 'default'}_${t.market || 'ID'}_${t.assetType || 'stock'}`, 
+                               label: `${t.stockCode} - ${t.lots} ${getTradeQuantityLabel(t)} @ ${formatMoney(t.buyPrice)}` 
+                             }))
                         ]}
                       />
                     </div>
@@ -519,6 +495,24 @@ export default function NewTradePage() {
                       />
                       Reksadana
                     </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="assetType"
+                        checked={form.assetType === 'sbn'}
+                        onChange={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            assetType: 'sbn',
+                            market: 'ID',
+                            buyFee: 0,
+                            sellFee: 0,
+                          }));
+                        }}
+                        disabled={isLockedFromExisting}
+                      />
+                      SBN
+                    </label>
                   </div>
                 </div>
                   </>
@@ -563,9 +557,9 @@ export default function NewTradePage() {
                       Amerika (USD)
                     </label>
                   </div>
-                  {isMutualFund ? (
+                  {isMutualFundOrSBN ? (
                     <div style={{ fontSize: '0.75rem', marginTop: 6, color: 'var(--text-muted)' }}>
-                      Reksadana dicatat dalam satuan unit.
+                      {isSBN ? 'SBN dicatat dalam satuan unit.' : 'Reksadana dicatat dalam satuan unit.'}
                     </div>
                   ) : null}
                 </div>
@@ -573,28 +567,28 @@ export default function NewTradePage() {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">{isMutualFund ? 'Nama / Kode Reksadana *' : 'Kode Saham *'}</label>
+                    <label className="form-label">{isMutualFund ? 'Nama / Kode Reksadana *' : isSBN ? 'Seri SBN *' : 'Kode Saham *'}</label>
                     <input
                       className="form-input"
-                      placeholder={isMutualFund ? 'Contoh: Sucorinvest Money Market Fund' : isUS ? 'Contoh: AAPL' : 'Contoh: BBCA'}
+                      placeholder={isMutualFund ? 'Contoh: Sucorinvest Money Market Fund' : isSBN ? 'Contoh: SR019' : isUS ? 'Contoh: AAPL' : 'Contoh: BBCA'}
                       value={form.stockCode}
-                      onChange={e => set('stockCode', isMutualFund ? e.target.value : e.target.value.toUpperCase())}
-                      style={isMutualFund ? undefined : { textTransform: 'uppercase' }}
+                      onChange={e => set('stockCode', isMutualFundOrSBN ? e.target.value : e.target.value.toUpperCase())}
+                      style={isMutualFundOrSBN ? undefined : { textTransform: 'uppercase' }}
                       disabled={form.tradeMode === 'SELL' || isLockedFromExisting}
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">
-                      {isMutualFund ? 'Jumlah Unit *' : isUS ? 'Jumlah Lembar (Shares) *' : 'Jumlah Lot *'}
+                      {isMutualFundOrSBN ? 'Jumlah Unit *' : isUS ? 'Jumlah Lembar (Shares) *' : 'Jumlah Lot *'}
                     </label>
                     <input
                       type="number"
-                      step={isMutualFund || isUS ? 'any' : '1'}
+                      step={isMutualFundOrSBN || isUS ? 'any' : '1'}
                       className="form-input"
-                      placeholder={isMutualFund ? 'Contoh: 1250.45' : isUS ? 'Contoh: 1.5' : 'Contoh: 10'}
+                      placeholder={isMutualFundOrSBN ? 'Contoh: 1250.45' : isUS ? 'Contoh: 1.5' : 'Contoh: 10'}
                       value={form.lots}
                       onChange={e => set('lots', e.target.value)}
-                      min={isMutualFund || isUS ? '0.0001' : '1'}
+                      min={isMutualFundOrSBN || isUS ? '0.0001' : '1'}
                     />
                   </div>
                 </div>
@@ -622,12 +616,12 @@ export default function NewTradePage() {
                 <div className="form-row">
                   {form.tradeMode === 'BUY' && (
                     <div className="form-group">
-                      <label className="form-label">{isMutualFund ? 'NAB Beli per Unit *' : 'Harga Beli (per lembar) *'}</label>
-                      <input type="number" step="any" className="form-input" placeholder={isMutualFund ? 'Contoh: 1287.35' : isUS ? 'Contoh: 150.5' : 'Contoh: 8500'} value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
+                      <label className="form-label">{isMutualFund ? 'NAB Beli per Unit *' : isSBN ? 'Harga Beli per Unit *' : 'Harga Beli (per lembar) *'}</label>
+                      <input type="number" step="any" className="form-input" placeholder={isMutualFund ? 'Contoh: 1287.35' : isSBN ? 'Contoh: 1000000' : isUS ? 'Contoh: 150.5' : 'Contoh: 8500'} value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
                     </div>
                   )}
                   <div className="form-group">
-                    <label className="form-label">{form.tradeMode === 'SELL' ? (isMutualFund ? 'NAB Jual per Unit *' : 'Harga Jual (per lembar) *') : (isMutualFund ? 'NAB Jual per Unit' : 'Harga Jual (per lembar)')}</label>
+                    <label className="form-label">{form.tradeMode === 'SELL' ? (isMutualFund ? 'NAB Jual per Unit *' : isSBN ? 'Harga Jual per Unit *' : 'Harga Jual (per lembar) *') : (isMutualFund ? 'NAB Jual per Unit' : isSBN ? 'Harga Jual per Unit' : 'Harga Jual (per lembar)')}</label>
                     <input type="number" step="any" className="form-input" placeholder="Kosongkan jika masih hold" value={form.sellPrice} onChange={e => set('sellPrice', e.target.value)} />
                   </div>
                 </div>
