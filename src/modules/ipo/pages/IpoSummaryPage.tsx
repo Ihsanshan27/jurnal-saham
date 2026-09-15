@@ -99,7 +99,7 @@ export default function IpoSummaryPage() {
           return item[key] ?? 0;
       }
     },
-    tieBreaker: (a: any, b: any) => new Date(b.event.ipoDate).getTime() - new Date(a.event.ipoDate).getTime(),
+    tieBreaker: (a: any, b: any) => new Date(a.event.ipoDate).getTime() - new Date(b.event.ipoDate).getTime(),
   });
   const sortedFilteredEventSummaries = useMemo(() => {
     const idSet = new Set(filteredEventSummaries.map((item) => item.event.id));
@@ -182,7 +182,7 @@ export default function IpoSummaryPage() {
       item: any,
       key: 'accountName' | 'email' | 'eventCount' | 'totalLots' | 'simulatedLots' | 'breakdown' | 'simulatedCapital'
     ) => item[key] ?? '',
-    tieBreaker: (a: any, b: any) => b.simulatedCapital - a.simulatedCapital || a.accountName.localeCompare(b.accountName),
+    tieBreaker: (a: any, b: any) => a.simulatedCapital - b.simulatedCapital || a.accountName.localeCompare(b.accountName),
   });
 
   // Underwriter list parsing helper
@@ -264,7 +264,7 @@ export default function IpoSummaryPage() {
     initialKey: 'eventCount',
     initialDirection: 'desc',
     getValue: (item: any, key: 'underwriter' | 'eventCount' | 'avgReturnPct' | 'winRate' | 'maxCapital') => item[key] ?? 0,
-    tieBreaker: (a: any, b: any) => b.eventCount - a.eventCount || a.underwriter.localeCompare(b.underwriter),
+    tieBreaker: (a: any, b: any) => a.eventCount - b.eventCount || a.underwriter.localeCompare(b.underwriter),
   });
   const accountCapitalGrandTotal = useMemo(
     () => accountCapitalSummaries.reduce((sum, account) => sum + account.simulatedCapital, 0),

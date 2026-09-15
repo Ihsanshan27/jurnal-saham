@@ -223,8 +223,8 @@ export default function DashboardPage() {
          return trade[key] || "";
       },
       tieBreaker: (a, b) =>
-         (parseLocalDate(b.dateSell)?.getTime() || 0) -
-         (parseLocalDate(a.dateSell)?.getTime() || 0),
+         (parseLocalDate(a.dateSell)?.getTime() || 0) -
+         (parseLocalDate(b.dateSell)?.getTime() || 0),
    });
 
    const calendarDays = useMemo<Array<DashboardCalendarDay | null>>(() => {

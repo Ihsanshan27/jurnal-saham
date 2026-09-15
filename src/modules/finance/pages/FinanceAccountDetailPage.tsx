@@ -196,7 +196,7 @@ export default function FinanceAccountDetailPage() {
     initialKey: 'date',
     initialDirection: 'desc',
     getValue: (item: any, key: 'date' | 'type' | 'description' | 'amount') => item[key] || '',
-    tieBreaker: (left: any, right: any) => new Date(right.createdAt || right.date).getTime() - new Date(left.createdAt || left.date).getTime(),
+    tieBreaker: (left: any, right: any) => new Date(left.createdAt || left.date).getTime() - new Date(right.createdAt || right.date).getTime(),
   });
 
   const balance = account ? getFinanceAccountCurrentBalance(account.id) : 0;

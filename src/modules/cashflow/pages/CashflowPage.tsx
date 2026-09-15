@@ -117,8 +117,7 @@ export default function CashflowPage() {
     getValue: (item: any, key: string) =>
       item[key] || "",
     tieBreaker: (a: any, b: any) =>
-      new Date(b.createdAt || b.date).getTime() -
-      new Date(a.createdAt || a.date).getTime(),
+      new Date(a.date || a.createdAt).getTime() - new Date(b.date || b.createdAt).getTime(),
   });
 
   const set = (k: string, v: string) =>

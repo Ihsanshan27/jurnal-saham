@@ -68,7 +68,7 @@ export default function DividendPage() {
       if (key === 'payDate') return div.payDate || div.createdAt || '';
       return div[key] || '';
     },
-    tieBreaker: (a: any, b: any) => new Date(b.payDate || b.createdAt).getTime() - new Date(a.payDate || a.createdAt).getTime(),
+    tieBreaker: (a: any, b: any) => new Date(a.payDate || a.createdAt).getTime() - new Date(b.payDate || b.createdAt).getTime(),
   });
 
   const set = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
