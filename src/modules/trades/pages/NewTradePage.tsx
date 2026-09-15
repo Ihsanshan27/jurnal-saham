@@ -695,13 +695,13 @@ export default function NewTradePage() {
                 {form.tradeMode === 'BUY' && (
                   <div className="form-group">
                     <label className="form-label">Alasan Entry</label>
-                    <textarea className="form-textarea" placeholder="Kenapa beli saham ini?" value={form.reasonEntry} onChange={e => set('reasonEntry', e.target.value)} />
+                    <textarea className="form-textarea" placeholder="Kenapa beli saham ini?" value={form.reasonEntry} onChange={e => set('reasonEntry', e.target.value)} rows={4} />
                   </div>
                 )}
 
                 <div className="form-group">
                   <label className="form-label">Alasan Exit</label>
-                  <textarea className="form-textarea" placeholder="Kenapa jual saham ini?" value={form.reasonExit} onChange={e => set('reasonExit', e.target.value)} />
+                  <textarea className="form-textarea" placeholder="Kenapa jual saham ini?" value={form.reasonExit} onChange={e => set('reasonExit', e.target.value)} rows={4} />
                 </div>
 
                 <div className="form-group">
@@ -733,7 +733,7 @@ export default function NewTradePage() {
 
                 <div className="form-group">
                   <label className="form-label">Catatan Tambahan</label>
-                  <textarea className="form-textarea" placeholder="Lessons learned, catatan lain..." value={form.notes} onChange={e => set('notes', e.target.value)} />
+                  <textarea className="form-textarea" placeholder="Lessons learned, catatan lain..." value={form.notes} onChange={e => set('notes', e.target.value)} rows={6} />
                 </div>
               </div>
             </div>
