@@ -27,6 +27,7 @@ export interface FinanceTransaction {
   amount: number;
   date: string;
   description: string;
+  notes?: string;
   counterpartyAccountId?: string;
   linkedCashflowId?: string;
   linkedPortfolioId?: string;

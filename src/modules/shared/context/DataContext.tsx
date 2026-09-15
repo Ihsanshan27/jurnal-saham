@@ -1032,6 +1032,7 @@ export function DataProvider({ children }) {
       amount: amountInIdr,
       date: transfer.date,
       description: transfer.description || 'Transfer ke dompet trading',
+      notes: transfer.notes || '',
       category: transfer.category || 'Transfer ke dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
@@ -1065,6 +1066,7 @@ export function DataProvider({ children }) {
       amount: amountInIdr,
       date: transfer.date,
       description: transfer.description || 'Transfer dari dompet trading',
+      notes: transfer.notes || '',
       category: transfer.category || 'Transfer dari dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
@@ -1098,6 +1100,7 @@ export function DataProvider({ children }) {
     const transferGroupId = generateId();
     const createdAt = new Date().toISOString();
     const description = transfer.description || 'Transfer internal';
+    const notes = transfer.notes || '';
     const sourceTransaction = {
       id: generateId(),
       accountId: transfer.fromAccountId,
@@ -1105,6 +1108,7 @@ export function DataProvider({ children }) {
       amount,
       date: transfer.date,
       description,
+      notes,
       counterpartyAccountId: transfer.toAccountId,
       transferGroupId,
       createdAt,
@@ -1116,6 +1120,7 @@ export function DataProvider({ children }) {
       amount,
       date: transfer.date,
       description,
+      notes,
       counterpartyAccountId: transfer.fromAccountId,
       transferGroupId,
       createdAt,

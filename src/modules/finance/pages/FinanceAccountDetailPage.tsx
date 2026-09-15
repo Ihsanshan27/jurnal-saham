@@ -23,6 +23,7 @@ function createInitialTransactionForm(activePortfolioId: string) {
     adjustmentDirection: 'increase',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    notes: '',
     category: '',
     linkToCashflow: false,
     linkedPortfolioId: activePortfolioId || 'default',
@@ -35,6 +36,7 @@ function createInitialTransferForm() {
     amount: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    notes: '',
   };
 }
 
@@ -44,6 +46,7 @@ function createInitialPortfolioTransferForm(activePortfolioId: string) {
     amount: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    notes: '',
   };
 }
 
@@ -53,6 +56,7 @@ function createInitialPortfolioWithdrawalForm(activePortfolioId: string) {
     amount: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
+    notes: '',
   };
 }
 
@@ -251,6 +255,7 @@ export default function FinanceAccountDetailPage() {
       amount,
       date: transactionForm.date,
       description: transactionForm.description,
+      notes: transactionForm.notes,
       category: transactionForm.category,
       linkToCashflow: Boolean(transactionForm.linkToCashflow),
       linkedPortfolioId: transactionForm.linkedPortfolioId,
@@ -275,6 +280,7 @@ export default function FinanceAccountDetailPage() {
       adjustmentDirection: transaction.amount < 0 ? 'decrease' : 'increase',
       date: transaction.date,
       description: transaction.description || '',
+      notes: transaction.notes || '',
       category: transaction.category || '',
       linkToCashflow: Boolean(transaction.linkedCashflowId),
       linkedPortfolioId: transaction.linkedPortfolioId || activePortfolioId || 'default',
@@ -307,6 +313,7 @@ export default function FinanceAccountDetailPage() {
       amount: transferForm.amount,
       date: transferForm.date,
       description: transferForm.description,
+      notes: transferForm.notes,
     });
     setTransferForm(createInitialTransferForm());
   };
@@ -319,6 +326,7 @@ export default function FinanceAccountDetailPage() {
       amount: portfolioTransferForm.amount,
       date: portfolioTransferForm.date,
       description: portfolioTransferForm.description,
+      notes: portfolioTransferForm.notes,
     });
     setPortfolioTransferForm(createInitialPortfolioTransferForm(activePortfolioId));
   };
@@ -331,6 +339,7 @@ export default function FinanceAccountDetailPage() {
       amount: portfolioWithdrawalForm.amount,
       date: portfolioWithdrawalForm.date,
       description: portfolioWithdrawalForm.description,
+      notes: portfolioWithdrawalForm.notes,
     });
     setPortfolioWithdrawalForm(createInitialPortfolioWithdrawalForm(activePortfolioId));
   };
@@ -509,6 +518,13 @@ export default function FinanceAccountDetailPage() {
                 </div>
               </div>
 
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finance-transaction-notes">Catatan Tambahan</label>
+                  <textarea id="finance-transaction-notes" className="form-input" rows={3} value={transactionForm.notes} onChange={(event) => handleTransactionChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                </div>
+              </div>
+
               <div style={{ marginBottom: 12 }}>
                 <SelectionToggleCard
                   checked={Boolean(transactionForm.linkToCashflow)}
@@ -594,6 +610,12 @@ export default function FinanceAccountDetailPage() {
                   <input id="finance-transfer-description" className="form-input" value={transferForm.description} onChange={(event) => handleTransferChange('description', event.target.value)} placeholder="Pindah dana ke e-wallet / ke rekening utama" />
                 </div>
               </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finance-transfer-notes">Catatan Tambahan</label>
+                  <textarea id="finance-transfer-notes" className="form-input" rows={3} value={transferForm.notes} onChange={(event) => handleTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                </div>
+              </div>
               <div className="finance-actions">
                 <button type="submit" className="btn btn-primary">
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -656,6 +678,12 @@ export default function FinanceAccountDetailPage() {
                   />
                 </div>
               </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finance-portfolio-transfer-notes">Catatan Tambahan</label>
+                  <textarea id="finance-portfolio-transfer-notes" className="form-input" rows={3} value={portfolioTransferForm.notes} onChange={(event) => handlePortfolioTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                </div>
+              </div>
               <div className="finance-actions">
                 <button type="submit" className="btn btn-primary">
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -716,6 +744,12 @@ export default function FinanceAccountDetailPage() {
                     onChange={(event) => handlePortfolioWithdrawalChange('description', event.target.value)}
                     placeholder="Tarik profit / pindah dana dari dompet trading"
                   />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finance-portfolio-withdrawal-notes">Catatan Tambahan</label>
+                  <textarea id="finance-portfolio-withdrawal-notes" className="form-input" rows={3} value={portfolioWithdrawalForm.notes} onChange={(event) => handlePortfolioWithdrawalChange('notes', event.target.value)} placeholder="Catatan opsional..." />
                 </div>
               </div>
               <div className="finance-actions">
