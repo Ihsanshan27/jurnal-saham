@@ -138,6 +138,8 @@ export default function SettingsPage() {
   const { confirm } = useDialog();
   const [activeTab, setActiveTab] = useState('trading');
   const [newUsername, setNewUsername] = useState(user?.username || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [form, setForm] = useState({ ...settings });
   const [allProfiles, setAllProfiles] = useState([]);
   const [sharedAccessRows, setSharedAccessRows] = useState([]);
@@ -373,6 +375,38 @@ export default function SettingsPage() {
       metadata: { displayName: newUsername.trim() },
     });
     showToast('Profil diperbarui');
+  };
+
+  const { resetPassword } = useAuth();
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      showToast('Password baru minimal 6 karakter', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Konfirmasi password tidak cocok', 'error');
+      return;
+    }
+
+    const isConfirmed = await confirm('Apakah Anda yakin ingin mengubah password? Anda akan diminta login ulang setelahnya.', {
+      title: 'Konfirmasi Ubah Password',
+      confirmText: 'Ubah Password',
+    });
+    
+    if (!isConfirmed) return;
+
+    try {
+      const result = await resetPassword(newPassword);
+      if (result?.success === false) {
+        showToast(result.error, 'error');
+        return;
+      }
+      setNewPassword('');
+      setConfirmPassword('');
+      showToast('Password berhasil diubah. Silakan login kembali.');
+    } catch (error: any) {
+      showToast(`Gagal mengubah password: ${error.message}`, 'error');
+    }
   };
 
   const handleExport = () => {
@@ -1103,6 +1137,41 @@ export default function SettingsPage() {
                   <button className="btn btn-primary" onClick={handleSaveUsername}>
                     <Save size={16} />
                     <span>Simpan Profil</span>
+                  </button>
+                </div>
+              </SectionCard>
+
+              <SectionCard title="Keamanan Akun" description="Ubah password untuk keamanan akun Anda.">
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Password Baru</label>
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      value={newPassword} 
+                      onChange={e => setNewPassword(e.target.value)} 
+                      placeholder="Minimal 6 karakter"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Konfirmasi Password Baru</label>
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      value={confirmPassword} 
+                      onChange={e => setConfirmPassword(e.target.value)} 
+                      placeholder="Ketik ulang password baru"
+                    />
+                  </div>
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={handleChangePassword}
+                    disabled={!newPassword || !confirmPassword}
+                  >
+                    <ShieldCheck size={16} />
+                    <span>Ubah Password</span>
                   </button>
                 </div>
               </SectionCard>
