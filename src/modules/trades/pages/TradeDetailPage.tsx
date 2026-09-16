@@ -2,7 +2,7 @@ import { Star, Image as ImageIcon, User, Calendar } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
-import { calculateTradePnL, calculateUnrealizedPnL, getTradeAssetTypeLabel, getTradeQuantityLabel, getTradeQuantityUnits } from '@/modules/trades/calculations';
+import { calculateTradePnL, calculateUnrealizedPnL, getTradeAssetTypeLabel, getTradeQuantityLabel, getTradeQuantityUnits, getAggregatedOpenPositions } from '@/modules/trades/calculations';
 import { formatRupiah, formatUSD, formatPercent, formatDate } from '@/modules/shared/utils/formatters';
 import { STRATEGIES, EMOTIONS } from '@/modules/shared/utils/constants';
 import { useState, useEffect, useMemo } from 'react';
@@ -21,15 +21,35 @@ export default function TradeDetailPage() {
   const { alert, confirm } = useDialog();
   const trade = getTradeById(id);
 
+  const relatedTrades = useMemo(() => {
+    if (!trade || !trades) return [];
+    return trades
+      .filter((t: any) => 
+        t.stockCode === trade.stockCode && 
+        (t.portfolioId || 'default') === (trade.portfolioId || 'default') && 
+        t.market === trade.market
+      )
+      .sort((a: any, b: any) => new Date(b.dateBuy).getTime() - new Date(a.dateBuy).getTime());
+  }, [trades, trade]);
+
+  const openRelatedTrades = useMemo(() => relatedTrades.filter((t: any) => !t.sellPrice && !t.dateSell), [relatedTrades]);
+  const isOpen = !trade?.sellPrice || !trade?.dateSell;
+  const isAggregated = isOpen && openRelatedTrades.length > 1;
+  const aggregatedTrade = useMemo(() => isAggregated ? getAggregatedOpenPositions(openRelatedTrades)[0] : null, [isAggregated, openRelatedTrades]);
+
   const draftForThis = tradeEditDraft?.tradeId === id ? tradeEditDraft : null;
   const [editing, setEditing] = useState<boolean>(() => draftForThis?.editing ?? false);
   const [form, setForm] = useState<any>(() => draftForThis?.form ?? trade ?? {});
 
+  const [viewAggregated, setViewAggregated] = useState<boolean>(() => isAggregated);
+
   useEffect(() => {
-    if (editing) {
-      setTradeEditDraft({ tradeId: id, editing, form });
-    }
-  }, [editing, form, id, setTradeEditDraft]);
+    if (editing) setViewAggregated(false);
+  }, [editing]);
+
+  useEffect(() => {
+    if (!editing) setViewAggregated(isAggregated);
+  }, [isAggregated, editing]);
 
   if (!trade) {
     return (
@@ -41,28 +61,28 @@ export default function TradeDetailPage() {
     );
   }
 
+  const displayTrade = (viewAggregated && aggregatedTrade) ? aggregatedTrade : trade;
   const strategiesList = settings.customStrategies || STRATEGIES;
   const emotionsList = settings.customEmotions || EMOTIONS;
 
-  const calc = calculateTradePnL(trade);
-  const isOpen = !trade.sellPrice || !trade.dateSell;
-  const emotion = emotionsList.find((item) => item.value === trade.emotion);
-  const isUS = trade.market === 'US';
-  const isMutualFund = trade.assetType === 'mutual_fund';
+  const calc = calculateTradePnL(displayTrade);
+  const emotion = emotionsList.find((item) => item.value === displayTrade.emotion);
+  const isUS = displayTrade.market === 'US';
+  const isMutualFund = displayTrade.assetType === 'mutual_fund';
   const formatMoney = isUS ? formatUSD : formatRupiah;
-  const quantityLabel = getTradeQuantityLabel(trade);
+  const quantityLabel = getTradeQuantityLabel(displayTrade);
 
   let displayPnL = calc.pnl;
   let displayPnLPercent = calc.pnlPercent;
   let isEstimasi = false;
 
-  if (isOpen && !trade.sellPrice && marketPrices && marketPrices[trade.stockCode]) {
-    const currentPrice = marketPrices[trade.stockCode];
-    const { pnl, pnlPercent } = calculateUnrealizedPnL(trade.buyPrice, currentPrice, trade.lots, trade.buyFee, trade.market || 'ID', trade.assetType || 'stock');
+  if (isOpen && !displayTrade.sellPrice && marketPrices && marketPrices[displayTrade.stockCode]) {
+    const currentPrice = marketPrices[displayTrade.stockCode];
+    const { pnl, pnlPercent } = calculateUnrealizedPnL(displayTrade.buyPrice, currentPrice, displayTrade.lots, displayTrade.buyFee, displayTrade.market || 'ID', displayTrade.assetType || 'stock');
     displayPnL = pnl;
     displayPnLPercent = pnlPercent;
     isEstimasi = true;
-  } else if (isOpen && trade.sellPrice) {
+  } else if (isOpen && displayTrade.sellPrice) {
     isEstimasi = true;
   }
 
@@ -170,17 +190,6 @@ export default function TradeDetailPage() {
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
-  const relatedTrades = useMemo(() => {
-    if (!trade || !trades) return [];
-    return trades
-      .filter((t: any) => 
-        t.stockCode === trade.stockCode && 
-        (t.portfolioId || 'default') === (trade.portfolioId || 'default') && 
-        t.market === trade.market
-      )
-      .sort((a: any, b: any) => new Date(b.dateBuy).getTime() - new Date(a.dateBuy).getTime());
-  }, [trades, trade]);
-
   return (
     <div>
       <div className="page-header">
@@ -221,7 +230,22 @@ export default function TradeDetailPage() {
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header">
               <h3 className="card-title">Detail Transaksi {isUS ? <span style={{ fontSize: '0.8em', marginLeft: 8 }}>US</span> : null}</h3>
-              <span className={`badge ${isOpen ? 'badge-yellow' : 'badge-green'}`}>{isOpen ? 'Open' : 'Closed'}</span>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                {isAggregated && !editing ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+                    <label style={{ color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, userSelect: 'none' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={viewAggregated} 
+                        onChange={(e) => setViewAggregated(e.target.checked)} 
+                        style={{ cursor: 'pointer' }}
+                      />
+                      Gabungkan (Average)
+                    </label>
+                  </div>
+                ) : null}
+                <span className={`badge ${isOpen ? 'badge-yellow' : 'badge-green'}`}>{isOpen ? 'Open' : 'Closed'}</span>
+              </div>
             </div>
             <div className="card-body">
               {editing ? (
@@ -347,13 +371,13 @@ export default function TradeDetailPage() {
                 </>
               ) : (
                 <div className="calc-result" style={{ marginTop: 0, background: 'transparent', border: 'none', padding: 0 }}>
-                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'Produk' : 'Kode Saham'}</span><span className="calc-result-value">{trade.stockCode}</span></div>
-                  <div className="calc-result-row"><span className="calc-result-label">Jenis Aset</span><span className="calc-result-value">{getTradeAssetTypeLabel(trade)}</span></div>
-                  <div className="calc-result-row"><span className="calc-result-label">Tanggal Beli</span><span className="calc-result-value">{formatDate(trade.dateBuy)}</span></div>
-                  <div className="calc-result-row"><span className="calc-result-label">Tanggal Jual</span><span className="calc-result-value">{trade.dateSell ? formatDate(trade.dateSell) : '-'}</span></div>
-                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'NAB Beli' : 'Harga Beli'}</span><span className="calc-result-value">{formatMoney(trade.buyPrice)}</span></div>
-                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'NAB Jual' : 'Harga Jual'}</span><span className="calc-result-value">{trade.sellPrice ? formatMoney(trade.sellPrice) : (marketPrices && marketPrices[trade.stockCode] ? <span style={{ color: 'var(--text-muted)' }}>{formatMoney(marketPrices[trade.stockCode])} (est)</span> : '-')}</span></div>
-                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'Unit' : isUS ? 'Shares' : 'Lot'}</span><span className="calc-result-value">{trade.lots} {isMutualFund ? quantityLabel : isUS ? 'lembar' : `(${getTradeQuantityUnits(trade)} lembar)`}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'Produk' : 'Kode Saham'}</span><span className="calc-result-value">{displayTrade.stockCode}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">Jenis Aset</span><span className="calc-result-value">{getTradeAssetTypeLabel(displayTrade)}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">Tanggal Beli</span><span className="calc-result-value">{formatDate(displayTrade.dateBuy)}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">Tanggal Jual</span><span className="calc-result-value">{displayTrade.dateSell ? formatDate(displayTrade.dateSell) : '-'}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'NAB Beli' : (viewAggregated ? 'Harga Beli (Average)' : 'Harga Beli')}</span><span className="calc-result-value">{formatMoney(displayTrade.buyPrice)}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'NAB Jual' : 'Harga Jual'}</span><span className="calc-result-value">{displayTrade.sellPrice ? formatMoney(displayTrade.sellPrice) : (marketPrices && marketPrices[displayTrade.stockCode] ? <span style={{ color: 'var(--text-muted)' }}>{formatMoney(marketPrices[displayTrade.stockCode])} (est)</span> : '-')}</span></div>
+                  <div className="calc-result-row"><span className="calc-result-label">{isMutualFund ? 'Unit' : isUS ? 'Shares' : 'Lot'}</span><span className="calc-result-value">{displayTrade.lots} {isMutualFund ? quantityLabel : isUS ? 'lembar' : `(${getTradeQuantityUnits(displayTrade)} lembar)`}</span></div>
                   <div className="calc-result-row"><span className="calc-result-label">Total Beli</span><span className="calc-result-value">{formatMoney(calc.totalBuy)}</span></div>
                   {!isOpen ? <div className="calc-result-row"><span className="calc-result-label">Total Jual</span><span className="calc-result-value">{formatMoney(calc.totalSell)}</span></div> : null}
                   {!isOpen ? <div className="calc-result-row"><span className="calc-result-label">Total Fee</span><span className="calc-result-value">{formatMoney(calc.totalFee)}</span></div> : null}
