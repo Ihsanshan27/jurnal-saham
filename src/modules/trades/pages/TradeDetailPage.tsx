@@ -17,7 +17,7 @@ export default function TradeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getTradeById, updateTrade, addTrade, deleteTrade, marketPrices, showToast, portfolios, settings, tradeEditDraft, setTradeEditDraft } = useData();
+  const { getTradeById, updateTrade, addTrade, deleteTrade, marketPrices, showToast, portfolios, settings, tradeEditDraft, setTradeEditDraft, trades } = useData();
   const { alert, confirm } = useDialog();
   const trade = getTradeById(id);
 
@@ -169,6 +169,17 @@ export default function TradeDetailPage() {
   };
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const relatedTrades = useMemo(() => {
+    if (!trade || !trades) return [];
+    return trades
+      .filter((t: any) => 
+        t.stockCode === trade.stockCode && 
+        (t.portfolioId || 'default') === (trade.portfolioId || 'default') && 
+        t.market === trade.market
+      )
+      .sort((a: any, b: any) => new Date(b.dateBuy).getTime() - new Date(a.dateBuy).getTime());
+  }, [trades, trade]);
 
   return (
     <div>
@@ -419,6 +430,87 @@ export default function TradeDetailPage() {
               </div>
             </div>
           ) : null}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 24, marginBottom: 20 }}>
+        <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icons.List size={18} style={{ color: 'var(--accent-blue-light)' }} />
+          <h3 className="card-title">Histori Transaksi {trade.stockCode}</h3>
+        </div>
+        <div className="card-body" style={{ padding: 0 }}>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Tanggal Beli</th>
+                  <th>Tanggal Jual</th>
+                  <th>Beli</th>
+                  <th>Jual</th>
+                  <th>Kuantitas</th>
+                  <th>Total Beli</th>
+                  <th>Profit/Loss</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {relatedTrades.map((t: any) => {
+                  const tCalc = calculateTradePnL(t);
+                  const isTOpen = !t.sellPrice && !t.dateSell;
+                  let tPnL = tCalc.pnl;
+                  let tPnLPercent = tCalc.pnlPercent;
+                  let tIsEst = false;
+                  
+                  if (isTOpen && marketPrices && marketPrices[t.stockCode]) {
+                    const currentP = marketPrices[t.stockCode];
+                    const ur = calculateUnrealizedPnL(t.buyPrice, currentP, t.lots, t.buyFee, t.market || 'ID', t.assetType || 'stock');
+                    tPnL = ur.pnl;
+                    tPnLPercent = ur.pnlPercent;
+                    tIsEst = true;
+                  } else if (isTOpen && t.sellPrice) {
+                    tIsEst = true;
+                  }
+
+                  const tHasPnL = !isTOpen || tIsEst;
+                  
+                  return (
+                    <tr key={t.id} style={{ background: t.id === id ? 'rgba(255,255,255,0.03)' : 'transparent' }}>
+                      <td>
+                        <span className={`badge ${isTOpen ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                          {isTOpen ? 'Open' : 'Closed'}
+                        </span>
+                      </td>
+                      <td>{formatDate(t.dateBuy)}</td>
+                      <td>{t.dateSell ? formatDate(t.dateSell) : '-'}</td>
+                      <td>{formatMoney(t.buyPrice)}</td>
+                      <td>{t.sellPrice ? formatMoney(t.sellPrice) : '-'}</td>
+                      <td>{t.lots} {isMutualFund ? quantityLabel : isUS ? 'lembar' : `(${getTradeQuantityUnits(t)} lembar)`}</td>
+                      <td>{formatMoney(tCalc.totalBuy)}</td>
+                      <td className={tHasPnL ? (tPnL >= 0 ? 'text-profit' : 'text-loss') : ''} style={{ fontWeight: tHasPnL ? 600 : 400 }}>
+                        {tHasPnL ? `${formatMoney(tPnL)} (${formatPercent(tPnLPercent)})` : '-'}
+                      </td>
+                      <td>
+                        {t.id !== id ? (
+                          <button 
+                            className="btn btn-ghost btn-sm" 
+                            onClick={() => {
+                              navigate(`/trades/${t.id}`);
+                              window.scrollTo(0, 0);
+                            }}
+                          >
+                            Lihat
+                          </button>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Saat ini</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
