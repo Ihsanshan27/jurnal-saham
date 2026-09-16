@@ -5,7 +5,7 @@ import { useDialog } from '@/modules/shared/context/DialogContext';
 import { calculateTradePnL, calculateUnrealizedPnL, getTradeAssetTypeLabel, getTradeQuantityLabel, getTradeQuantityUnits } from '@/modules/trades/calculations';
 import { formatRupiah, formatUSD, formatPercent, formatDate } from '@/modules/shared/utils/formatters';
 import { STRATEGIES, EMOTIONS } from '@/modules/shared/utils/constants';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/modules/auth/AuthContext';
 import TradeReviewPanel from '@/modules/trades/components/TradeReviewPanel';
 import * as Icons from 'lucide-react';
