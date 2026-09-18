@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Landmark, List, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Landmark, List, TrendingUp, Eye, Trash2 } from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
+import { useDialog } from '@/modules/shared/context/DialogContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
@@ -9,11 +10,14 @@ import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
 import { getFinanceTransactionAmountForDisplay, getFinanceTransactionTypeLabel } from '@/modules/finance/utils/finance';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import FinanceTransactionDetailModal from '@/modules/finance/components/FinanceTransactionDetailModal';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import '@/modules/finance/finance.css';
 
 export default function FinanceGlobalTransactionsPage() {
-  const { financeTransactions, financeAccounts, allDividends, allTrades, allCashflows, portfolios, settings } = useData();
+  const { financeTransactions, financeAccounts, allDividends, allTrades, allCashflows, portfolios, settings, deleteFinanceTransaction } = useData();
+  const { confirm } = useDialog();
+  const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<any>(null);
   const blurStyle = usePrivacyStyle();
   const getFinanceTransactionAmountForDisplay = (t: any) => {
     const rawAmount = Number(t.amount) || 0;
@@ -533,12 +537,14 @@ export default function FinanceGlobalTransactionsPage() {
                         <th style={{ textAlign: 'right' }}>Debit (Keluar)</th>
                         <th style={{ textAlign: 'right' }}>Kredit (Masuk)</th>
                         <th style={{ textAlign: 'right' }}>Saldo Akhir</th>
+                        <th>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr style={{ backgroundColor: 'var(--bg-card-hover)', fontWeight: 600 }}>
                         <td colSpan={4}>Saldo Awal {dateFrom ? `(${formatDate(dateFrom)})` : ''}</td>
                         <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatRupiah(saldoAwal)}</div></td>
+                        <td></td>
                       </tr>
                       {sortedItems.map((transaction: any) => {
                         const signedAmount = getFinanceTransactionAmountForDisplay(transaction);
@@ -583,12 +589,23 @@ export default function FinanceGlobalTransactionsPage() {
                           <td style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: 600, ...blurStyle }}>{formatRupiah(transaction.runningBalance)}</div>
                           </td>
+                          <td>
+                            <div className="finance-actions">
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedDetailTransaction(transaction)} title="Lihat Detail">
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Eye size={15} />
+                                  Detail
+                                </span>
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}
                     <tr style={{ backgroundColor: 'var(--bg-card-hover)', fontWeight: 600 }}>
                       <td colSpan={4}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</td>
                       <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatRupiah(saldoAkhir)}</div></td>
+                      <td></td>
                     </tr>
                   </tbody>
                 </table>
@@ -876,6 +893,19 @@ export default function FinanceGlobalTransactionsPage() {
         </div>
       )}
 
+      {selectedDetailTransaction && (
+        <FinanceTransactionDetailModal
+          transaction={selectedDetailTransaction}
+          financeAccounts={financeAccounts}
+          portfolios={portfolios}
+          onClose={() => setSelectedDetailTransaction(null)}
+          onDelete={(transaction) => {
+            if (deleteFinanceTransaction) {
+              deleteFinanceTransaction(transaction.id);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { listProfilesByIds } from '@/modules/shared/services/profileService';
 import { listTradeReviews, saveTradeReview } from '@/modules/shared/services/tradeReviewService';
 import { formatDateTime } from '@/modules/shared/utils/formatters';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
 const EMPTY_FORM = {
   comment: '',
@@ -134,11 +136,11 @@ export default function TradeReviewPanel({
           <div style={{ marginBottom: 24 }}>
             <div className="form-group">
               <label className="form-label">Komentar Review</label>
-              <textarea
-                className="form-textarea"
+              <RichTextEditor
                 value={form.comment}
-                onChange={(event) => setForm((prev) => ({ ...prev, comment: event.target.value }))}
+                onChange={(val) => setForm((prev) => ({ ...prev, comment: val }))}
                 placeholder="Tulis evaluasi entry, exit, disiplin, dan perbaikan berikutnya."
+                minHeight="100px"
               />
             </div>
             <div className="form-row">
@@ -207,8 +209,8 @@ export default function TradeReviewPanel({
                     </div>
                   </div>
                   {review.comment ? (
-                    <div style={{ marginBottom: Array.isArray(review.tags) && review.tags.length > 0 ? 10 : 0, whiteSpace: 'pre-wrap' }}>
-                      {review.comment}
+                    <div style={{ marginBottom: Array.isArray(review.tags) && review.tags.length > 0 ? 10 : 0 }}>
+                      <RichTextRenderer content={review.comment} />
                     </div>
                   ) : null}
                   {Array.isArray(review.tags) && review.tags.length > 0 ? (
@@ -228,14 +230,14 @@ export default function TradeReviewPanel({
   );
 }
 
-function ScoreField({ label, value, onChange }) {
+function ScoreField({ label, value, onChange }: { label: string; value?: number; onChange: (val?: number) => void }) {
   return (
     <div className="form-group">
       <label className="form-label">{label}</label>
       <CustomSelect
-        value={value}
-        onChange={(val) => onChange(val)}
-        options={[1, 2, 3, 4, 5].map((score) => ({ value: score, label: `${score} / 5` }))}
+        value={value !== undefined && value !== null ? String(value) : ''}
+        onChange={(val) => onChange(val ? Number(val) : undefined)}
+        options={[1, 2, 3, 4, 5].map((score) => ({ value: String(score), label: `${score} / 5` }))}
       />
     </div>
   );

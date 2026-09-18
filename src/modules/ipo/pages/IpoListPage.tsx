@@ -9,6 +9,8 @@ import { getIpoEventStatus, getIpoOfferingStartDate, getIpoOfferingEndDate, pars
 import * as Icons from "lucide-react";
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 import { format } from 'date-fns';
 import "@/modules/ipo/ipo.css";
 
@@ -625,15 +627,12 @@ export default function IpoListPage() {
 
          <div className="form-group ipo-margin-b16">
               <label className="form-label" htmlFor="ipo-list-notes">Catatan</label>
-              <textarea
-                 id="ipo-list-notes"
-                 className="form-input"
-                placeholder="Catatan singkat tentang IPO ini..."
-                value={form.notes}
-                onChange={(e) => set("notes", e.target.value)}
-                rows={mode === "modal" ? 4 : 1}
-                style={{ resize: "vertical", minHeight: mode === "modal" ? 108 : undefined }}
-             />
+              <RichTextEditor
+                 value={form.notes}
+                 onChange={(val) => set("notes", val)}
+                 placeholder="Catatan singkat tentang IPO ini..."
+                 minHeight="100px"
+              />
          </div>
          <div className="ipo-flex-wrap">
             <button type="submit" className="btn btn-primary">

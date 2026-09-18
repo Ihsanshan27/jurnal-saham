@@ -11,7 +11,8 @@ import TradeReviewPanel from '@/modules/trades/components/TradeReviewPanel';
 import * as Icons from 'lucide-react';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
-import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 import { format } from 'date-fns';
 
 export default function TradeDetailPage() {
@@ -351,11 +352,11 @@ export default function TradeDetailPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Alasan Entry</label>
-                    <AutoResizeTextarea className="form-textarea" value={form.reasonEntry || ''} onChange={e => set('reasonEntry', e.target.value)} minRows={3} />
+                    <RichTextEditor value={form.reasonEntry || ''} onChange={val => set('reasonEntry', val)} minHeight="100px" />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Alasan Exit</label>
-                    <AutoResizeTextarea className="form-textarea" value={form.reasonExit || ''} onChange={e => set('reasonExit', e.target.value)} minRows={3} />
+                    <RichTextEditor value={form.reasonExit || ''} onChange={val => set('reasonExit', val)} minHeight="100px" />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Custom Tags</label>
@@ -367,7 +368,7 @@ export default function TradeDetailPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Catatan</label>
-                    <AutoResizeTextarea className="form-textarea" value={form.notes || ''} onChange={e => set('notes', e.target.value)} minRows={4} />
+                    <RichTextEditor value={form.notes || ''} onChange={val => set('notes', val)} minHeight="120px" />
                   </div>
                 </>
               ) : (
@@ -417,19 +418,19 @@ export default function TradeDetailPage() {
                 {trade.reasonEntry ? (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Alasan Entry:</div>
-                    <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{trade.reasonEntry}</div>
+                    <RichTextRenderer content={trade.reasonEntry} />
                   </div>
                 ) : null}
                 {trade.reasonExit ? (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Alasan Exit:</div>
-                    <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{trade.reasonExit}</div>
+                    <RichTextRenderer content={trade.reasonExit} />
                   </div>
                 ) : null}
                 {trade.notes ? (
                   <div>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Catatan Tambahan:</div>
-                    <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{trade.notes}</div>
+                    <RichTextRenderer content={trade.notes} />
                   </div>
                 ) : null}
               </div>

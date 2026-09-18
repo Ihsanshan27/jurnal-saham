@@ -12,6 +12,8 @@ import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import { format } from 'date-fns';
 import * as Icons from 'lucide-react';
 import '@/modules/portfolios/portfolios.css';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
 function getPortfolioMetrics(portfolioId, trades, cashflows, dividends, settings, marketPrices) {
   const scopedTrades = trades.filter((item: any) => (item.portfolioId || 'default') === portfolioId);
@@ -257,12 +259,11 @@ export default function PortfoliosPage() {
             </div>
             <div className="form-group">
               <label className="form-label">Deskripsi / Catatan</label>
-              <textarea
-                className="form-textarea"
+              <RichTextEditor
                 placeholder="Keterangan mengenai strategi atau tujuan portofolio ini"
                 value={form.description}
-                onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-                style={{ minHeight: 60 }}
+                onChange={val => setForm(prev => ({ ...prev, description: val }))}
+                minHeight="100px"
               />
             </div>
             <div className="form-group">
@@ -435,9 +436,9 @@ export default function PortfoliosPage() {
                       </button>
                     </div>
                   </div>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 12px 0', minHeight: '36px', lineHeight: 1.4 }}>
-                    {portfolio.description || 'Tidak ada deskripsi.'}
-                  </p>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 12px 0', minHeight: '36px', lineHeight: 1.4 }}>
+                    <RichTextRenderer content={portfolio.description} fallbackText="Tidak ada deskripsi." />
+                  </div>
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                     <span className="badge badge-blue">

@@ -8,7 +8,7 @@ import { formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { calculateTradePnL, getTradeQuantityLabel, getAggregatedOpenPositions } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
-import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 import { format } from 'date-fns';
 
 export default function NewTradePage() {
@@ -696,13 +696,13 @@ export default function NewTradePage() {
                 {form.tradeMode === 'BUY' && (
                   <div className="form-group">
                     <label className="form-label">Alasan Entry</label>
-                    <AutoResizeTextarea className="form-textarea" placeholder="Kenapa beli saham ini?" value={form.reasonEntry} onChange={e => set('reasonEntry', e.target.value)} minRows={3} />
+                    <RichTextEditor placeholder="Kenapa beli saham ini?" value={form.reasonEntry} onChange={val => set('reasonEntry', val)} minHeight="100px" />
                   </div>
                 )}
 
                 <div className="form-group">
                   <label className="form-label">Alasan Exit</label>
-                  <AutoResizeTextarea className="form-textarea" placeholder="Kenapa jual saham ini?" value={form.reasonExit} onChange={e => set('reasonExit', e.target.value)} minRows={3} />
+                  <RichTextEditor placeholder="Kenapa jual saham ini?" value={form.reasonExit} onChange={val => set('reasonExit', val)} minHeight="100px" />
                 </div>
 
                 <div className="form-group">
@@ -734,7 +734,7 @@ export default function NewTradePage() {
 
                 <div className="form-group">
                   <label className="form-label">Catatan Tambahan</label>
-                  <AutoResizeTextarea className="form-textarea" placeholder="Lessons learned, catatan lain..." value={form.notes} onChange={e => set('notes', e.target.value)} minRows={4} />
+                  <RichTextEditor placeholder="Lessons learned, catatan lain..." value={form.notes} onChange={val => set('notes', val)} minHeight="120px" />
                 </div>
               </div>
             </div>

@@ -11,6 +11,8 @@ import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { useTranslation } from '@/modules/shared/i18n/useTranslation';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import * as Icons from 'lucide-react';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
 export default function TradingPlansPage() {
   const {
@@ -447,12 +449,11 @@ export default function TradingPlansPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('plans.form.reason')}</label>
-                  <textarea
-                    className="form-textarea"
+                  <RichTextEditor
                     placeholder={t('plans.form.reasonPlaceholder')}
                     value={form.reason}
-                    onChange={e => set('reason', e.target.value)}
-                    style={{ minHeight: 42 }}
+                    onChange={val => set('reason', val)}
+                    minHeight="100px"
                   />
                 </div>
               </div>
@@ -568,7 +569,7 @@ export default function TradingPlansPage() {
                     </td>
                     <td>{plan.lots} {planIsUS ? t('plans.preview.shares') : t('plans.preview.lots')}</td>
                     <td style={blurStyle}>{fMoney(plan.requiredCapital)}</td>
-                    <td style={{ maxWidth: 180, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{plan.reason || '-'}</td>
+                    <td style={{ maxWidth: 200, fontSize: '0.8rem', color: 'var(--text-secondary)' }}><RichTextRenderer content={plan.reason} /></td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {canWrite && activeTab === 'active' && (

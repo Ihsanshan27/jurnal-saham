@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { WATCHLIST_STATUS, WATCHLIST_PRIORITY } from '@/modules/shared/utils/constants';
 import { formatRupiah, formatDate, formatPercent } from '@/modules/shared/utils/formatters';
-import { Eye, Plus, X, Trash2, Save, TrendingUp, TrendingDown, Edit3 } from 'lucide-react';
+import { BookOpen, Eye, Edit3, Plus, Save, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import { fetchQuotesBatch, fetchStockOHLCV } from '@/modules/shared/services/yahooFinanceService';
 import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
@@ -664,12 +666,11 @@ export default function WatchlistPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Alasan / Catatan</label>
-                <textarea
-                  className="form-textarea"
+                <RichTextEditor
                   placeholder="Kenapa saham ini menarik?"
                   value={form.reason}
-                  onChange={e => set('reason', e.target.value)}
-                  style={{ minHeight: 60 }}
+                  onChange={val => set('reason', val)}
+                  minHeight="100px"
                 />
               </div>
               <button type="submit" className="btn btn-primary">
@@ -833,7 +834,7 @@ export default function WatchlistPage() {
                         </td>
                         <td>{item.targetPrice ? formatRupiah(item.targetPrice) : '-'}</td>
                         <td>{item.targetSellPrice ? formatRupiah(item.targetSellPrice) : '-'}</td>
-                        <td style={{ maxWidth: 200, fontSize: '0.8rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={item.reason}>{item.reason || '-'}</td>
+                        <td style={{ maxWidth: 220, fontSize: '0.8rem', color: 'var(--text-secondary)' }}><RichTextRenderer content={item.reason} /></td>
                         <td><span className={`badge badge-${priority?.color || 'blue'}`}>{priority?.label || item.priority}</span></td>
                         <td>
                           <CustomSelect

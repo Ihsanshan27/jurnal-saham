@@ -12,6 +12,7 @@ import { FINANCE_ACCOUNT_TYPE_OPTIONS } from '@/modules/finance/utils/finance';
 import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import '@/modules/finance/finance.css';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -463,7 +464,7 @@ export default function FinancePage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-account-notes">Catatan</label>
-                  <textarea id="finance-account-notes" className="form-input" rows={3} value={form.notes} onChange={(event) => setValue('notes', event.target.value)} placeholder="Opsional: tujuan rekening, limit, atau catatan lain." />
+                  <RichTextEditor value={form.notes} onChange={(val) => setValue('notes', val)} placeholder="Opsional: tujuan rekening, limit, atau catatan lain." minHeight="100px" />
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>

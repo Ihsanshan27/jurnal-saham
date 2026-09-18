@@ -3,7 +3,8 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import { formatDate } from '@/modules/shared/utils/formatters';
 import { BookOpen, Plus, X, Edit2, Trash2, Save } from 'lucide-react';
-import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
 export default function NotesPage() {
   const { notes, addNote, updateNote, deleteNote, noteFormDraft, setNoteFormDraft } = useData();
@@ -125,12 +126,11 @@ export default function NotesPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Isi Catatan *</label>
-                <AutoResizeTextarea
-                  className="form-textarea"
+                <RichTextEditor
                   placeholder="Tuliskan catatan tentang kondisi market, rencana trading, lessons learned..."
                   value={form.content}
-                  onChange={e => set('content', e.target.value)}
-                  style={{ minHeight: 150 }}
+                  onChange={val => set('content', val)}
+                  minHeight="180px"
                 />
               </div>
               <div className="form-group">
@@ -184,9 +184,7 @@ export default function NotesPage() {
                 </div>
               </div>
               <div className="card-body">
-                <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.9rem', lineHeight: 1.7, color: 'var(--text-secondary)' }}>
-                  {note.content}
-                </div>
+                <RichTextRenderer content={note.content} />
                 {(note as any).tags && (note as any).tags.length > 0 && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 16 }}>
                     {(note as any).tags.map(tag => (

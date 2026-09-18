@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRightLeft, Landmark, Pencil, Plus, Save, Trash2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Landmark, Pencil, Plus, Save, Trash2, TrendingUp, Eye } from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
@@ -13,7 +13,8 @@ import { FINANCE_TRANSACTION_TYPE_OPTIONS, getFinanceTransactionAmountForDisplay
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
-import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
+import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import FinanceTransactionDetailModal from '@/modules/finance/components/FinanceTransactionDetailModal';
 import { format } from 'date-fns';
 import '@/modules/finance/finance.css';
 
@@ -126,6 +127,7 @@ export default function FinanceAccountDetailPage() {
   const [transferForm, setTransferForm] = useState(createInitialTransferForm());
   const [portfolioTransferForm, setPortfolioTransferForm] = useState(() => createInitialPortfolioTransferForm(activePortfolioId));
   const [portfolioWithdrawalForm, setPortfolioWithdrawalForm] = useState(() => createInitialPortfolioWithdrawalForm(activePortfolioId));
+  const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<any>(null);
   const [typeFilter, setTypeFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -522,7 +524,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transaction-notes">Catatan Tambahan</label>
-                  <AutoResizeTextarea id="finance-transaction-notes" className="form-input" minRows={3} value={transactionForm.notes} onChange={(event) => handleTransactionChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <RichTextEditor value={transactionForm.notes} onChange={(val) => handleTransactionChange('notes', val)} placeholder="Catatan opsional..." minHeight="100px" />
                 </div>
               </div>
 
@@ -614,7 +616,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transfer-notes">Catatan Tambahan</label>
-                  <AutoResizeTextarea id="finance-transfer-notes" className="form-input" minRows={3} value={transferForm.notes} onChange={(event) => handleTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <RichTextEditor value={transferForm.notes} onChange={(val) => handleTransferChange('notes', val)} placeholder="Catatan opsional..." minHeight="100px" />
                 </div>
               </div>
               <div className="finance-actions">
@@ -682,7 +684,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-transfer-notes">Catatan Tambahan</label>
-                  <AutoResizeTextarea id="finance-portfolio-transfer-notes" className="form-input" minRows={3} value={portfolioTransferForm.notes} onChange={(event) => handlePortfolioTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <RichTextEditor value={portfolioTransferForm.notes} onChange={(val) => handlePortfolioTransferChange('notes', val)} placeholder="Catatan opsional..." minHeight="100px" />
                 </div>
               </div>
               <div className="finance-actions">
@@ -750,7 +752,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-withdrawal-notes">Catatan Tambahan</label>
-                  <AutoResizeTextarea id="finance-portfolio-withdrawal-notes" className="form-input" minRows={3} value={portfolioWithdrawalForm.notes} onChange={(event) => handlePortfolioWithdrawalChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <RichTextEditor value={portfolioWithdrawalForm.notes} onChange={(val) => handlePortfolioWithdrawalChange('notes', val)} placeholder="Catatan opsional..." minHeight="100px" />
                 </div>
               </div>
               <div className="finance-actions">
@@ -897,17 +899,23 @@ export default function FinanceAccountDetailPage() {
                           </td>
                           <td>
                             <div className="finance-actions">
+                              <button type="button" className="btn btn-ghost" onClick={() => setSelectedDetailTransaction(transaction)} title="Lihat Detail">
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Eye size={15} />
+                                  Detail
+                                </span>
+                              </button>
                               {!transaction.transferGroupId ? (
                                 <button type="button" className="btn btn-ghost" onClick={() => handleEditTransaction(transaction)}>
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <Pencil size={16} />
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <Pencil size={15} />
                                     Edit
                                   </span>
                                 </button>
                               ) : null}
-                              <button type="button" className="btn btn-ghost" onClick={() => handleDeleteTransaction(transaction)}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <Trash2 size={16} />
+                              <button type="button" className="btn btn-ghost text-loss" onClick={() => handleDeleteTransaction(transaction)}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <Trash2 size={15} />
                                   Hapus
                                 </span>
                               </button>
@@ -928,6 +936,15 @@ export default function FinanceAccountDetailPage() {
           )}
         </div>
       </div>
+
+      <FinanceTransactionDetailModal
+        transaction={selectedDetailTransaction}
+        financeAccounts={financeAccounts}
+        portfolios={portfolios}
+        onClose={() => setSelectedDetailTransaction(null)}
+        onEdit={handleEditTransaction}
+        onDelete={handleDeleteTransaction}
+      />
     </div>
   );
 }
