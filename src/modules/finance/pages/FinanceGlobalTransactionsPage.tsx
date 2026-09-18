@@ -29,7 +29,8 @@ export default function FinanceGlobalTransactionsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [accountFilter, setAccountFilter] = useState('all');
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
+  const [isLedgerAccountModalOpen, setIsLedgerAccountModalOpen] = useState(false);
 
   // Cashflow Filters
   const [cfDateFrom, setCfDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -82,7 +83,7 @@ export default function FinanceGlobalTransactionsPage() {
       const newPreset = {
         id: editPresetId || Date.now().toString(),
         name: newPresetName.trim(),
-        accountFilter,
+        selectedAccountIds: Array.from(selectedAccounts),
         typeFilter
       };
       setLedgerPresets(prev => {
@@ -112,12 +113,12 @@ export default function FinanceGlobalTransactionsPage() {
     setActiveLedgerPresetId(value);
     if (value === 'ALL') {
       setTypeFilter('all');
-      setAccountFilter('all');
+      setSelectedAccounts(new Set());
     } else if (value !== 'CUSTOM') {
       const preset = ledgerPresets.find(p => p.id === value);
       if (preset) {
         setTypeFilter(preset.typeFilter || 'all');
-        setAccountFilter(preset.accountFilter || 'all');
+        setSelectedAccounts(new Set(preset.selectedAccountIds || []));
       }
     }
   };
@@ -160,14 +161,14 @@ export default function FinanceGlobalTransactionsPage() {
 
   // ===================== LEDGER VIEW =====================
   const { filteredTransactions, saldoAwal, saldoAkhir, totalDebit, totalKredit } = useMemo(() => {
-    const activeAccounts = accountFilter === 'all' 
-      ? financeAccounts 
-      : financeAccounts.filter((a: any) => a.id === accountFilter);
+    const activeAccounts = selectedAccounts.size === 0
+      ? financeAccounts
+      : financeAccounts.filter((a: any) => selectedAccounts.has(a.id));
     
     const baseOpeningBalance = activeAccounts.reduce((sum: number, a: any) => sum + (Number(a.openingBalance) || 0), 0);
 
     const accountTransactions = financeTransactions.filter((item: any) => {
-      if (accountFilter !== 'all' && item.accountId !== accountFilter) return false;
+      if (selectedAccounts.size > 0 && !selectedAccounts.has(item.accountId)) return false;
       return true;
     }).sort((a: any, b: any) => {
       const dateA = new Date(a.date + 'T' + (a.createdAt ? a.createdAt.split('T')[1] : '00:00:00')).getTime();
@@ -221,7 +222,7 @@ export default function FinanceGlobalTransactionsPage() {
       totalDebit,
       totalKredit
     };
-  }, [financeTransactions, financeAccounts, dateFrom, dateTo, typeFilter, accountFilter]);
+  }, [financeTransactions, financeAccounts, dateFrom, dateTo, typeFilter, selectedAccounts]);
 
   const { sortConfig, sortedItems, requestSort } = useTableSort(filteredTransactions, {
     initialKey: 'date',
@@ -450,11 +451,16 @@ export default function FinanceGlobalTransactionsPage() {
               <div className="finance-inline-form">
                 <div className="form-group" style={{ minWidth: 200 }}>
                   <label className="form-label">Rekening</label>
-                  <CustomSelect
-                    value={accountFilter}
-                    onChange={(v) => { setAccountFilter(v); setActiveLedgerPresetId('CUSTOM'); }}
-                    options={accountOptions}
-                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setIsLedgerAccountModalOpen(true)}
+                  >
+                    {selectedAccounts.size === 0
+                      ? `Semua Rekening (${financeAccounts.length})`
+                      : `${selectedAccounts.size} dari ${financeAccounts.length} Rekening`
+                    }
+                  </button>
                 </div>
                 <div className="form-group" style={{ minWidth: 170 }}>
                   <label className="form-label" htmlFor="finance-filter-type">Filter Tipe</label>
@@ -486,7 +492,7 @@ export default function FinanceGlobalTransactionsPage() {
                   />
                 </div>
               </div>
-              <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); setAccountFilter('all'); setActiveLedgerPresetId('ALL'); }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); setSelectedAccounts(new Set()); setActiveLedgerPresetId('ALL'); }}>
                 Reset Filter
               </button>
             </div>
@@ -823,6 +829,47 @@ export default function FinanceGlobalTransactionsPage() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
                 <button className="btn btn-secondary" onClick={() => setIsSavePresetModalOpen(false)}>Batal</button>
                 <button className="btn btn-primary" onClick={handleSavePreset} disabled={!newPresetName.trim()}>Simpan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {isLedgerAccountModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: 420, maxWidth: '90%' }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="card-title">Pilih Rekening</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setIsLedgerAccountModalOpen(false)}>Tutup</button>
+            </div>
+            <div className="card-body">
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+                Pilih satu atau lebih rekening yang ingin ditampilkan. Kosongkan semua untuk menampilkan semua rekening.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {financeAccounts.map((acc: any) => (
+                  <label key={acc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-color)', cursor: 'pointer', background: selectedAccounts.has(acc.id) ? 'var(--accent-blue-dim)' : 'var(--bg-card)' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedAccounts.has(acc.id)}
+                      onChange={() => {
+                        const next = new Set(selectedAccounts);
+                        if (next.has(acc.id)) next.delete(acc.id); else next.add(acc.id);
+                        setSelectedAccounts(next);
+                        setActiveLedgerPresetId('CUSTOM');
+                      }}
+                    />
+                    <span style={{ fontWeight: 500 }}>{acc.name}</span>
+                    {acc.institutionName && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>({acc.institutionName})</span>}
+                  </label>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setSelectedAccounts(new Set()); setActiveLedgerPresetId('CUSTOM'); }}>
+                  Pilih Semua
+                </button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => setIsLedgerAccountModalOpen(false)}>
+                  Terapkan
+                </button>
               </div>
             </div>
           </div>
