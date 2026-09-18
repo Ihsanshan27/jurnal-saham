@@ -417,31 +417,37 @@ export default function FinanceGlobalTransactionsPage() {
 
       {viewMode === 'ledger' && (
         <div className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <h3 className="card-title">Buku Besar Semua Rekening</h3>
+            <div className="finance-inline-form" style={{ margin: 0, alignItems: 'center' }}>
+              <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <CustomSelect
+                    value={activeLedgerPresetId}
+                    onChange={handleLedgerPresetChange}
+                    options={[
+                      { value: 'ALL', label: 'Semua Data' },
+                      ...ledgerPresets.map(p => ({ value: p.id, label: p.name })),
+                      ...(activeLedgerPresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
+                    ]}
+                  />
+                  {activeLedgerPresetId !== 'ALL' && activeLedgerPresetId !== 'CUSTOM' && (
+                    <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDeletePreset(activeLedgerPresetId, 'ledger')} aria-label="Hapus Preset" style={{ padding: '0 8px' }}>
+                      X
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setPresetModalType('ledger'); setIsSavePresetModalOpen(true); setNewPresetName(''); setEditPresetId(null); }}>
+                  Simpan Preset
+                </button>
+              </div>
+            </div>
           </div>
           <div className="card-body">
             <div className="finance-ledger-toolbar">
               <div className="finance-inline-form">
-                <div className="form-group" style={{ minWidth: 180 }}>
-                  <label className="form-label">Preset Buku Besar</label>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <CustomSelect
-                      value={activeLedgerPresetId}
-                      onChange={handleLedgerPresetChange}
-                      options={[
-                        { value: 'ALL', label: 'Semua Data' },
-                        ...ledgerPresets.map(p => ({ value: p.id, label: p.name })),
-                        ...(activeLedgerPresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
-                      ]}
-                    />
-                    {activeLedgerPresetId !== 'ALL' && activeLedgerPresetId !== 'CUSTOM' && (
-                      <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDeletePreset(activeLedgerPresetId, 'ledger')} aria-label="Hapus Preset" style={{ padding: '0 8px' }}>
-                        X
-                      </button>
-                    )}
-                  </div>
-                </div>
                 <div className="form-group" style={{ minWidth: 200 }}>
                   <label className="form-label">Rekening</label>
                   <CustomSelect
@@ -482,9 +488,6 @@ export default function FinanceGlobalTransactionsPage() {
               </div>
               <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); setAccountFilter('all'); setActiveLedgerPresetId('ALL'); }}>
                 Reset Filter
-              </button>
-              <button type="button" className="btn btn-primary" onClick={() => { setPresetModalType('ledger'); setIsSavePresetModalOpen(true); setNewPresetName(''); setEditPresetId(null); }}>
-                Simpan Preset
               </button>
             </div>
 
