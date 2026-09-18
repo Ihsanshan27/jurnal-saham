@@ -423,27 +423,25 @@ export default function FinanceGlobalTransactionsPage() {
           <div className="card-body">
             <div className="finance-ledger-toolbar">
               <div className="finance-inline-form">
-                {ledgerPresets.length > 0 && (
-                  <div className="form-group" style={{ minWidth: 180 }}>
-                    <label className="form-label">Preset Buku Besar</label>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <CustomSelect
-                        value={activeLedgerPresetId}
-                        onChange={handleLedgerPresetChange}
-                        options={[
-                          { value: 'ALL', label: 'Semua Data' },
-                          ...ledgerPresets.map(p => ({ value: p.id, label: p.name })),
-                          ...(activeLedgerPresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
-                        ]}
-                      />
-                      {activeLedgerPresetId !== 'ALL' && activeLedgerPresetId !== 'CUSTOM' && (
-                        <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDeletePreset(activeLedgerPresetId, 'ledger')} aria-label="Hapus Preset" style={{ padding: '0 8px' }}>
-                          X
-                        </button>
-                      )}
-                    </div>
+                <div className="form-group" style={{ minWidth: 180 }}>
+                  <label className="form-label">Preset Buku Besar</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <CustomSelect
+                      value={activeLedgerPresetId}
+                      onChange={handleLedgerPresetChange}
+                      options={[
+                        { value: 'ALL', label: 'Semua Data' },
+                        ...ledgerPresets.map(p => ({ value: p.id, label: p.name })),
+                        ...(activeLedgerPresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
+                      ]}
+                    />
+                    {activeLedgerPresetId !== 'ALL' && activeLedgerPresetId !== 'CUSTOM' && (
+                      <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDeletePreset(activeLedgerPresetId, 'ledger')} aria-label="Hapus Preset" style={{ padding: '0 8px' }}>
+                        X
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
                 <div className="form-group" style={{ minWidth: 200 }}>
                   <label className="form-label">Rekening</label>
                   <CustomSelect
@@ -597,7 +595,6 @@ export default function FinanceGlobalTransactionsPage() {
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <h3 className="card-title">Laporan Arus Kas (Cash Flow Statement)</h3>
             <div className="finance-inline-form" style={{ margin: 0, alignItems: 'center' }}>
-              {presets.length > 0 && (
                 <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <CustomSelect
@@ -616,7 +613,6 @@ export default function FinanceGlobalTransactionsPage() {
                     )}
                   </div>
                 </div>
-              )}
               <div className="form-group" style={{ margin: 0 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsAccountModalOpen(true)}>
                   Rekening: {financeAccounts.length - cfExcludedAccounts.size}/{financeAccounts.length}
