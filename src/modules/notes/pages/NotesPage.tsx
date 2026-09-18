@@ -3,6 +3,7 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import { formatDate } from '@/modules/shared/utils/formatters';
 import { BookOpen, Plus, X, Edit2, Trash2, Save } from 'lucide-react';
+import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
 
 export default function NotesPage() {
   const { notes, addNote, updateNote, deleteNote, noteFormDraft, setNoteFormDraft } = useData();
@@ -124,7 +125,7 @@ export default function NotesPage() {
               </div>
               <div className="form-group">
                 <label className="form-label">Isi Catatan *</label>
-                <textarea
+                <AutoResizeTextarea
                   className="form-textarea"
                   placeholder="Tuliskan catatan tentang kondisi market, rencana trading, lessons learned..."
                   value={form.content}

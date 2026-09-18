@@ -39,10 +39,88 @@ export default function FinanceGlobalTransactionsPage() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [activePresetId, setActivePresetId] = useState<string>('ALL');
 
-  const [presets] = useState<any[]>(() => {
+  const [presets, setPresets] = useState<any[]>(() => {
     const saved = localStorage.getItem('wealth_presets');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [ledgerPresets, setLedgerPresets] = useState<any[]>(() => {
+    const saved = localStorage.getItem('finance_ledger_presets');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [activeLedgerPresetId, setActiveLedgerPresetId] = useState<string>('ALL');
+
+  const [isSavePresetModalOpen, setIsSavePresetModalOpen] = useState(false);
+  const [presetModalType, setPresetModalType] = useState<'ledger' | 'cashflow'>('ledger');
+  const [newPresetName, setNewPresetName] = useState('');
+  const [editPresetId, setEditPresetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('wealth_presets', JSON.stringify(presets));
+  }, [presets]);
+
+  useEffect(() => {
+    localStorage.setItem('finance_ledger_presets', JSON.stringify(ledgerPresets));
+  }, [ledgerPresets]);
+
+  const handleSavePreset = () => {
+    if (!newPresetName.trim()) return;
+    
+    if (presetModalType === 'cashflow') {
+      const newPreset = {
+        id: editPresetId || Date.now().toString(),
+        name: newPresetName.trim(),
+        excludedFinanceAccountIds: Array.from(cfExcludedAccounts),
+        excludedPortfolioIds: Array.from(cfExcludedPortfolios),
+      };
+      setPresets(prev => {
+        if (editPresetId) return prev.map(p => p.id === editPresetId ? newPreset : p);
+        return [...prev, newPreset];
+      });
+      setActivePresetId(newPreset.id);
+    } else {
+      const newPreset = {
+        id: editPresetId || Date.now().toString(),
+        name: newPresetName.trim(),
+        accountFilter,
+        typeFilter
+      };
+      setLedgerPresets(prev => {
+        if (editPresetId) return prev.map(p => p.id === editPresetId ? newPreset : p);
+        return [...prev, newPreset];
+      });
+      setActiveLedgerPresetId(newPreset.id);
+    }
+    
+    setIsSavePresetModalOpen(false);
+    setNewPresetName('');
+    setEditPresetId(null);
+  };
+
+  const handleDeletePreset = (id: string, type: 'ledger' | 'cashflow') => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus preset ini?')) return;
+    if (type === 'cashflow') {
+      setPresets(prev => prev.filter(p => p.id !== id));
+      if (activePresetId === id) setActivePresetId('ALL');
+    } else {
+      setLedgerPresets(prev => prev.filter(p => p.id !== id));
+      if (activeLedgerPresetId === id) setActiveLedgerPresetId('ALL');
+    }
+  };
+
+  const handleLedgerPresetChange = (value: string) => {
+    setActiveLedgerPresetId(value);
+    if (value === 'ALL') {
+      setTypeFilter('all');
+      setAccountFilter('all');
+    } else if (value !== 'CUSTOM') {
+      const preset = ledgerPresets.find(p => p.id === value);
+      if (preset) {
+        setTypeFilter(preset.typeFilter || 'all');
+        setAccountFilter(preset.accountFilter || 'all');
+      }
+    }
+  };
 
   const handlePresetChange = (value: string) => {
     setActivePresetId(value);
@@ -345,11 +423,32 @@ export default function FinanceGlobalTransactionsPage() {
           <div className="card-body">
             <div className="finance-ledger-toolbar">
               <div className="finance-inline-form">
+                {ledgerPresets.length > 0 && (
+                  <div className="form-group" style={{ minWidth: 180 }}>
+                    <label className="form-label">Preset Buku Besar</label>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <CustomSelect
+                        value={activeLedgerPresetId}
+                        onChange={handleLedgerPresetChange}
+                        options={[
+                          { value: 'ALL', label: 'Semua Data' },
+                          ...ledgerPresets.map(p => ({ value: p.id, label: p.name })),
+                          ...(activeLedgerPresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
+                        ]}
+                      />
+                      {activeLedgerPresetId !== 'ALL' && activeLedgerPresetId !== 'CUSTOM' && (
+                        <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDeletePreset(activeLedgerPresetId, 'ledger')} aria-label="Hapus Preset" style={{ padding: '0 8px' }}>
+                          X
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="form-group" style={{ minWidth: 200 }}>
                   <label className="form-label">Rekening</label>
                   <CustomSelect
                     value={accountFilter}
-                    onChange={setAccountFilter}
+                    onChange={(v) => { setAccountFilter(v); setActiveLedgerPresetId('CUSTOM'); }}
                     options={accountOptions}
                   />
                 </div>
@@ -357,7 +456,7 @@ export default function FinanceGlobalTransactionsPage() {
                   <label className="form-label" htmlFor="finance-filter-type">Filter Tipe</label>
                   <CustomSelect
                     value={typeFilter}
-                    onChange={(value) => setTypeFilter(value)}
+                    onChange={(value) => { setTypeFilter(value); setActiveLedgerPresetId('CUSTOM'); }}
                     options={[
                       { value: 'all', label: 'Semua' },
                       { value: 'income', label: 'Pemasukan' },
@@ -383,8 +482,11 @@ export default function FinanceGlobalTransactionsPage() {
                   />
                 </div>
               </div>
-              <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); setAccountFilter('all'); }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); setAccountFilter('all'); setActiveLedgerPresetId('ALL'); }}>
                 Reset Filter
+              </button>
+              <button type="button" className="btn btn-primary" onClick={() => { setPresetModalType('ledger'); setIsSavePresetModalOpen(true); setNewPresetName(''); setEditPresetId(null); }}>
+                Simpan Preset
               </button>
             </div>
 
@@ -497,15 +599,22 @@ export default function FinanceGlobalTransactionsPage() {
             <div className="finance-inline-form" style={{ margin: 0, alignItems: 'center' }}>
               {presets.length > 0 && (
                 <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
-                  <CustomSelect
-                    value={activePresetId}
-                    onChange={handlePresetChange}
-                    options={[
-                      { value: 'ALL', label: 'Semua Aset' },
-                      ...presets.map(p => ({ value: p.id, label: p.name })),
-                      ...(activePresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
-                    ]}
-                  />
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <CustomSelect
+                      value={activePresetId}
+                      onChange={handlePresetChange}
+                      options={[
+                        { value: 'ALL', label: 'Semua Aset' },
+                        ...presets.map(p => ({ value: p.id, label: p.name })),
+                        ...(activePresetId === 'CUSTOM' ? [{ value: 'CUSTOM', label: 'Kustom', disabled: true }] : [])
+                      ]}
+                    />
+                    {activePresetId !== 'ALL' && activePresetId !== 'CUSTOM' && (
+                      <button className="btn btn-ghost btn-sm text-loss" onClick={() => handleDeletePreset(activePresetId, 'cashflow')} aria-label="Hapus Preset" style={{ padding: '0 8px' }}>
+                        X
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               <div className="form-group" style={{ margin: 0 }}>
@@ -682,8 +791,39 @@ export default function FinanceGlobalTransactionsPage() {
                 </div>
               </div>
               
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setPresetModalType('cashflow'); setIsSavePresetModalOpen(true); setNewPresetName(''); setEditPresetId(null); setIsAccountModalOpen(false); }}>
+                  Simpan sebagai Preset
+                </button>
                 <button className="btn btn-secondary btn-sm" onClick={() => { setCfExcludedAccounts(new Set()); setCfExcludedPortfolios(new Set()); setActivePresetId('CUSTOM'); }}>Pilih Semua</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSavePresetModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: 400, maxWidth: '90%' }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="card-title">Simpan Preset {presetModalType === 'cashflow' ? 'Cashflow' : 'Ledger'}</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setIsSavePresetModalOpen(false)}>Tutup</button>
+            </div>
+            <div className="card-body">
+              <div className="form-group">
+                <label className="form-label">Nama Preset</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Contoh: Dompet Utama Saja"
+                  value={newPresetName}
+                  onChange={e => setNewPresetName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                <button className="btn btn-secondary" onClick={() => setIsSavePresetModalOpen(false)}>Batal</button>
+                <button className="btn btn-primary" onClick={handleSavePreset} disabled={!newPresetName.trim()}>Simpan</button>
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ import TradeReviewPanel from '@/modules/trades/components/TradeReviewPanel';
 import * as Icons from 'lucide-react';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
 import { format } from 'date-fns';
 
 export default function TradeDetailPage() {
@@ -350,11 +351,11 @@ export default function TradeDetailPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Alasan Entry</label>
-                    <textarea className="form-textarea" value={form.reasonEntry || ''} onChange={e => set('reasonEntry', e.target.value)} />
+                    <AutoResizeTextarea className="form-textarea" value={form.reasonEntry || ''} onChange={e => set('reasonEntry', e.target.value)} minRows={3} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Alasan Exit</label>
-                    <textarea className="form-textarea" value={form.reasonExit || ''} onChange={e => set('reasonExit', e.target.value)} />
+                    <AutoResizeTextarea className="form-textarea" value={form.reasonExit || ''} onChange={e => set('reasonExit', e.target.value)} minRows={3} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Custom Tags</label>
@@ -366,7 +367,7 @@ export default function TradeDetailPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Catatan</label>
-                    <textarea className="form-textarea" value={form.notes || ''} onChange={e => set('notes', e.target.value)} />
+                    <AutoResizeTextarea className="form-textarea" value={form.notes || ''} onChange={e => set('notes', e.target.value)} minRows={4} />
                   </div>
                 </>
               ) : (
@@ -416,19 +417,19 @@ export default function TradeDetailPage() {
                 {trade.reasonEntry ? (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Alasan Entry:</div>
-                    <div style={{ fontSize: '0.9rem' }}>{trade.reasonEntry}</div>
+                    <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{trade.reasonEntry}</div>
                   </div>
                 ) : null}
                 {trade.reasonExit ? (
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Alasan Exit:</div>
-                    <div style={{ fontSize: '0.9rem' }}>{trade.reasonExit}</div>
+                    <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{trade.reasonExit}</div>
                   </div>
                 ) : null}
                 {trade.notes ? (
                   <div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Catatan:</div>
-                    <div style={{ fontSize: '0.9rem' }}>{trade.notes}</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Catatan Tambahan:</div>
+                    <div style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap' }}>{trade.notes}</div>
                   </div>
                 ) : null}
               </div>

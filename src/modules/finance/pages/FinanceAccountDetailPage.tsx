@@ -13,6 +13,7 @@ import { FINANCE_TRANSACTION_TYPE_OPTIONS, getFinanceTransactionAmountForDisplay
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import AutoResizeTextarea from '@/modules/shared/components/AutoResizeTextarea';
 import { format } from 'date-fns';
 import '@/modules/finance/finance.css';
 
@@ -521,7 +522,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transaction-notes">Catatan Tambahan</label>
-                  <textarea id="finance-transaction-notes" className="form-input" rows={3} value={transactionForm.notes} onChange={(event) => handleTransactionChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <AutoResizeTextarea id="finance-transaction-notes" className="form-input" minRows={3} value={transactionForm.notes} onChange={(event) => handleTransactionChange('notes', event.target.value)} placeholder="Catatan opsional..." />
                 </div>
               </div>
 
@@ -613,7 +614,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transfer-notes">Catatan Tambahan</label>
-                  <textarea id="finance-transfer-notes" className="form-input" rows={3} value={transferForm.notes} onChange={(event) => handleTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <AutoResizeTextarea id="finance-transfer-notes" className="form-input" minRows={3} value={transferForm.notes} onChange={(event) => handleTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
                 </div>
               </div>
               <div className="finance-actions">
@@ -681,7 +682,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-transfer-notes">Catatan Tambahan</label>
-                  <textarea id="finance-portfolio-transfer-notes" className="form-input" rows={3} value={portfolioTransferForm.notes} onChange={(event) => handlePortfolioTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <AutoResizeTextarea id="finance-portfolio-transfer-notes" className="form-input" minRows={3} value={portfolioTransferForm.notes} onChange={(event) => handlePortfolioTransferChange('notes', event.target.value)} placeholder="Catatan opsional..." />
                 </div>
               </div>
               <div className="finance-actions">
@@ -749,7 +750,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-withdrawal-notes">Catatan Tambahan</label>
-                  <textarea id="finance-portfolio-withdrawal-notes" className="form-input" rows={3} value={portfolioWithdrawalForm.notes} onChange={(event) => handlePortfolioWithdrawalChange('notes', event.target.value)} placeholder="Catatan opsional..." />
+                  <AutoResizeTextarea id="finance-portfolio-withdrawal-notes" className="form-input" minRows={3} value={portfolioWithdrawalForm.notes} onChange={(event) => handlePortfolioWithdrawalChange('notes', event.target.value)} placeholder="Catatan opsional..." />
                 </div>
               </div>
               <div className="finance-actions">
