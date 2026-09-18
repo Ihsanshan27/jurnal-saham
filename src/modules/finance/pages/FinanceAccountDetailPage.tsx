@@ -15,7 +15,7 @@ import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 import FinanceTransactionDetailModal from '@/modules/finance/components/FinanceTransactionDetailModal';
-import { format } from 'date-fns';
+import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import '@/modules/finance/finance.css';
 
 function createInitialTransactionForm(activePortfolioId: string) {
@@ -129,8 +129,28 @@ export default function FinanceAccountDetailPage() {
   const [portfolioWithdrawalForm, setPortfolioWithdrawalForm] = useState(() => createInitialPortfolioWithdrawalForm(activePortfolioId));
   const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<any>(null);
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedYear, setSelectedYear] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    // Cari tahun tertua dari data transaksi
+    let earliest = currentYear - 5;
+    accountTransactions.forEach((t: any) => {
+      if (t.date) {
+        const y = parseInt(t.date.substring(0, 4), 10);
+        if (!isNaN(y) && y < earliest) earliest = y;
+      }
+    });
+    // Buat range dari tahun tertua (atau 5 tahun ke belakang) sampai 2 tahun ke depan
+    const latest = currentYear + 2;
+    const years: number[] = [];
+    for (let y = latest; y >= earliest; y--) {
+      years.push(y);
+    }
+    return years;
+  }, [accountTransactions]);
 
   useEffect(() => {
     setTransactionForm((prev) => ({ ...prev, linkedPortfolioId: activePortfolioId || 'default' }));
@@ -558,7 +578,20 @@ export default function FinanceAccountDetailPage() {
                     {editingId ? 'Update Transaksi' : 'Simpan Transaksi'}
                   </span>
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={resetTransactionForm}>Reset</button>
+                {editingId ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={resetTransactionForm}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    Batal Edit
+                  </button>
+                ) : (
+                  <button type="button" className="btn btn-ghost" onClick={resetTransactionForm}>
+                    Reset
+                  </button>
+                )}
               </div>
             </form>
           ) : null}
@@ -775,13 +808,13 @@ export default function FinanceAccountDetailPage() {
         <div className="card-body">
           <div className="finance-ledger-toolbar">
             <div className="finance-inline-form">
-              <div className="form-group" style={{ minWidth: 170 }}>
+              <div className="form-group" style={{ minWidth: 160 }}>
                 <label className="form-label" htmlFor="finance-filter-type">Filter Tipe</label>
                 <CustomSelect
                   value={typeFilter}
                   onChange={(value) => setTypeFilter(value)}
                   options={[
-                    { value: 'all', label: 'Semua' },
+                    { value: 'all', label: 'Semua Tipe' },
                     { value: 'income', label: 'Pemasukan' },
                     { value: 'expense', label: 'Pengeluaran' },
                     { value: 'adjustment', label: 'Adjustment' },
@@ -790,24 +823,80 @@ export default function FinanceAccountDetailPage() {
                   ]}
                 />
               </div>
+              <div className="form-group" style={{ minWidth: 140 }}>
+                <label className="form-label">Filter Tahun</label>
+                <CustomSelect
+                  value={selectedYear}
+                  onChange={(value) => {
+                    setSelectedYear(value);
+                    if (value === 'all') {
+                      setDateFrom('');
+                      setDateTo('');
+                    } else {
+                      setDateFrom(`${value}-01-01`);
+                      setDateTo(`${value}-12-31`);
+                    }
+                  }}
+                  options={[
+                    { value: 'all', label: 'Semua Tahun' },
+                    ...availableYears.map(y => ({ value: String(y), label: `Tahun ${y}` }))
+                  ]}
+                />
+              </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="finance-filter-from">Dari</label>
                 <CustomDatePicker
                   value={dateFrom}
-                  onChange={(date) => setDateFrom(format(date, 'yyyy-MM-dd'))}
+                  onChange={(date) => { setDateFrom(format(date, 'yyyy-MM-dd')); setSelectedYear('all'); }}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label" htmlFor="finance-filter-to">Sampai</label>
                 <CustomDatePicker
                   value={dateTo}
-                  onChange={(date) => setDateTo(format(date, 'yyyy-MM-dd'))}
+                  onChange={(date) => { setDateTo(format(date, 'yyyy-MM-dd')); setSelectedYear('all'); }}
                 />
               </div>
             </div>
-            <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); }}>
-              Reset Filter
-            </button>
+            <div className="finance-actions" style={{ marginTop: 0, gap: 6, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const now = new Date();
+                  const currentYr = now.getFullYear();
+                  setSelectedYear(String(currentYr));
+                  setDateFrom(format(startOfYear(now), 'yyyy-MM-dd'));
+                  setDateTo(format(endOfYear(now), 'yyyy-MM-dd'));
+                }}
+              >
+                Tahun Ini
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const now = new Date();
+                  setSelectedYear('all');
+                  setDateFrom(format(startOfMonth(now), 'yyyy-MM-dd'));
+                  setDateTo(format(endOfMonth(now), 'yyyy-MM-dd'));
+                }}
+              >
+                Bulan Ini
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setTypeFilter('all');
+                  setSelectedYear('all');
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+              >
+                Reset / Semua
+              </button>
+            </div>
           </div>
 
           {sortedItems.length === 0 ? (

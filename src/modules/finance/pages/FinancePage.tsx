@@ -13,6 +13,7 @@ import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/tra
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import '@/modules/finance/finance.css';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
 
@@ -544,11 +545,13 @@ export default function FinancePage() {
                 <div className="finance-summary-note">{account.transactionCount} transaksi • {account.linkedPortfolioCount} dompet terhubung</div>
                 <div className="finance-summary-note">Dibuat {formatDate(account.createdAt)}</div>
               </div>
-              {account.notes ? (
-                <div className="finance-summary-note" style={{ minHeight: 40 }}>{account.notes}</div>
-              ) : (
-                <div className="finance-summary-note" style={{ minHeight: 40 }}>Tanpa catatan tambahan.</div>
-              )}
+              <div className="finance-summary-note" style={{ minHeight: 40 }}>
+                <RichTextRenderer
+                  content={account.notes}
+                  fallbackText="Tanpa catatan tambahan."
+                  className="finance-card-notes"
+                />
+              </div>
 
               <div className="finance-actions">
                 <Link className="btn btn-secondary" to={`/finance/${account.id}`}>Buka Ledger</Link>

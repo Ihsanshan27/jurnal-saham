@@ -31,10 +31,30 @@ export default function FinanceGlobalTransactionsPage() {
   
   // Ledger Filters
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedYear, setSelectedYear] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
   const [isLedgerAccountModalOpen, setIsLedgerAccountModalOpen] = useState(false);
+
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    // Cari tahun tertua dari data transaksi
+    let earliest = currentYear - 5;
+    (financeTransactions || []).forEach((t: any) => {
+      if (t.date) {
+        const y = parseInt(t.date.substring(0, 4), 10);
+        if (!isNaN(y) && y < earliest) earliest = y;
+      }
+    });
+    // Buat range dari tahun tertua (atau 5 tahun ke belakang) sampai 2 tahun ke depan
+    const latest = currentYear + 2;
+    const years: number[] = [];
+    for (let y = latest; y >= earliest; y--) {
+      years.push(y);
+    }
+    return years;
+  }, [financeTransactions]);
 
   // Cashflow Filters
   const [cfDateFrom, setCfDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -466,13 +486,13 @@ export default function FinanceGlobalTransactionsPage() {
                     }
                   </button>
                 </div>
-                <div className="form-group" style={{ minWidth: 170 }}>
+                <div className="form-group" style={{ minWidth: 160 }}>
                   <label className="form-label" htmlFor="finance-filter-type">Filter Tipe</label>
                   <CustomSelect
                     value={typeFilter}
                     onChange={(value) => { setTypeFilter(value); setActiveLedgerPresetId('CUSTOM'); }}
                     options={[
-                      { value: 'all', label: 'Semua' },
+                      { value: 'all', label: 'Semua Tipe' },
                       { value: 'income', label: 'Pemasukan' },
                       { value: 'expense', label: 'Pengeluaran' },
                       { value: 'adjustment', label: 'Adjustment' },
@@ -481,24 +501,85 @@ export default function FinanceGlobalTransactionsPage() {
                     ]}
                   />
                 </div>
+                <div className="form-group" style={{ minWidth: 140 }}>
+                  <label className="form-label">Filter Tahun</label>
+                  <CustomSelect
+                    value={selectedYear}
+                    onChange={(value) => {
+                      setSelectedYear(value);
+                      setActiveLedgerPresetId('CUSTOM');
+                      if (value === 'all') {
+                        setDateFrom('');
+                        setDateTo('');
+                      } else {
+                        setDateFrom(`${value}-01-01`);
+                        setDateTo(`${value}-12-31`);
+                      }
+                    }}
+                    options={[
+                      { value: 'all', label: 'Semua Tahun' },
+                      ...availableYears.map(y => ({ value: String(y), label: `Tahun ${y}` }))
+                    ]}
+                  />
+                </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-filter-from">Dari</label>
                   <CustomDatePicker
                     value={dateFrom}
-                    onChange={(date) => setDateFrom(format(date, 'yyyy-MM-dd'))}
+                    onChange={(date) => { setDateFrom(format(date, 'yyyy-MM-dd')); setSelectedYear('all'); setActiveLedgerPresetId('CUSTOM'); }}
                   />
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-filter-to">Sampai</label>
                   <CustomDatePicker
                     value={dateTo}
-                    onChange={(date) => setDateTo(format(date, 'yyyy-MM-dd'))}
+                    onChange={(date) => { setDateTo(format(date, 'yyyy-MM-dd')); setSelectedYear('all'); setActiveLedgerPresetId('CUSTOM'); }}
                   />
                 </div>
               </div>
-              <button type="button" className="btn btn-secondary" onClick={() => { setTypeFilter('all'); setDateFrom(''); setDateTo(''); setSelectedAccounts(new Set()); setActiveLedgerPresetId('ALL'); }}>
-                Reset Filter
-              </button>
+              <div className="finance-actions" style={{ marginTop: 0, gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const now = new Date();
+                    const currentYr = now.getFullYear();
+                    setSelectedYear(String(currentYr));
+                    setDateFrom(format(startOfYear(now), 'yyyy-MM-dd'));
+                    setDateTo(format(endOfYear(now), 'yyyy-MM-dd'));
+                    setActiveLedgerPresetId('CUSTOM');
+                  }}
+                >
+                  Tahun Ini
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const now = new Date();
+                    setSelectedYear('all');
+                    setDateFrom(format(startOfMonth(now), 'yyyy-MM-dd'));
+                    setDateTo(format(endOfMonth(now), 'yyyy-MM-dd'));
+                    setActiveLedgerPresetId('CUSTOM');
+                  }}
+                >
+                  Bulan Ini
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    setTypeFilter('all');
+                    setSelectedYear('all');
+                    setDateFrom('');
+                    setDateTo('');
+                    setSelectedAccounts(new Set());
+                    setActiveLedgerPresetId('ALL');
+                  }}
+                >
+                  Reset / Semua
+                </button>
+              </div>
             </div>
 
             {sortedItems.length === 0 ? (

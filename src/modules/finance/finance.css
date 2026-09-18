@@ -90,6 +90,31 @@
   font-size: 0.82rem;
 }
 
+/* Rich text notes inside account cards */
+.finance-summary-note .finance-card-notes.rich-text-rendered {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.finance-summary-note .finance-card-notes.rich-text-rendered p {
+  margin: 0 0 4px 0;
+}
+
+.finance-summary-note .finance-card-notes.rich-text-rendered p:last-child {
+  margin-bottom: 0;
+}
+
+.finance-summary-note .finance-card-notes.rich-text-rendered ul,
+.finance-summary-note .finance-card-notes.rich-text-rendered ol {
+  margin: 2px 0;
+  padding-left: 16px;
+}
+
+.finance-summary-note .finance-card-notes.rich-text-rendered strong {
+  color: var(--text-primary);
+}
+
 .finance-inline-form {
   display: flex;
   gap: 10px;
