@@ -37,40 +37,42 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: '520px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+      <div className="modal" style={{ maxWidth: '560px', width: '92%', borderRadius: 'var(--radius-lg)' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Detail Transaksi Keuangan</h3>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Tutup">
             <X size={18} />
           </button>
         </div>
 
-        <div className="modal-body" style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Main Amount Card */}
           <div style={{
             background: 'var(--bg-input)',
             borderRadius: 'var(--radius-md)',
-            padding: '16px',
+            padding: '20px 16px',
             textAlign: 'center',
-            border: '1px solid var(--border-color)'
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)'
           }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Nominal Transaksi</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 500 }}>Nominal Transaksi</div>
             <div style={{
-              fontSize: '1.6rem',
+              fontSize: '1.75rem',
               fontWeight: 800,
+              letterSpacing: '-0.02em',
               color: isExpense ? 'var(--accent-red)' : isIncome ? 'var(--accent-green)' : 'var(--text-primary)'
             }}>
               {isExpense ? '-' : isIncome ? '+' : ''}{formatRupiah(rawAmount)}
             </div>
-            <div style={{ marginTop: '8px' }}>
-              <span className="badge badge-blue" style={{ fontSize: '0.75rem' }}>
+            <div style={{ marginTop: '10px' }}>
+              <span className="badge badge-blue" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>
                 {getFinanceTransactionTypeLabel(transaction.type)}
               </span>
             </div>
           </div>
 
           {/* Key Details Grid */}
-          <div className="calc-result" style={{ margin: 0, background: 'transparent', border: 'none', padding: 0 }}>
+          <div className="calc-result" style={{ margin: 0, background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
             <div className="calc-result-row">
               <span className="calc-result-label">Tanggal Transaksi</span>
               <span className="calc-result-value">{formatDate(transaction.date)}</span>
@@ -104,7 +106,7 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
               <span className="calc-result-value">{transaction.category ? <span className="badge badge-yellow">{transaction.category}</span> : '-'}</span>
             </div>
             {portfolio && (
-              <div className="calc-result-row">
+              <div className="calc-result-row" style={{ borderBottom: 'none' }}>
                 <span className="calc-result-label">Tertaut Portofolio</span>
                 <span className="calc-result-value"><span className="badge badge-green">{portfolio.name}</span></span>
               </div>
@@ -113,20 +115,20 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
 
           {/* Notes Section */}
           <div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Catatan Tambahan</div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Catatan Tambahan</div>
             <div style={{
               background: 'var(--bg-input)',
               borderRadius: 'var(--radius-md)',
-              padding: '12px',
+              padding: '14px 16px',
               border: '1px solid var(--border-color)',
-              minHeight: '60px'
+              minHeight: '70px'
             }}>
               <RichTextRenderer content={transaction.notes} fallbackText="Tidak ada catatan tambahan." />
             </div>
           </div>
         </div>
 
-        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '12px', gap: '8px' }}>
+        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             {onEdit && !transaction.transferGroupId && (
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => { onClose(); onEdit(transaction); }}>
