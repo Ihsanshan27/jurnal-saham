@@ -15,6 +15,13 @@ import '@/modules/portfolios/portfolios.css';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
+function calcReturnPct(metrics: any) {
+  const invested = metrics?.displayInvestedAmount || 0;
+  const floating = metrics?.totalFloatingPnL || 0;
+  const floatingPct = invested > 0 ? (floating / invested) * 100 : 0;
+  return { floatingPct, invested, floating };
+}
+
 function getPortfolioMetrics(portfolioId, trades, cashflows, dividends, settings, marketPrices) {
   const scopedTrades = trades.filter((item: any) => (item.portfolioId || 'default') === portfolioId);
   const scopedCashflows = cashflows.filter((item: any) => (item.portfolioId || 'default') === portfolioId);
@@ -319,7 +326,7 @@ export default function PortfoliosPage() {
             Sebagian nilai posisi masih memakai harga beli karena harga market belum tersedia.
           </div>
         ) : null}
-        <div className="grid grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <div className="grid grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
           <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Buying Power</div>
             <div className="font-mono" style={{ fontSize: '1.10rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: 4, ...blurStyle }}>
@@ -345,6 +352,27 @@ export default function PortfoliosPage() {
                   USD: {(activeMetrics?.usMetrics?.totalFloatingPnL || 0) >= 0 ? '+' : ''}{formatUSD(activeMetrics?.usMetrics?.totalFloatingPnL || 0)}
                 </div>
               ) : null}
+            </div>
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Return (%) Saham</div>
+            <div className="font-mono" style={{ fontSize: '1.10rem', fontWeight: 700, display: 'flex', flexDirection: 'column', gap: 4, ...blurStyle }}>
+              {(() => {
+                const idRet = calcReturnPct(activeMetrics?.idMetrics);
+                const usRet = calcReturnPct(activeMetrics?.usMetrics);
+                return (
+                  <>
+                    <div className={idRet.floatingPct >= 0 ? 'text-profit' : 'text-loss'}>
+                      IDR: {idRet.floatingPct >= 0 ? '+' : ''}{idRet.floatingPct.toFixed(2)}%
+                    </div>
+                    {activeMetrics?.hasUS ? (
+                      <div className={usRet.floatingPct >= 0 ? 'text-profit' : 'text-loss'}>
+                        USD: {usRet.floatingPct >= 0 ? '+' : ''}{usRet.floatingPct.toFixed(2)}%
+                      </div>
+                    ) : null}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -469,33 +497,52 @@ export default function PortfoliosPage() {
                     ) : null}
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 12 }}>
                     <div style={{ background: 'rgba(16,185,129,0.06)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>Buying Power</div>
-                      <div className="font-mono" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-green)', ...blurStyle }}>IDR: {formatRupiah(metrics?.idMetrics?.buyingPower || 0)}</div>
-                      {metrics?.hasUS ? <div className="font-mono" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-blue)', ...blurStyle }}>USD: {formatUSD(metrics?.usMetrics?.buyingPower || 0)}</div> : null}
+                      <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--accent-green)', ...blurStyle }}>IDR: {formatRupiah(metrics?.idMetrics?.buyingPower || 0)}</div>
+                      {metrics?.hasUS ? <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--accent-blue)', ...blurStyle }}>USD: {formatUSD(metrics?.usMetrics?.buyingPower || 0)}</div> : null}
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>Investasi Terbuka</div>
+                      <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', ...blurStyle }}>
+                        IDR: {formatRupiah(metrics?.idMetrics?.displayInvestedAmount || 0)}
+                      </div>
+                      {metrics?.hasUS ? (
+                        <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--accent-blue)', ...blurStyle }}>
+                          USD: {formatUSD(metrics?.usMetrics?.displayInvestedAmount || 0)}
+                        </div>
+                      ) : null}
                     </div>
                     <div style={{ background: 'rgba(148,163,184,0.08)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', border: '1px solid rgba(148,163,184,0.15)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>Floating P/L</div>
-                      <div className="font-mono" style={{ fontSize: '0.9rem', fontWeight: 700, ...blurStyle, color: (metrics?.idMetrics?.totalFloatingPnL || 0) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                      <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, ...blurStyle, color: (metrics?.idMetrics?.totalFloatingPnL || 0) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
                         IDR: {(metrics?.idMetrics?.totalFloatingPnL || 0) >= 0 ? '+' : ''}{formatRupiah(metrics?.idMetrics?.totalFloatingPnL || 0)}
                       </div>
                       {metrics?.hasUS ? (
-                        <div className="font-mono" style={{ fontSize: '0.9rem', fontWeight: 700, ...blurStyle, color: (metrics?.usMetrics?.totalFloatingPnL || 0) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                        <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, ...blurStyle, color: (metrics?.usMetrics?.totalFloatingPnL || 0) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
                           USD: {(metrics?.usMetrics?.totalFloatingPnL || 0) >= 0 ? '+' : ''}{formatUSD(metrics?.usMetrics?.totalFloatingPnL || 0)}
                         </div>
                       ) : null}
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>Investasi Terbuka</div>
-                      <div className="font-mono" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', ...blurStyle }}>
-                        IDR: {formatRupiah(metrics?.idMetrics?.displayInvestedAmount || 0)}
-                      </div>
-                      {metrics?.hasUS ? (
-                        <div className="font-mono" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-blue)', ...blurStyle }}>
-                          USD: {formatUSD(metrics?.usMetrics?.displayInvestedAmount || 0)}
-                        </div>
-                      ) : null}
+                    <div style={{ background: 'rgba(59,130,246,0.06)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>Return (%) Saham</div>
+                      {(() => {
+                        const idRet = calcReturnPct(metrics?.idMetrics);
+                        const usRet = calcReturnPct(metrics?.usMetrics);
+                        return (
+                          <>
+                            <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, ...blurStyle, color: idRet.floatingPct >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                              IDR: {idRet.floatingPct >= 0 ? '+' : ''}{idRet.floatingPct.toFixed(2)}%
+                            </div>
+                            {metrics?.hasUS ? (
+                              <div className="font-mono" style={{ fontSize: '0.88rem', fontWeight: 700, ...blurStyle, color: usRet.floatingPct >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                                USD: {usRet.floatingPct >= 0 ? '+' : ''}{usRet.floatingPct.toFixed(2)}%
+                              </div>
+                            ) : null}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 

@@ -1,17 +1,6 @@
 import { useMemo } from 'react';
 import { calculateUnrealizedPnL } from '@/modules/trades/calculations';
-
-interface Trade {
-  id: string;
-  assetType?: 'stock' | 'mutual_fund';
-  stockCode: string;
-  market?: string;
-  lots: number;
-  buyPrice: number;
-  sellPrice?: number;
-  dateSell?: string;
-  buyFee?: number;
-}
+import type { Trade } from '@/modules/shared/types';
 
 interface UseOpenPositionMetricsOptions {
   /** Filter trades to only this market ('ID' | 'US'). Defaults to all open trades. */
