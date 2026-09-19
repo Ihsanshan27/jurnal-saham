@@ -44,20 +44,26 @@ function createInitialTransferForm(usdToIdrRate = 16200) {
   };
 }
 
-function createInitialPortfolioTransferForm(activePortfolioId: string) {
+function createInitialPortfolioTransferForm(activePortfolioId: string, usdToIdrRate = 16200) {
   return {
     portfolioId: activePortfolioId || 'default',
+    market: 'ID',
     amount: '',
+    targetAmount: '',
+    exchangeRate: String(usdToIdrRate),
     date: new Date().toISOString().split('T')[0],
     description: '',
     notes: '',
   };
 }
 
-function createInitialPortfolioWithdrawalForm(activePortfolioId: string) {
+function createInitialPortfolioWithdrawalForm(activePortfolioId: string, usdToIdrRate = 16200) {
   return {
     portfolioId: activePortfolioId || 'default',
+    market: 'ID',
     amount: '',
+    targetAmount: '',
+    exchangeRate: String(usdToIdrRate),
     date: new Date().toISOString().split('T')[0],
     description: '',
     notes: '',
@@ -127,8 +133,8 @@ export default function FinanceAccountDetailPage() {
   const [composerMode, setComposerMode] = useState<'transaction' | 'transfer' | 'to_portfolio' | 'from_portfolio'>('transaction');
   const [transactionForm, setTransactionForm] = useState(() => createInitialTransactionForm(activePortfolioId));
   const [transferForm, setTransferForm] = useState(() => createInitialTransferForm(settings?.usdToIdrRate || 16200));
-  const [portfolioTransferForm, setPortfolioTransferForm] = useState(() => createInitialPortfolioTransferForm(activePortfolioId));
-  const [portfolioWithdrawalForm, setPortfolioWithdrawalForm] = useState(() => createInitialPortfolioWithdrawalForm(activePortfolioId));
+  const [portfolioTransferForm, setPortfolioTransferForm] = useState(() => createInitialPortfolioTransferForm(activePortfolioId, settings?.usdToIdrRate || 16200));
+  const [portfolioWithdrawalForm, setPortfolioWithdrawalForm] = useState(() => createInitialPortfolioWithdrawalForm(activePortfolioId, settings?.usdToIdrRate || 16200));
   const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<any>(null);
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
@@ -307,11 +313,63 @@ export default function FinanceAccountDetailPage() {
   };
 
   const handlePortfolioTransferChange = (key: string, value: string) => {
-    setPortfolioTransferForm((prev) => ({ ...prev, [key]: value }));
+    setPortfolioTransferForm((prev) => {
+      const nextForm = { ...prev, [key]: value };
+      const defaultRate = settings?.usdToIdrRate || 16200;
+      const rate = Number(nextForm.exchangeRate) || defaultRate;
+
+      if (nextForm.market === 'US') {
+        if (key === 'amount' && value) {
+          const numAmount = Number(value) || 0;
+          nextForm.targetAmount = rate > 0 ? String(Number((numAmount / rate).toFixed(2))) : '';
+        } else if (key === 'targetAmount' && value) {
+          const numTarget = Number(value) || 0;
+          nextForm.amount = String(Math.round(numTarget * rate));
+        } else if (key === 'exchangeRate' && value) {
+          const numAmount = Number(nextForm.amount) || 0;
+          const numRate = Number(value) || 0;
+          if (numAmount > 0 && numRate > 0) {
+            nextForm.targetAmount = String(Number((numAmount / numRate).toFixed(2)));
+          }
+        } else if (key === 'market' && value === 'US') {
+          const numAmount = Number(nextForm.amount) || 0;
+          if (numAmount > 0 && rate > 0) {
+            nextForm.targetAmount = String(Number((numAmount / rate).toFixed(2)));
+          }
+        }
+      }
+      return nextForm;
+    });
   };
 
   const handlePortfolioWithdrawalChange = (key: string, value: string) => {
-    setPortfolioWithdrawalForm((prev) => ({ ...prev, [key]: value }));
+    setPortfolioWithdrawalForm((prev) => {
+      const nextForm = { ...prev, [key]: value };
+      const defaultRate = settings?.usdToIdrRate || 16200;
+      const rate = Number(nextForm.exchangeRate) || defaultRate;
+
+      if (nextForm.market === 'US') {
+        if (key === 'amount' && value) {
+          const numUsd = Number(value) || 0;
+          nextForm.targetAmount = String(Math.round(numUsd * rate));
+        } else if (key === 'targetAmount' && value) {
+          const numIdr = Number(value) || 0;
+          nextForm.amount = rate > 0 ? String(Number((numIdr / rate).toFixed(2))) : '';
+        } else if (key === 'exchangeRate' && value) {
+          const numUsd = Number(nextForm.amount) || 0;
+          const numRate = Number(value) || 0;
+          if (numUsd > 0 && numRate > 0) {
+            nextForm.targetAmount = String(Math.round(numUsd * numRate));
+          }
+        } else if (key === 'market' && value === 'US') {
+          const numUsd = Number(nextForm.amount) || 0;
+          if (numUsd > 0 && rate > 0) {
+            nextForm.targetAmount = String(Math.round(numUsd * rate));
+          }
+        }
+      }
+      return nextForm;
+    });
   };
 
   const handleTransactionSubmit = (event: React.FormEvent) => {
@@ -399,12 +457,15 @@ export default function FinanceAccountDetailPage() {
     createFinancePortfolioTransfer({
       accountId: account.id,
       portfolioId: portfolioTransferForm.portfolioId,
+      market: portfolioTransferForm.market,
       amount: portfolioTransferForm.amount,
+      targetAmount: portfolioTransferForm.market === 'US' ? portfolioTransferForm.targetAmount : portfolioTransferForm.amount,
+      exchangeRate: portfolioTransferForm.market === 'US' ? portfolioTransferForm.exchangeRate : undefined,
       date: portfolioTransferForm.date,
       description: portfolioTransferForm.description,
       notes: portfolioTransferForm.notes,
     });
-    setPortfolioTransferForm(createInitialPortfolioTransferForm(activePortfolioId));
+    setPortfolioTransferForm(createInitialPortfolioTransferForm(activePortfolioId, settings?.usdToIdrRate || 16200));
   };
 
   const handlePortfolioWithdrawalSubmit = (event: React.FormEvent) => {
@@ -412,12 +473,16 @@ export default function FinanceAccountDetailPage() {
     createPortfolioToFinanceTransfer({
       accountId: account.id,
       portfolioId: portfolioWithdrawalForm.portfolioId,
+      market: portfolioWithdrawalForm.market,
       amount: portfolioWithdrawalForm.amount,
+      targetAmount: portfolioWithdrawalForm.market === 'US' ? portfolioWithdrawalForm.targetAmount : portfolioWithdrawalForm.amount,
+      exchangeRate: portfolioWithdrawalForm.market === 'US' ? portfolioWithdrawalForm.exchangeRate : undefined,
+      amountIsUsd: portfolioWithdrawalForm.market === 'US',
       date: portfolioWithdrawalForm.date,
       description: portfolioWithdrawalForm.description,
       notes: portfolioWithdrawalForm.notes,
     });
-    setPortfolioWithdrawalForm(createInitialPortfolioWithdrawalForm(activePortfolioId));
+    setPortfolioWithdrawalForm(createInitialPortfolioWithdrawalForm(activePortfolioId, settings?.usdToIdrRate || 16200));
   };
 
   const composerOptions = [
@@ -763,41 +828,101 @@ export default function FinanceAccountDetailPage() {
             <form onSubmit={handlePortfolioTransferSubmit}>
               <div style={{ marginBottom: 16 }}>
                 <h4 style={{ margin: 0, fontSize: '1rem' }}>Transfer ke Dompet Trading</h4>
-                <div className="finance-helper-text">Dana keluar dari rekening ini, lalu masuk ke dompet trading sebagai cashflow deposit.</div>
+                <div className="finance-helper-text">Dana keluar dari rekening bank (IDR), lalu masuk ke dompet trading (IDR / USD).</div>
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Dari Rekening</label>
-                  <input className="form-input" value={account.name} disabled />
+                  <label className="form-label">Dari Rekening Bank</label>
+                  <input className="form-input" value={`${account.name} (${account.currency || 'IDR'})`} disabled />
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="finance-portfolio-transfer-target">Ke Dompet *</label>
+                  <label className="form-label" htmlFor="finance-portfolio-transfer-target">Ke Dompet Trading *</label>
                   <CustomSelect
                     value={portfolioTransferForm.portfolioId}
                     onChange={(value) => handlePortfolioTransferChange('portfolioId', value)}
                     options={portfolios.map((portfolio: any) => ({ value: portfolio.id, label: portfolio.name }))}
                   />
                 </div>
-              </div>
-              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="finance-portfolio-transfer-amount">Nominal *</label>
-                  <CurrencyInput
-                    id="finance-portfolio-transfer-amount"
-                    value={portfolioTransferForm.amount}
-                    onChange={(value) => handlePortfolioTransferChange('amount', value)}
-                    placeholder="1.000.000"
-                  />
-                  <div className="finance-helper-text">Ledger rekening tercatat sebagai pengeluaran, sementara dompet menerima dana masuk.</div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="finance-portfolio-transfer-date">Tanggal *</label>
-                  <CustomDatePicker
-                    value={portfolioTransferForm.date}
-                    onChange={(date) => handlePortfolioTransferChange('date', format(date, 'yyyy-MM-dd'))}
+                  <label className="form-label">Pasar Dompet Tujuan *</label>
+                  <CustomSelect
+                    value={portfolioTransferForm.market}
+                    onChange={(value) => handlePortfolioTransferChange('market', value)}
+                    options={[
+                      { value: 'ID', label: 'Pasar Indonesia (IDR)' },
+                      { value: 'US', label: 'Pasar Amerika (USD)' },
+                    ]}
                   />
                 </div>
               </div>
+
+              {portfolioTransferForm.market === 'US' ? (
+                <>
+                  <div className="financial-tips-box" style={{ marginBottom: 16, border: '1px solid rgba(59, 130, 246, 0.3)', background: 'rgba(59, 130, 246, 0.06)' }}>
+                    <div className="financial-tips-title" style={{ color: 'var(--accent-blue)' }}>
+                      Konversi Deposit Pasar US (IDR ➔ USD)
+                    </div>
+                    <div>Rekening Bank dipotong sebesar IDR (Rupiah), lalu dikonversi dengan Kurs dan masuk ke Dompet Trading Pasar US dalam Dollar ($ USD).</div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-transfer-amount">Nominal Keluar Bank (IDR / Rp) *</label>
+                      <CurrencyInput
+                        id="finance-portfolio-transfer-amount"
+                        value={portfolioTransferForm.amount}
+                        onChange={(value) => handlePortfolioTransferChange('amount', value)}
+                        placeholder="16.200.000"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-transfer-rate">Kurs Conversi (1 USD = Rp ...)</label>
+                      <CurrencyInput
+                        id="finance-portfolio-transfer-rate"
+                        value={portfolioTransferForm.exchangeRate}
+                        onChange={(value) => handlePortfolioTransferChange('exchangeRate', value)}
+                        placeholder="16.200"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-transfer-target-amount">Masuk ke Dompet US ($ USD) *</label>
+                      <CurrencyInput
+                        id="finance-portfolio-transfer-target-amount"
+                        value={portfolioTransferForm.targetAmount}
+                        onChange={(value) => handlePortfolioTransferChange('targetAmount', value)}
+                        placeholder="1.000.00"
+                        allowDecimal
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-transfer-date">Tanggal *</label>
+                      <CustomDatePicker
+                        value={portfolioTransferForm.date}
+                        onChange={(date) => handlePortfolioTransferChange('date', format(date, 'yyyy-MM-dd'))}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="finance-portfolio-transfer-amount">Nominal Deposit (IDR / Rp) *</label>
+                    <CurrencyInput
+                      id="finance-portfolio-transfer-amount"
+                      value={portfolioTransferForm.amount}
+                      onChange={(value) => handlePortfolioTransferChange('amount', value)}
+                      placeholder="1.000.000"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="finance-portfolio-transfer-date">Tanggal *</label>
+                    <CustomDatePicker
+                      value={portfolioTransferForm.date}
+                      onChange={(date) => handlePortfolioTransferChange('date', format(date, 'yyyy-MM-dd'))}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-transfer-description">Deskripsi</label>
@@ -806,7 +931,7 @@ export default function FinanceAccountDetailPage() {
                     className="form-input"
                     value={portfolioTransferForm.description}
                     onChange={(event) => handlePortfolioTransferChange('description', event.target.value)}
-                    placeholder="Top up modal trading / pindah dana ke dompet"
+                    placeholder="Top up modal trading / deposit RDN"
                   />
                 </div>
               </div>
@@ -831,11 +956,11 @@ export default function FinanceAccountDetailPage() {
             <form onSubmit={handlePortfolioWithdrawalSubmit}>
               <div style={{ marginBottom: 16 }}>
                 <h4 style={{ margin: 0, fontSize: '1rem' }}>Tarik Dana dari Dompet Trading</h4>
-                <div className="finance-helper-text">Dana keluar dari dompet trading lalu masuk ke rekening finance ini.</div>
+                <div className="finance-helper-text">Dana keluar dari dompet trading (IDR / USD) lalu masuk ke rekening bank ini (IDR).</div>
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="finance-portfolio-withdrawal-source">Dari Dompet *</label>
+                  <label className="form-label" htmlFor="finance-portfolio-withdrawal-source">Dari Dompet Trading *</label>
                   <CustomSelect
                     value={portfolioWithdrawalForm.portfolioId}
                     onChange={(value) => handlePortfolioWithdrawalChange('portfolioId', value)}
@@ -843,29 +968,89 @@ export default function FinanceAccountDetailPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Ke Rekening</label>
-                  <input className="form-input" value={account.name} disabled />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="finance-portfolio-withdrawal-amount">Nominal *</label>
-                  <CurrencyInput
-                    id="finance-portfolio-withdrawal-amount"
-                    value={portfolioWithdrawalForm.amount}
-                    onChange={(value) => handlePortfolioWithdrawalChange('amount', value)}
-                    placeholder="1.000.000"
-                  />
-                  <div className="finance-helper-text">Dompet trading akan tercatat sebagai cashflow keluar, sementara rekening ini menerima pemasukan.</div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="finance-portfolio-withdrawal-date">Tanggal *</label>
-                  <CustomDatePicker
-                    value={portfolioWithdrawalForm.date}
-                    onChange={(date) => handlePortfolioWithdrawalChange('date', format(date, 'yyyy-MM-dd'))}
+                  <label className="form-label">Pasar Dompet Asal *</label>
+                  <CustomSelect
+                    value={portfolioWithdrawalForm.market}
+                    onChange={(value) => handlePortfolioWithdrawalChange('market', value)}
+                    options={[
+                      { value: 'ID', label: 'Pasar Indonesia (IDR)' },
+                      { value: 'US', label: 'Pasar Amerika (USD)' },
+                    ]}
                   />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Ke Rekening Bank</label>
+                  <input className="form-input" value={`${account.name} (${account.currency || 'IDR'})`} disabled />
+                </div>
               </div>
+
+              {portfolioWithdrawalForm.market === 'US' ? (
+                <>
+                  <div className="financial-tips-box" style={{ marginBottom: 16, border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.06)' }}>
+                    <div className="financial-tips-title" style={{ color: 'var(--accent-green)' }}>
+                      Konversi Tarik Dana Pasar US (USD ➔ IDR)
+                    </div>
+                    <div>Dana ditarik dari Dompet Trading US dalam Dollar ($ USD), dikonversi dengan Kurs dan masuk ke Rekening Bank dalam Rupiah (IDR / Rp).</div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-withdrawal-amount">Ditarik dari Dompet US ($ USD) *</label>
+                      <CurrencyInput
+                        id="finance-portfolio-withdrawal-amount"
+                        value={portfolioWithdrawalForm.amount}
+                        onChange={(value) => handlePortfolioWithdrawalChange('amount', value)}
+                        placeholder="1.200.00"
+                        allowDecimal
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-withdrawal-rate">Kurs Conversi (1 USD = Rp ...)</label>
+                      <CurrencyInput
+                        id="finance-portfolio-withdrawal-rate"
+                        value={portfolioWithdrawalForm.exchangeRate}
+                        onChange={(value) => handlePortfolioWithdrawalChange('exchangeRate', value)}
+                        placeholder="16.200"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-withdrawal-target-amount">Masuk ke Bank (IDR / Rp) *</label>
+                      <CurrencyInput
+                        id="finance-portfolio-withdrawal-target-amount"
+                        value={portfolioWithdrawalForm.targetAmount}
+                        onChange={(value) => handlePortfolioWithdrawalChange('targetAmount', value)}
+                        placeholder="19.440.000"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="finance-portfolio-withdrawal-date">Tanggal *</label>
+                      <CustomDatePicker
+                        value={portfolioWithdrawalForm.date}
+                        onChange={(date) => handlePortfolioWithdrawalChange('date', format(date, 'yyyy-MM-dd'))}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="finance-portfolio-withdrawal-amount">Nominal Tarik Dana (IDR / Rp) *</label>
+                    <CurrencyInput
+                      id="finance-portfolio-withdrawal-amount"
+                      value={portfolioWithdrawalForm.amount}
+                      onChange={(value) => handlePortfolioWithdrawalChange('amount', value)}
+                      placeholder="1.000.000"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="finance-portfolio-withdrawal-date">Tanggal *</label>
+                    <CustomDatePicker
+                      value={portfolioWithdrawalForm.date}
+                      onChange={(date) => handlePortfolioWithdrawalChange('date', format(date, 'yyyy-MM-dd'))}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-portfolio-withdrawal-description">Deskripsi</label>
@@ -874,7 +1059,7 @@ export default function FinanceAccountDetailPage() {
                     className="form-input"
                     value={portfolioWithdrawalForm.description}
                     onChange={(event) => handlePortfolioWithdrawalChange('description', event.target.value)}
-                    placeholder="Tarik profit / pindah dana dari dompet trading"
+                    placeholder="Tarik profit / penarikan RDN"
                   />
                 </div>
               </div>

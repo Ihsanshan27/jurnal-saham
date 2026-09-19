@@ -156,19 +156,24 @@ export default function CashflowPage() {
           createFinancePortfolioTransfer({
             accountId: form.financeAccountId,
             amount: payload.amount,
+            targetAmount: isUS ? payload.amount : undefined,
+            amountIsUsd: isUS,
             date: payload.date,
-            description: payload.notes || "Deposit RDN",
+            description: payload.notes || (isUS ? "Deposit RDN Pasar US" : "Deposit RDN"),
             portfolioId: activePortfolioId,
             market: payload.market,
+            exchangeRate: settings.usdToIdrRate || 16200,
           });
         } else {
           createPortfolioToFinanceTransfer({
             accountId: form.financeAccountId,
             amount: payload.amount,
+            amountIsUsd: isUS,
             date: payload.date,
-            description: payload.notes || "Withdraw RDN",
+            description: payload.notes || (isUS ? "Withdraw RDN Pasar US" : "Withdraw RDN"),
             portfolioId: activePortfolioId,
             market: payload.market,
+            exchangeRate: settings.usdToIdrRate || 16200,
           });
         }
       } else {

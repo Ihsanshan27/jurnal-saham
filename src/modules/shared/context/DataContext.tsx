@@ -1014,11 +1014,22 @@ export function DataProvider({ children }) {
 
   const createFinancePortfolioTransfer = (transfer: any) => {
     if (!ensureWritable()) return null;
-    const rawAmount = Math.abs(Number(transfer.amount) || 0);
-    if (!rawAmount) return null;
-
     const isUS = transfer.market === 'US';
-    const amountInIdr = isUS ? rawAmount * (settings.usdToIdrRate || 16200) : rawAmount;
+    const exchangeRate = Number(transfer.exchangeRate) || settings?.usdToIdrRate || 16200;
+
+    let amountInIdr = Math.abs(Number(transfer.amount) || 0);
+    let targetUsdAmount = transfer.targetAmount != null
+      ? Math.abs(Number(transfer.targetAmount) || 0)
+      : (isUS && exchangeRate > 0 ? amountInIdr / exchangeRate : amountInIdr);
+
+    if (isUS && transfer.amountIsUsd) {
+      targetUsdAmount = Math.abs(Number(transfer.amount) || 0);
+      amountInIdr = transfer.targetAmount != null
+        ? Math.abs(Number(transfer.targetAmount) || 0)
+        : targetUsdAmount * exchangeRate;
+    }
+
+    if (!amountInIdr) return null;
 
     const currentBalance = getFinanceAccountCurrentBalance(transfer.accountId);
     if (amountInIdr > currentBalance) {
@@ -1030,15 +1041,17 @@ export function DataProvider({ children }) {
       accountId: transfer.accountId,
       type: 'expense',
       amount: amountInIdr,
+      exchangeRate: isUS ? exchangeRate : undefined,
+      targetAmount: isUS ? targetUsdAmount : undefined,
       date: transfer.date,
-      description: transfer.description || 'Transfer ke dompet trading',
+      description: transfer.description || `Transfer ke dompet trading (${isUS ? 'US' : 'ID'})`,
       notes: transfer.notes || '',
       category: transfer.category || 'Transfer ke dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
       cashflowSyncMode: 'transfer_to_portfolio',
       linkedMarket: transfer.market || 'ID',
-      linkedCashflowAmount: rawAmount,
+      linkedCashflowAmount: isUS ? targetUsdAmount : amountInIdr,
     };
 
     const createdTransaction = addFinanceTransaction(payload);
@@ -1047,6 +1060,7 @@ export function DataProvider({ children }) {
         accountId: transfer.accountId,
         portfolioId: payload.linkedPortfolioId || null,
         amount: amountInIdr,
+        targetUsdAmount: isUS ? targetUsdAmount : undefined,
       });
     }
     return createdTransaction;
@@ -1054,25 +1068,36 @@ export function DataProvider({ children }) {
 
   const createPortfolioToFinanceTransfer = (transfer: any) => {
     if (!ensureWritable()) return null;
-    const rawAmount = Math.abs(Number(transfer.amount) || 0);
-    if (!rawAmount) return null;
-
     const isUS = transfer.market === 'US';
-    const amountInIdr = isUS ? rawAmount * (settings.usdToIdrRate || 16200) : rawAmount;
+    const exchangeRate = Number(transfer.exchangeRate) || settings?.usdToIdrRate || 16200;
+
+    let targetUsdAmount = Math.abs(Number(transfer.amount) || 0);
+    let amountInIdr = transfer.targetAmount != null
+      ? Math.abs(Number(transfer.targetAmount) || 0)
+      : (isUS ? targetUsdAmount * exchangeRate : targetUsdAmount);
+
+    if (isUS && !transfer.amountIsUsd && !transfer.targetAmount) {
+      amountInIdr = Math.abs(Number(transfer.amount) || 0);
+      targetUsdAmount = exchangeRate > 0 ? amountInIdr / exchangeRate : amountInIdr;
+    }
+
+    if (!amountInIdr) return null;
 
     const payload = {
       accountId: transfer.accountId,
       type: 'income',
       amount: amountInIdr,
+      exchangeRate: isUS ? exchangeRate : undefined,
+      targetAmount: isUS ? targetUsdAmount : undefined,
       date: transfer.date,
-      description: transfer.description || 'Transfer dari dompet trading',
+      description: transfer.description || `Tarik dana dari dompet trading (${isUS ? 'US' : 'ID'})`,
       notes: transfer.notes || '',
       category: transfer.category || 'Transfer dari dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
       cashflowSyncMode: 'transfer_from_portfolio',
       linkedMarket: transfer.market || 'ID',
-      linkedCashflowAmount: rawAmount,
+      linkedCashflowAmount: isUS ? targetUsdAmount : amountInIdr,
     };
 
     const createdTransaction = addFinanceTransaction(payload);
@@ -1081,6 +1106,7 @@ export function DataProvider({ children }) {
         accountId: transfer.accountId,
         portfolioId: payload.linkedPortfolioId || null,
         amount: amountInIdr,
+        targetUsdAmount: isUS ? targetUsdAmount : undefined,
       });
     }
     return createdTransaction;
