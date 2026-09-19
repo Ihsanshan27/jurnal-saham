@@ -13,6 +13,7 @@ import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import { format } from 'date-fns';
 
 export default function TradeDetailPage() {
@@ -290,19 +291,26 @@ export default function TradeDetailPage() {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Beli' : 'Harga Beli'}</label>
-                      <input type="number" step="any" className="form-input" value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
-                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-blue-light)', marginTop: 4, fontWeight: 600 }}>
-                        Format: {formatMoney(Number(form.buyPrice) || 0)}
-                        <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>(Estimasi Total: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(form.buyPrice) || 0 }).totalBuy)})</span>
+                      <CurrencyInput
+                        market={form.market || trade.market}
+                        value={form.buyPrice}
+                        onChange={val => set('buyPrice', val)}
+                      />
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        Total Beli: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(form.buyPrice) || 0 }).totalBuy)}
                       </div>
                     </div>
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Jual' : 'Harga Jual'}</label>
-                      <input type="number" step="any" className="form-input" placeholder="Kosongkan jika belum dijual" value={form.sellPrice || ''} onChange={e => set('sellPrice', e.target.value)} />
+                      <CurrencyInput
+                        market={form.market || trade.market}
+                        value={form.sellPrice || ''}
+                        onChange={val => set('sellPrice', val)}
+                        placeholder="Kosongkan jika belum dijual"
+                      />
                       {form.sellPrice ? (
-                        <div style={{ fontSize: '0.8rem', color: 'var(--accent-green)', marginTop: 4, fontWeight: 600 }}>
-                          Format: {formatMoney(Number(form.sellPrice) || 0)}
-                          <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>(Estimasi Total: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(form.sellPrice) || 0 }).totalSell)})</span>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                          Total Jual: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(form.sellPrice) || 0 }).totalSell)}
                         </div>
                       ) : (marketPrices && marketPrices[trade.stockCode] ? (
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>

@@ -1,100 +1,113 @@
-/**
- * CurrencyInput — input angka dengan format pemisah ribuan otomatis.
- *
- * Props:
- *   value      — raw numeric string dari state (e.g. "1000000")
- *   onChange   — dipanggil dengan raw string angka (tanpa titik/koma)
- *   allowDecimal — true untuk harga/DPS (default false)
- *   placeholder  — placeholder teks (opsional)
- *   className    — tambahan class (default "form-input")
- *   disabled     — disabled state
- *   style        — inline style
- */
-
-import { useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CurrencyInputProps {
-  value: string;
-  onChange: (raw: string) => void;
-  allowDecimal?: boolean;
+  value: string | number;
+  onChange: (value: string) => void;
+  market?: 'ID' | 'US' | string;
   placeholder?: string;
-  className?: string;
   disabled?: boolean;
+  className?: string;
   style?: React.CSSProperties;
   id?: string;
+  name?: string;
+  required?: boolean;
+  autoFocus?: boolean;
 }
 
-/** Format raw angka ke string dengan titik ribuan, koma desimal (ID) */
-function formatDisplay(raw: string, allowDecimal: boolean): string {
-  if (!raw) return '';
-
-  // Pisahkan bagian integer dan desimal
-  const [intPart, ...decParts] = raw.split('.');
-  const decPart = decParts.join('.');
-
-  // Format integer dengan titik setiap 3 digit
-  const formatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-  if (allowDecimal && decPart !== undefined && raw.includes('.')) {
-    return formatted + ',' + decPart;
+export function formatCurrencyValue(val: number | string, market: string = 'ID'): string {
+  const num = typeof val === 'number' ? val : parseFloat(val);
+  if (isNaN(num) || num === 0) return '';
+  if (market === 'US') {
+    return `$ ${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 })}`;
   }
-  return formatted;
-}
-
-/** Hapus semua karakter non-numerik kecuali titik desimal (jika allowDecimal) */
-function toRaw(display: string, allowDecimal: boolean): string {
-  if (!display) return '';
-  // Ganti koma desimal → titik
-  let s = display.replace(/,/g, '.');
-  // Hapus semua titik ribuan (titik yang bukan titik desimal)
-  // Deteksi: titik terakhir adalah desimal jika allowDecimal
-  if (allowDecimal) {
-    // Ambil semua digit dan satu titik (desimal) terakhir
-    const parts = s.split('.');
-    if (parts.length > 2) {
-      // Ada beberapa titik → semua kecuali yg terakhir adalah ribuan
-      const intPart = parts.slice(0, -1).join('');
-      const decPart = parts[parts.length - 1];
-      s = intPart + '.' + decPart;
-    }
-    // Hapus karakter non-digit dan non-titik
-    return s.replace(/[^\d.]/g, '');
-  }
-  // Tidak ada desimal → hapus semua non-digit
-  return s.replace(/[^\d]/g, '');
+  return `Rp ${num.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`;
 }
 
 export default function CurrencyInput({
   value,
   onChange,
-  allowDecimal = false,
-  placeholder = '0',
-  className = 'form-input',
+  market = 'ID',
+  placeholder,
   disabled = false,
-  style,
+  className = 'form-input',
+  style = {},
   id,
+  name,
+  required = false,
+  autoFocus = false,
 }: CurrencyInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [focused, setFocused] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = toRaw(e.target.value, allowDecimal);
-    onChange(raw);
+  const numValue = typeof value === 'number' ? value : parseFloat(value);
+  const isUS = market === 'US';
+
+  useEffect(() => {
+    if (!focused) {
+      if (value !== '' && value !== null && value !== undefined && !isNaN(numValue) && numValue > 0) {
+        setInputValue(formatCurrencyValue(numValue, market));
+      } else {
+        setInputValue(value !== undefined && value !== null ? String(value) : '');
+      }
+    }
+  }, [value, market, focused, numValue]);
+
+  const handleFocus = () => {
+    setFocused(true);
+    // On focus, show raw clean number so editing is seamless
+    if (value !== '' && value !== null && value !== undefined) {
+      setInputValue(String(value));
+    }
   };
 
-  // Tampilkan display yang terformat
-  const displayValue = formatDisplay(value, allowDecimal);
+  const handleBlur = () => {
+    setFocused(false);
+    const parsed = parseFloat(inputValue.replace(/[^\d.]/g, ''));
+    if (!isNaN(parsed) && parsed > 0) {
+      onChange(String(parsed));
+      setInputValue(formatCurrencyValue(parsed, market));
+    } else if (inputValue.trim() === '') {
+      onChange('');
+      setInputValue('');
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    
+    // Extract valid numeric characters (digits and at most one decimal point)
+    let clean = val;
+    if (isUS) {
+      clean = val.replace(/[^\d.]/g, '');
+      const parts = clean.split('.');
+      if (parts.length > 2) {
+        clean = `${parts[0]}.${parts.slice(1).join('')}`;
+      }
+    } else {
+      clean = val.replace(/[^\d]/g, '');
+    }
+
+    onChange(clean);
+  };
+
+  const defaultPlaceholder = placeholder || (isUS ? '$ 0.00' : 'Rp 0');
 
   return (
     <input
-      ref={inputRef}
-      id={id}
       type="text"
-      inputMode={allowDecimal ? 'decimal' : 'numeric'}
-      className={className}
+      inputMode={isUS ? 'decimal' : 'numeric'}
+      id={id}
+      name={name}
+      required={required}
+      autoFocus={autoFocus}
       disabled={disabled}
-      style={style}
-      placeholder={placeholder}
-      value={displayValue}
+      className={className}
+      style={{ ...style }}
+      placeholder={defaultPlaceholder}
+      value={focused ? inputValue : (value ? formatCurrencyValue(value, market) : inputValue)}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       onChange={handleChange}
     />
   );

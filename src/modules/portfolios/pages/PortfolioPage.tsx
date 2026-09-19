@@ -11,6 +11,7 @@ import { useTableSort } from '@/modules/shared/hooks/useTableSort';
 import { calculateUnrealizedPnL, calculatePortfolioBalance, getAggregatedOpenPositions, getTradeQuantityUnits } from '@/modules/trades/calculations';
 import { formatRupiah, formatUSD, formatPercent } from '@/modules/shared/utils/formatters';
 import ReconciliationNotice from '@/modules/trades/components/ReconciliationNotice';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import * as Icons from 'lucide-react';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
@@ -248,15 +249,13 @@ export default function PortfolioPage() {
                           </span>
                         </td>
                         <td>
-                          <input
-                            type="number"
-                            step="any"
-                            className="form-input"
-                            style={{ padding: '4px 8px', height: 32, fontSize: '0.9rem', ...blurStyle }}
+                          <CurrencyInput
+                            market={activeTab}
+                            style={{ padding: '4px 8px', height: 32, fontSize: '0.88rem', fontWeight: 600, ...blurStyle }}
                             placeholder="Harga..."
                             value={trade.currentPrice || ''}
                             disabled={!canWrite}
-                            onChange={(event) => updateMarketPrice(trade.stockCode, event.target.value)}
+                            onChange={(val) => updateMarketPrice(trade.stockCode, val)}
                           />
                         </td>
                         <td>

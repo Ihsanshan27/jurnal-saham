@@ -7,6 +7,7 @@ import { formatRupiah, formatUSD, formatPercent, formatDate } from '@/modules/sh
 import * as Icons from 'lucide-react';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import { format } from 'date-fns';
 
 export default function BsjpRecapPage() {
@@ -750,44 +751,30 @@ export default function BsjpRecapPage() {
                 <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Harga Beli Rata-Rata *</label>
-                    <input 
-                      type="number" 
-                      step="any"
-                      className="form-input" 
+                    <CurrencyInput
+                      market={form.market}
+                      value={form.buyPrice}
+                      onChange={val => setForm(prev => ({ ...prev, buyPrice: val }))}
                       placeholder="e.g. 4500"
-                      value={form.buyPrice} 
-                      onChange={e => setForm(prev => ({ ...prev, buyPrice: e.target.value }))}
-                      required 
+                      required
                     />
-                    {form.buyPrice ? (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--accent-blue-light)', marginTop: 4, fontWeight: 600 }}>
-                        Format: {(form.market === 'US' ? formatUSD : formatRupiah)(Number(form.buyPrice) || 0)}
-                        {Number(form.lots) > 0 ? (
-                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
-                            (Total: {(form.market === 'US' ? formatUSD : formatRupiah)((Number(form.buyPrice) || 0) * (form.market === 'US' ? Number(form.lots) : Number(form.lots) * 100))})
-                          </span>
-                        ) : null}
+                    {Number(form.lots) > 0 && form.buyPrice ? (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        Total Beli: {(form.market === 'US' ? formatUSD : formatRupiah)((Number(form.buyPrice) || 0) * (form.market === 'US' ? Number(form.lots) : Number(form.lots) * 100))}
                       </div>
                     ) : null}
                   </div>
                   <div className="form-group">
                     <label className="form-label">Harga Jual Rata-Rata (Opsional)</label>
-                    <input 
-                      type="number" 
-                      step="any"
-                      className="form-input" 
+                    <CurrencyInput
+                      market={form.market}
+                      value={form.sellPrice}
+                      onChange={val => setForm(prev => ({ ...prev, sellPrice: val }))}
                       placeholder="Kosongkan jika belum dijual"
-                      value={form.sellPrice} 
-                      onChange={e => setForm(prev => ({ ...prev, sellPrice: e.target.value }))}
                     />
-                    {form.sellPrice ? (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', marginTop: 4, fontWeight: 600 }}>
-                        Format: {(form.market === 'US' ? formatUSD : formatRupiah)(Number(form.sellPrice) || 0)}
-                        {Number(form.lots) > 0 ? (
-                          <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>
-                            (Total: {(form.market === 'US' ? formatUSD : formatRupiah)((Number(form.sellPrice) || 0) * (form.market === 'US' ? Number(form.lots) : Number(form.lots) * 100))})
-                          </span>
-                        ) : null}
+                    {Number(form.lots) > 0 && form.sellPrice ? (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        Total Jual: {(form.market === 'US' ? formatUSD : formatRupiah)((Number(form.sellPrice) || 0) * (form.market === 'US' ? Number(form.lots) : Number(form.lots) * 100))}
                       </div>
                     ) : null}
                   </div>

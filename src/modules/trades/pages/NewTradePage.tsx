@@ -9,6 +9,7 @@ import { calculateTradePnL, getTradeQuantityLabel, getAggregatedOpenPositions } 
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import { format } from 'date-fns';
 
 export default function NewTradePage() {
@@ -618,22 +619,30 @@ export default function NewTradePage() {
                   {form.tradeMode === 'BUY' && (
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Beli per Unit *' : isSBN ? 'Harga Beli per Unit *' : 'Harga Beli (per lembar) *'}</label>
-                      <input type="number" step="any" className="form-input" placeholder={isMutualFund ? 'Contoh: 1287.35' : isSBN ? 'Contoh: 1000000' : isUS ? 'Contoh: 150.5' : 'Contoh: 8500'} value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
-                      {form.buyPrice ? (
-                        <div style={{ fontSize: '0.78rem', color: 'var(--accent-blue-light)', marginTop: 4, fontWeight: 600 }}>
-                          Format: {formatMoney(parseFloat(form.buyPrice) || 0)}
-                          {totalBuy > 0 ? <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>(Estimasi Total: {formatMoney(totalBuy)})</span> : null}
+                      <CurrencyInput
+                        market={form.market}
+                        value={form.buyPrice}
+                        onChange={val => set('buyPrice', val)}
+                        placeholder={isMutualFund ? 'Contoh: 1287.35' : isSBN ? 'Contoh: 1000000' : isUS ? 'Contoh: 150.5' : 'Contoh: 8500'}
+                      />
+                      {totalBuy > 0 ? (
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                          Estimasi Total Beli: {formatMoney(totalBuy)}
                         </div>
                       ) : null}
                     </div>
                   )}
                   <div className="form-group">
                     <label className="form-label">{form.tradeMode === 'SELL' ? (isMutualFund ? 'NAB Jual per Unit *' : isSBN ? 'Harga Jual per Unit *' : 'Harga Jual (per lembar) *') : (isMutualFund ? 'NAB Jual per Unit' : isSBN ? 'Harga Jual per Unit' : 'Harga Jual (per lembar)')}</label>
-                    <input type="number" step="any" className="form-input" placeholder="Kosongkan jika masih hold" value={form.sellPrice} onChange={e => set('sellPrice', e.target.value)} />
-                    {form.sellPrice ? (
-                      <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', marginTop: 4, fontWeight: 600 }}>
-                        Format: {formatMoney(parseFloat(form.sellPrice) || 0)}
-                        {totalSell > 0 ? <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>(Estimasi Total: {formatMoney(totalSell)})</span> : null}
+                    <CurrencyInput
+                      market={form.market}
+                      value={form.sellPrice}
+                      onChange={val => set('sellPrice', val)}
+                      placeholder="Kosongkan jika masih hold"
+                    />
+                    {totalSell > 0 ? (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                        Estimasi Total Jual: {formatMoney(totalSell)}
                       </div>
                     ) : null}
                   </div>

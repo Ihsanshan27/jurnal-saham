@@ -13,6 +13,7 @@ import CustomSelect from '@/modules/shared/components/CustomSelect';
 import * as Icons from 'lucide-react';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
+import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 
 export default function TradingPlansPage() {
   const {
@@ -397,54 +398,33 @@ export default function TradingPlansPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">{t('plans.form.entry')} *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className="form-input"
-                    placeholder="8500"
+                  <CurrencyInput
+                    market={form.market}
                     value={form.entryPrice}
-                    onChange={e => set('entryPrice', e.target.value)}
+                    onChange={val => set('entryPrice', val)}
+                    placeholder="8500"
                     required
                   />
-                  {form.entryPrice ? (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--accent-blue-light)', marginTop: 4, fontWeight: 600 }}>
-                      Format: {formatMoney(Number(form.entryPrice) || 0)}
-                    </div>
-                  ) : null}
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('plans.form.sl')} *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className="form-input"
-                    placeholder="8000"
+                  <CurrencyInput
+                    market={form.market}
                     value={form.stopLoss}
-                    onChange={e => set('stopLoss', e.target.value)}
+                    onChange={val => set('stopLoss', val)}
+                    placeholder="8000"
                     required
                   />
-                  {form.stopLoss ? (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--accent-red)', marginTop: 4, fontWeight: 600 }}>
-                      Format: {formatMoney(Number(form.stopLoss) || 0)}
-                    </div>
-                  ) : null}
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('plans.form.tp')} *</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className="form-input"
-                    placeholder="9500"
+                  <CurrencyInput
+                    market={form.market}
                     value={form.targetProfit}
-                    onChange={e => set('targetProfit', e.target.value)}
+                    onChange={val => set('targetProfit', val)}
+                    placeholder="9500"
                     required
                   />
-                  {form.targetProfit ? (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', marginTop: 4, fontWeight: 600 }}>
-                      Format: {formatMoney(Number(form.targetProfit) || 0)}
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
