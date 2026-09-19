@@ -290,19 +290,25 @@ export default function TradeDetailPage() {
                   <div className="form-row">
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Beli' : 'Harga Beli'}</label>
-                      <input type="number" className="form-input" value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                        Total Beli: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(form.buyPrice) || 0 }).totalBuy)}
+                      <input type="number" step="any" className="form-input" value={form.buyPrice} onChange={e => set('buyPrice', e.target.value)} />
+                      <div style={{ fontSize: '0.8rem', color: 'var(--accent-blue-light)', marginTop: 4, fontWeight: 600 }}>
+                        Format: {formatMoney(Number(form.buyPrice) || 0)}
+                        <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>(Estimasi Total: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(form.buyPrice) || 0 }).totalBuy)})</span>
                       </div>
                     </div>
                     <div className="form-group">
                       <label className="form-label">{isMutualFund ? 'NAB Jual' : 'Harga Jual'}</label>
-                      <input type="number" className="form-input" value={form.sellPrice || ''} onChange={e => set('sellPrice', e.target.value)} />
+                      <input type="number" step="any" className="form-input" placeholder="Kosongkan jika belum dijual" value={form.sellPrice || ''} onChange={e => set('sellPrice', e.target.value)} />
                       {form.sellPrice ? (
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                          Total Jual: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(form.sellPrice) || 0 }).totalSell)}
+                        <div style={{ fontSize: '0.8rem', color: 'var(--accent-green)', marginTop: 4, fontWeight: 600 }}>
+                          Format: {formatMoney(Number(form.sellPrice) || 0)}
+                          <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>(Estimasi Total: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(form.sellPrice) || 0 }).totalSell)})</span>
                         </div>
-                      ) : null}
+                      ) : (marketPrices && marketPrices[trade.stockCode] ? (
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                          Estimasi Harga Live: {formatMoney(marketPrices[trade.stockCode])}
+                        </div>
+                      ) : null)}
                     </div>
                   </div>
                   <div className="form-row">

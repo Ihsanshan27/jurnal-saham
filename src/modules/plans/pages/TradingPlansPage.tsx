@@ -406,6 +406,11 @@ export default function TradingPlansPage() {
                     onChange={e => set('entryPrice', e.target.value)}
                     required
                   />
+                  {form.entryPrice ? (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--accent-blue-light)', marginTop: 4, fontWeight: 600 }}>
+                      Format: {formatMoney(Number(form.entryPrice) || 0)}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('plans.form.sl')} *</label>
@@ -418,6 +423,11 @@ export default function TradingPlansPage() {
                     onChange={e => set('stopLoss', e.target.value)}
                     required
                   />
+                  {form.stopLoss ? (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--accent-red)', marginTop: 4, fontWeight: 600 }}>
+                      Format: {formatMoney(Number(form.stopLoss) || 0)}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('plans.form.tp')} *</label>
@@ -430,6 +440,11 @@ export default function TradingPlansPage() {
                     onChange={e => set('targetProfit', e.target.value)}
                     required
                   />
+                  {form.targetProfit ? (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--accent-green)', marginTop: 4, fontWeight: 600 }}>
+                      Format: {formatMoney(Number(form.targetProfit) || 0)}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
