@@ -8,7 +8,7 @@ import SelectionToggleCard from '@/modules/shared/components/SelectionToggleCard
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
-import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
+import { formatDate, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { FINANCE_TRANSACTION_TYPE_OPTIONS, getFinanceTransactionAmountForDisplay, getFinanceTransactionTypeLabel } from '@/modules/finance/utils/finance';
 import { calculatePortfolioAssetIdrEquivalent, calculatePortfolioAssetMetrics } from '@/modules/trades/calculations';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
@@ -32,10 +32,12 @@ function createInitialTransactionForm(activePortfolioId: string) {
   };
 }
 
-function createInitialTransferForm() {
+function createInitialTransferForm(usdToIdrRate = 16200) {
   return {
     toAccountId: '',
     amount: '',
+    targetAmount: '',
+    exchangeRate: String(usdToIdrRate),
     date: new Date().toISOString().split('T')[0],
     description: '',
     notes: '',
@@ -124,7 +126,7 @@ export default function FinanceAccountDetailPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [composerMode, setComposerMode] = useState<'transaction' | 'transfer' | 'to_portfolio' | 'from_portfolio'>('transaction');
   const [transactionForm, setTransactionForm] = useState(() => createInitialTransactionForm(activePortfolioId));
-  const [transferForm, setTransferForm] = useState(createInitialTransferForm());
+  const [transferForm, setTransferForm] = useState(() => createInitialTransferForm(settings?.usdToIdrRate || 16200));
   const [portfolioTransferForm, setPortfolioTransferForm] = useState(() => createInitialPortfolioTransferForm(activePortfolioId));
   const [portfolioWithdrawalForm, setPortfolioWithdrawalForm] = useState(() => createInitialPortfolioWithdrawalForm(activePortfolioId));
   const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<any>(null);
@@ -231,6 +233,9 @@ export default function FinanceAccountDetailPage() {
       : { linkedPortfolios: [], totalLinkedPortfolioBalance: 0 }
   ), [account, portfolios, allTrades, allCashflows, allDividends, settings, marketPrices]);
   const combinedBalance = balance + linkedPortfolioOverview.totalLinkedPortfolioBalance;
+  const formatMoney = (val: number) => {
+    return account?.currency === 'USD' ? formatUSD(val) : formatRupiah(val);
+  };
 
   if (!account) {
     return (
@@ -254,7 +259,51 @@ export default function FinanceAccountDetailPage() {
   };
 
   const handleTransferChange = (key: string, value: string) => {
-    setTransferForm((prev) => ({ ...prev, [key]: value }));
+    setTransferForm((prev) => {
+      const nextForm = { ...prev, [key]: value };
+      const toAcc = financeAccounts.find((item: any) => item.id === nextForm.toAccountId);
+      const isCrossCurrency = toAcc && toAcc.currency !== account.currency;
+      const defaultRate = settings?.usdToIdrRate || 16200;
+      const rate = Number(nextForm.exchangeRate) || defaultRate;
+
+      if (isCrossCurrency) {
+        if (key === 'amount' && value) {
+          const numAmount = Number(value) || 0;
+          if (account.currency === 'IDR' && toAcc.currency === 'USD') {
+            nextForm.targetAmount = rate > 0 ? String(Number((numAmount / rate).toFixed(2))) : '';
+          } else if (account.currency === 'USD' && toAcc.currency === 'IDR') {
+            nextForm.targetAmount = String(Math.round(numAmount * rate));
+          }
+        } else if (key === 'targetAmount' && value) {
+          const numTarget = Number(value) || 0;
+          if (account.currency === 'IDR' && toAcc.currency === 'USD') {
+            nextForm.amount = String(Math.round(numTarget * rate));
+          } else if (account.currency === 'USD' && toAcc.currency === 'IDR') {
+            nextForm.amount = rate > 0 ? String(Number((numTarget / rate).toFixed(2))) : '';
+          }
+        } else if (key === 'exchangeRate' && value) {
+          const numAmount = Number(nextForm.amount) || 0;
+          const numRate = Number(value) || 0;
+          if (numAmount > 0 && numRate > 0) {
+            if (account.currency === 'IDR' && toAcc.currency === 'USD') {
+              nextForm.targetAmount = String(Number((numAmount / numRate).toFixed(2)));
+            } else if (account.currency === 'USD' && toAcc.currency === 'IDR') {
+              nextForm.targetAmount = String(Math.round(numAmount * numRate));
+            }
+          }
+        } else if (key === 'toAccountId') {
+          const numAmount = Number(nextForm.amount) || 0;
+          if (numAmount > 0 && rate > 0) {
+            if (account.currency === 'IDR' && toAcc.currency === 'USD') {
+              nextForm.targetAmount = String(Number((numAmount / rate).toFixed(2)));
+            } else if (account.currency === 'USD' && toAcc.currency === 'IDR') {
+              nextForm.targetAmount = String(Math.round(numAmount * rate));
+            }
+          }
+        }
+      }
+      return nextForm;
+    });
   };
 
   const handlePortfolioTransferChange = (key: string, value: string) => {
@@ -330,15 +379,19 @@ export default function FinanceAccountDetailPage() {
 
   const handleTransferSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    const toAcc = financeAccounts.find((item: any) => item.id === transferForm.toAccountId);
+    const isCrossCurrency = toAcc && toAcc.currency !== account.currency;
     createFinanceTransfer({
       fromAccountId: account.id,
       toAccountId: transferForm.toAccountId,
       amount: transferForm.amount,
+      targetAmount: isCrossCurrency ? transferForm.targetAmount : transferForm.amount,
+      exchangeRate: isCrossCurrency ? transferForm.exchangeRate : undefined,
       date: transferForm.date,
       description: transferForm.description,
       notes: transferForm.notes,
     });
-    setTransferForm(createInitialTransferForm());
+    setTransferForm(createInitialTransferForm(settings?.usdToIdrRate || 16200));
   };
 
   const handlePortfolioTransferSubmit = (event: React.FormEvent) => {
@@ -397,7 +450,9 @@ export default function FinanceAccountDetailPage() {
               <Landmark size={28} />
             </div>
             <div>
-              <h1 className="page-title" style={{ marginBottom: 4 }}>{account.name}</h1>
+              <h1 className="page-title" style={{ marginBottom: 4 }}>
+                {account.name} <span className={`finance-pill ${account.currency === 'USD' ? 'finance-pill-usd' : ''}`} style={{ fontSize: '0.8rem', verticalAlign: 'middle', marginLeft: 6 }}>{account.currency || 'IDR'}</span>
+              </h1>
               <p className="page-subtitle">{account.institutionName} • {account.type === 'bank' ? 'Bank Account' : 'E-Wallet Ledger'}</p>
             </div>
           </div>
@@ -405,7 +460,7 @@ export default function FinanceAccountDetailPage() {
         <div style={{ minWidth: 260 }}>
           <div className="stat-card">
             <div className="stat-card-label">Saldo Berjalan</div>
-            <div className="stat-card-value" style={blurStyle}>{formatRupiah(balance)}</div>
+            <div className="stat-card-value" style={blurStyle}>{formatMoney(balance)}</div>
             <div className="finance-summary-note">{accountTransactions.length} transaksi • {linkedCount} linked ke trading</div>
           </div>
         </div>
@@ -414,7 +469,7 @@ export default function FinanceAccountDetailPage() {
       <div className="grid-stats" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: 24 }}>
         <div className="stat-card">
           <div className="stat-card-label">Saldo Awal</div>
-          <div className="stat-card-value" style={blurStyle}>{formatRupiah(account.openingBalance || 0)}</div>
+          <div className="stat-card-value" style={blurStyle}>{formatMoney(account.openingBalance || 0)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Status Rekening</div>
@@ -605,7 +660,7 @@ export default function FinanceAccountDetailPage() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Dari Rekening</label>
-                  <input className="form-input" value={account.name} disabled />
+                  <input className="form-input" value={`${account.name} (${account.currency || 'IDR'})`} disabled />
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transfer-target">Ke Rekening *</label>
@@ -616,30 +671,71 @@ export default function FinanceAccountDetailPage() {
                       { value: '', label: 'Pilih rekening tujuan' },
                       ...counterpartyOptions.map((item: any) => ({
                         value: item.id,
-                        label: `${item.name} • ${item.institutionName}`
+                        label: `${item.name} (${item.currency || 'IDR'}) • ${item.institutionName}`
                       }))
                     ]}
                   />
                 </div>
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="finance-transfer-amount">Nominal *</label>
-                  <CurrencyInput
-                    id="finance-transfer-amount"
-                    value={transferForm.amount}
-                    onChange={(value) => handleTransferChange('amount', value)}
-                    placeholder="1.000.000"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="finance-transfer-date">Tanggal *</label>
-                  <CustomDatePicker
-                    value={transferForm.date}
-                    onChange={(date) => handleTransferChange('date', format(date, 'yyyy-MM-dd'))}
-                  />
-                </div>
-              </div>
+
+              {(() => {
+                const targetAccount = financeAccounts.find((a: any) => a.id === transferForm.toAccountId);
+                const isCross = targetAccount && targetAccount.currency !== account.currency;
+
+                return (
+                  <>
+                    {isCross && (
+                      <div className="financial-tips-box" style={{ marginBottom: 16, border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.06)' }}>
+                        <div className="financial-tips-title" style={{ color: 'var(--accent-green)' }}>
+                          Transfer Beda Mata Uang ({account.currency || 'IDR'} ➔ {targetAccount.currency || 'IDR'})
+                        </div>
+                        <div>Nominal keluar memotong saldo {account.currency || 'IDR'}, dan nominal masuk menambah saldo {targetAccount.currency || 'IDR'} sesuai kurs.</div>
+                      </div>
+                    )}
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="finance-transfer-amount">Nominal Keluar ({account.currency || 'IDR'}) *</label>
+                        <CurrencyInput
+                          id="finance-transfer-amount"
+                          value={transferForm.amount}
+                          onChange={(value) => handleTransferChange('amount', value)}
+                          placeholder={account.currency === 'USD' ? '1.000' : '1.000.000'}
+                        />
+                      </div>
+                      {isCross ? (
+                        <div className="form-group">
+                          <label className="form-label" htmlFor="finance-transfer-rate">Kurs Conversion (1 USD = Rp ...)</label>
+                          <CurrencyInput
+                            id="finance-transfer-rate"
+                            value={transferForm.exchangeRate}
+                            onChange={(value) => handleTransferChange('exchangeRate', value)}
+                            placeholder="16.200"
+                          />
+                        </div>
+                      ) : null}
+                      {isCross ? (
+                        <div className="form-group">
+                          <label className="form-label" htmlFor="finance-transfer-target-amount">Nominal Diterima ({targetAccount.currency}) *</label>
+                          <CurrencyInput
+                            id="finance-transfer-target-amount"
+                            value={transferForm.targetAmount}
+                            onChange={(value) => handleTransferChange('targetAmount', value)}
+                            placeholder={targetAccount.currency === 'USD' ? '1.000' : '16.200.000'}
+                          />
+                        </div>
+                      ) : null}
+                      <div className="form-group">
+                        <label className="form-label" htmlFor="finance-transfer-date">Tanggal *</label>
+                        <CustomDatePicker
+                          value={transferForm.date}
+                          onChange={(date) => handleTransferChange('date', format(date, 'yyyy-MM-dd'))}
+                        />
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-transfer-description">Deskripsi</label>
@@ -910,19 +1006,19 @@ export default function FinanceAccountDetailPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, backgroundColor: 'var(--bg-card-hover)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
                 <div>
                   <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Saldo Awal {dateFrom ? `(${formatDate(dateFrom)})` : ''}</div>
-                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatRupiah(saldoAwal)}</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatMoney(saldoAwal)}</div>
                 </div>
                 <div>
                   <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Keluar (Debit)</div>
-                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatRupiah(totalDebit)}</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatMoney(totalDebit)}</div>
                 </div>
                 <div>
                   <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Masuk (Kredit)</div>
-                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatRupiah(totalKredit)}</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatMoney(totalKredit)}</div>
                 </div>
                 <div>
                   <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</div>
-                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatRupiah(saldoAkhir)}</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatMoney(saldoAkhir)}</div>
                 </div>
               </div>
               
@@ -941,7 +1037,7 @@ export default function FinanceAccountDetailPage() {
                   <tbody>
                     <tr style={{ backgroundColor: 'var(--bg-card-hover)', fontWeight: 600 }}>
                       <td colSpan={4}>Saldo Awal {dateFrom ? `(${formatDate(dateFrom)})` : ''}</td>
-                      <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatRupiah(saldoAwal)}</div></td>
+                      <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatMoney(saldoAwal)}</div></td>
                       <td></td>
                     </tr>
                     {sortedItems.map((transaction: any) => {
@@ -970,21 +1066,21 @@ export default function FinanceAccountDetailPage() {
                             <div className="finance-helper-text" style={{ fontSize: '0.8rem' }}>
                               <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
                               {account?.institutionName ? ` (${account.institutionName})` : ''}
-                              {counterparty ? ` ➔ ${counterparty.name}` : ''}
+                              {counterparty ? ` ➔ ${counterparty.name} (${counterparty.currency || 'IDR'})` : ''}
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div style={{ color: isDebit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
-                              {isDebit ? formatRupiah(Math.abs(signedAmount)) : '-'}
+                              {isDebit ? formatMoney(Math.abs(signedAmount)) : '-'}
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div style={{ color: isCredit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
-                              {isCredit ? formatRupiah(signedAmount) : '-'}
+                              {isCredit ? formatMoney(signedAmount) : '-'}
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 600, ...blurStyle }}>{formatRupiah(transaction.runningBalance)}</div>
+                            <div style={{ fontWeight: 600, ...blurStyle }}>{formatMoney(transaction.runningBalance)}</div>
                           </td>
                           <td>
                             <div className="finance-actions">
@@ -1015,7 +1111,7 @@ export default function FinanceAccountDetailPage() {
                     })}
                     <tr style={{ backgroundColor: 'var(--bg-card-hover)', fontWeight: 600 }}>
                       <td colSpan={4}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</td>
-                      <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatRupiah(saldoAkhir)}</div></td>
+                      <td style={{ textAlign: 'right' }}><div style={blurStyle}>{formatMoney(saldoAkhir)}</div></td>
                       <td></td>
                     </tr>
                   </tbody>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Pencil, Trash2 } from 'lucide-react';
-import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
+import { formatDate, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { getFinanceTransactionTypeLabel } from '@/modules/finance/utils/finance';
 import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
@@ -34,6 +34,7 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
   const rawAmount = Number(transaction.amount) || 0;
   const isExpense = transaction.type === 'expense' || transaction.type === 'transfer_out';
   const isIncome = transaction.type === 'income' || transaction.type === 'transfer_in';
+  const isUSD = account?.currency === 'USD';
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -62,7 +63,7 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
               letterSpacing: '-0.02em',
               color: isExpense ? 'var(--accent-red)' : isIncome ? 'var(--accent-green)' : 'var(--text-primary)'
             }}>
-              {isExpense ? '-' : isIncome ? '+' : ''}{formatRupiah(rawAmount)}
+              {isExpense ? '-' : isIncome ? '+' : ''}{isUSD ? formatUSD(rawAmount) : formatRupiah(rawAmount)}
             </div>
             <div style={{ marginTop: '10px' }}>
               <span className="badge badge-blue" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>
@@ -86,14 +87,22 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
             <div className="calc-result-row">
               <span className="calc-result-label">Rekening</span>
               <span className="calc-result-value" style={{ fontWeight: 600 }}>
-                {account?.name || 'Unknown'} {account?.institutionName ? `(${account.institutionName})` : ''}
+                {account?.name || 'Unknown'} {account?.institutionName ? `(${account.institutionName})` : ''} ({account?.currency || 'IDR'})
               </span>
             </div>
             {counterparty && (
               <div className="calc-result-row">
                 <span className="calc-result-label">Rekening Tujuan</span>
                 <span className="calc-result-value" style={{ fontWeight: 600 }}>
-                  {counterparty.name} ({counterparty.institutionName})
+                  {counterparty.name} ({counterparty.institutionName}) ({counterparty.currency || 'IDR'})
+                </span>
+              </div>
+            )}
+            {transaction.exchangeRate && (
+              <div className="calc-result-row">
+                <span className="calc-result-label">Kurs Konversi</span>
+                <span className="calc-result-value text-profit" style={{ fontWeight: 600 }}>
+                  1 USD = {formatRupiah(transaction.exchangeRate)}
                 </span>
               </div>
             )}

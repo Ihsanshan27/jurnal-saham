@@ -765,8 +765,8 @@ export function DataProvider({ children }) {
   }, [financeAccounts, financeTransactions]);
 
   const getFinanceSummary = useCallback(() => {
-    return buildFinanceOverview(financeAccounts, financeTransactions);
-  }, [financeAccounts, financeTransactions]);
+    return buildFinanceOverview(financeAccounts, financeTransactions, settings?.usdToIdrRate || 16200);
+  }, [financeAccounts, financeTransactions, settings?.usdToIdrRate]);
 
   // === FINANCE ACCOUNTS CRUD ===
   const addFinanceAccount = (account: Partial<FinanceAccount>): any => {
@@ -774,7 +774,7 @@ export function DataProvider({ children }) {
     const newAccount = {
       ...account,
       id: generateId(),
-      currency: 'IDR',
+      currency: account.currency || 'IDR',
       openingBalance: Number(account.openingBalance) || 0,
       isActive: account.isActive ?? true,
       createdAt: new Date().toISOString(),
@@ -1097,6 +1097,9 @@ export function DataProvider({ children }) {
       return null;
     }
 
+    const exchangeRate = transfer.exchangeRate ? Number(transfer.exchangeRate) : undefined;
+    const targetAmount = transfer.targetAmount != null ? Math.abs(Number(transfer.targetAmount) || 0) : amount;
+
     const transferGroupId = generateId();
     const createdAt = new Date().toISOString();
     const description = transfer.description || 'Transfer internal';
@@ -1111,18 +1114,22 @@ export function DataProvider({ children }) {
       notes,
       counterpartyAccountId: transfer.toAccountId,
       transferGroupId,
+      exchangeRate,
+      targetAmount,
       createdAt,
     };
     const targetTransaction = {
       id: generateId(),
       accountId: transfer.toAccountId,
       type: 'transfer_in',
-      amount,
+      amount: targetAmount,
       date: transfer.date,
       description,
       notes,
       counterpartyAccountId: transfer.fromAccountId,
       transferGroupId,
+      exchangeRate,
+      targetAmount,
       createdAt,
     };
 
@@ -1131,6 +1138,8 @@ export function DataProvider({ children }) {
       fromAccountId: transfer.fromAccountId,
       toAccountId: transfer.toAccountId,
       amount,
+      targetAmount,
+      exchangeRate,
     });
     showToast('Transfer antar rekening berhasil dicatat');
     return { transferGroupId, sourceTransaction, targetTransaction };

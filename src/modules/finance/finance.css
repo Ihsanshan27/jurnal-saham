@@ -78,6 +78,11 @@
   color: var(--text-secondary);
 }
 
+.finance-pill-usd {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--accent-green);
+}
+
 .finance-actions {
   display: flex;
   gap: 8px;

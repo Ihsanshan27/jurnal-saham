@@ -6,7 +6,7 @@ import { useDialog } from '@/modules/shared/context/DialogContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { useTableSort } from '@/modules/shared/hooks/useTableSort';
-import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
+import { formatDate, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { getFinanceTransactionAmountForDisplay, getFinanceTransactionTypeLabel } from '@/modules/finance/utils/finance';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
@@ -631,45 +631,48 @@ export default function FinanceGlobalTransactionsPage() {
                         const signedAmount = getFinanceTransactionAmountForDisplay(transaction);
                         const isDebit = signedAmount < 0;
                         const isCredit = signedAmount > 0;
-                      const account = financeAccounts.find((item: any) => item.id === transaction.accountId);
-                      const counterparty = transaction.counterpartyAccountId
-                        ? financeAccounts.find((item: any) => item.id === transaction.counterpartyAccountId)
-                        : null;
+                        const account = financeAccounts.find((item: any) => item.id === transaction.accountId);
+                        const counterparty = transaction.counterpartyAccountId
+                          ? financeAccounts.find((item: any) => item.id === transaction.counterpartyAccountId)
+                          : null;
+                        const isUSD = account?.currency === 'USD';
 
-                      return (
-                        <tr key={transaction.id}>
-                          <td>
-                            <div>{formatDate(transaction.date)}</div>
-                            {transaction.createdAt && (
-                              <div className="finance-helper-text" style={{ fontSize: '0.75rem', marginTop: 2 }}>
-                                {format(new Date(transaction.createdAt), 'HH:mm')}
+                        return (
+                          <tr key={transaction.id}>
+                            <td>
+                              <div>{formatDate(transaction.date)}</div>
+                              {transaction.createdAt && (
+                                <div className="finance-helper-text" style={{ fontSize: '0.75rem', marginTop: 2 }}>
+                                  {format(new Date(transaction.createdAt), 'HH:mm')}
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontWeight: 600 }}>{transaction.description || '-'}</span>
+                                <span className="finance-pill" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{getFinanceTransactionTypeLabel(transaction.type)}</span>
                               </div>
-                            )}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontWeight: 600 }}>{transaction.description || '-'}</span>
-                              <span className="finance-pill" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{getFinanceTransactionTypeLabel(transaction.type)}</span>
-                            </div>
-                            <div className="finance-helper-text" style={{ fontSize: '0.8rem' }}>
-                              <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
-                              {account?.institutionName ? ` (${account.institutionName})` : ''}
-                              {counterparty ? ` ➔ ${counterparty.name}` : ''}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ color: isDebit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
-                              {isDebit ? formatRupiah(Math.abs(signedAmount)) : '-'}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ color: isCredit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
-                              {isCredit ? formatRupiah(signedAmount) : '-'}
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 600, ...blurStyle }}>{formatRupiah(transaction.runningBalance)}</div>
-                          </td>
+                              <div className="finance-helper-text" style={{ fontSize: '0.8rem' }}>
+                                <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
+                                {account?.institutionName ? ` (${account.institutionName})` : ''} ({account?.currency || 'IDR'})
+                                {counterparty ? ` ➔ ${counterparty.name} (${counterparty.currency || 'IDR'})` : ''}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ color: isDebit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
+                                {isDebit ? (isUSD ? formatUSD(Math.abs(signedAmount)) : formatRupiah(Math.abs(signedAmount))) : '-'}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ color: isCredit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
+                                {isCredit ? (isUSD ? formatUSD(signedAmount) : formatRupiah(signedAmount)) : '-'}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 600, ...blurStyle }}>
+                                {isUSD ? formatUSD(transaction.runningBalance) : formatRupiah(transaction.runningBalance)}
+                              </div>
+                            </td>
                           <td>
                             <div className="finance-actions">
                               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelectedDetailTransaction(transaction)} title="Lihat Detail">

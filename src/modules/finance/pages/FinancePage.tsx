@@ -6,7 +6,7 @@ import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import SelectionToggleCard from '@/modules/shared/components/SelectionToggleCard';
-import { formatDate, formatRupiah } from '@/modules/shared/utils/formatters';
+import { formatDate, formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
 import { usePrivacyStyle } from '@/modules/shared/hooks/usePrivacyStyle';
 import { FINANCE_ACCOUNT_TYPE_OPTIONS } from '@/modules/finance/utils/finance';
 import { calculatePortfolioBalance, calculateUnrealizedPnL } from '@/modules/trades/calculations';
@@ -17,12 +17,17 @@ import RichTextRenderer from '@/modules/shared/components/RichTextRenderer';
 
 const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#F43F5E', '#06B6D4', '#EC4899', '#84CC16'];
 
+const CURRENCY_OPTIONS = [
+  { value: 'IDR', label: 'IDR (Rupiah)' },
+  { value: 'USD', label: 'USD (Dollar)' },
+] as const;
 
 function createInitialAccountForm() {
   return {
     name: '',
     institutionName: '',
     type: 'bank',
+    currency: 'IDR',
     openingBalance: '',
     notes: '',
     isActive: true,
@@ -222,6 +227,7 @@ export default function FinancePage() {
     const payload = {
       ...form,
       type: form.type as any,
+      currency: form.currency as 'IDR' | 'USD',
       openingBalance: Number(form.openingBalance) || 0,
     };
 
@@ -241,6 +247,7 @@ export default function FinancePage() {
       name: account.name || '',
       institutionName: account.institutionName || '',
       type: account.type || 'bank',
+      currency: account.currency || 'IDR',
       openingBalance: String(account.openingBalance ?? ''),
       notes: account.notes || '',
       isActive: account.isActive !== false,
@@ -453,12 +460,20 @@ export default function FinancePage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="finance-account-opening">Saldo Awal (IDR)</label>
+                  <label className="form-label" htmlFor="finance-account-currency">Mata Uang</label>
+                  <CustomSelect
+                    value={form.currency}
+                    onChange={(value) => setValue('currency', value)}
+                    options={CURRENCY_OPTIONS as any}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="finance-account-opening">Saldo Awal ({form.currency})</label>
                   <CurrencyInput
                     id="finance-account-opening"
                     value={form.openingBalance}
                     onChange={(value) => setValue('openingBalance', value)}
-                    placeholder="1.000.000"
+                    placeholder={form.currency === 'USD' ? '1.000' : '1.000.000'}
                   />
                 </div>
               </div>
@@ -524,6 +539,9 @@ export default function FinancePage() {
                 <div>
                   <div className="finance-account-meta" style={{ marginBottom: 8 }}>
                     <span className="finance-pill">{account.type === 'bank' ? 'Bank' : 'E-Wallet'}</span>
+                    <span className={`finance-pill ${account.currency === 'USD' ? 'finance-pill-usd' : ''}`}>
+                      {account.currency || 'IDR'}
+                    </span>
                     {!account.isActive && <span className="finance-pill finance-pill-muted">Nonaktif</span>}
                   </div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem' }}>{account.name}</h3>
@@ -541,7 +559,9 @@ export default function FinancePage() {
 
               <div>
                 <div className="stat-card-label">Saldo Berjalan</div>
-                <div className="stat-card-value" style={blurStyle}>{formatRupiah(account.currentBalance)}</div>
+                <div className="stat-card-value" style={blurStyle}>
+                  {account.currency === 'USD' ? formatUSD(account.currentBalance) : formatRupiah(account.currentBalance)}
+                </div>
                 <div className="finance-summary-note">{account.transactionCount} transaksi • {account.linkedPortfolioCount} dompet terhubung</div>
                 <div className="finance-summary-note">Dibuat {formatDate(account.createdAt)}</div>
               </div>

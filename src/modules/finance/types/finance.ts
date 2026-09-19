@@ -12,7 +12,7 @@ export interface FinanceAccount {
   name: string;
   institutionName: string;
   type: FinanceAccountType;
-  currency: 'IDR';
+  currency: 'IDR' | 'USD';
   openingBalance: number;
   isActive: boolean;
   notes?: string;
@@ -35,6 +35,8 @@ export interface FinanceTransaction {
   category?: string;
   tags?: string[];
   transferGroupId?: string;
+  exchangeRate?: number;
+  targetAmount?: number;
   createdAt: string;
   updatedAt?: string;
 }

@@ -42,18 +42,32 @@ export function getFinanceAccountBalance(account: Pick<FinanceAccount, 'openingB
   return openingBalance + netTransactions;
 }
 
-export function buildFinanceOverview(accounts: FinanceAccount[], transactions: FinanceTransaction[]) {
+export function buildFinanceOverview(accounts: FinanceAccount[], transactions: FinanceTransaction[], usdToIdrRate: number = 16200) {
+  const accountMap = new Map(accounts.map((a) => [a.id, a]));
   const activeAccounts = accounts.filter((account) => account.isActive);
-  const totalBalance = accounts.reduce((total, account) => total + getFinanceAccountBalance(account, transactions), 0);
+
+  const totalBalance = accounts.reduce((total, account) => {
+    const bal = getFinanceAccountBalance(account, transactions);
+    const rate = account.currency === 'USD' ? usdToIdrRate : 1;
+    return total + (bal * rate);
+  }, 0);
+
+  const getTxRate = (item: FinanceTransaction) => {
+    const acc = accountMap.get(item.accountId);
+    return acc?.currency === 'USD' ? (item.exchangeRate || usdToIdrRate) : 1;
+  };
+
   const totalIncome = transactions
     .filter((item) => item.type === 'income')
-    .reduce((total, item) => total + Math.abs(Number(item.amount) || 0), 0);
+    .reduce((total, item) => total + (Math.abs(Number(item.amount) || 0) * getTxRate(item)), 0);
+
   const totalExpense = transactions
     .filter((item) => item.type === 'expense')
-    .reduce((total, item) => total + Math.abs(Number(item.amount) || 0), 0);
+    .reduce((total, item) => total + (Math.abs(Number(item.amount) || 0) * getTxRate(item)), 0);
+
   const totalLinkedToTrading = transactions
     .filter((item) => Boolean(item.linkedCashflowId))
-    .reduce((total, item) => total + Math.abs(Number(item.amount) || 0), 0);
+    .reduce((total, item) => total + (Math.abs(Number(item.amount) || 0) * getTxRate(item)), 0);
 
   return {
     totalBalance,
