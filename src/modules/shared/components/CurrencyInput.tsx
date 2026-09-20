@@ -36,59 +36,46 @@ export default function CurrencyInput({
   required = false,
   autoFocus = false,
 }: CurrencyInputProps) {
-  const [focused, setFocused] = useState(false);
   const [inputValue, setInputValue] = useState('');
 
-  const numValue = typeof value === 'number' ? value : parseFloat(value);
+  const numValue = typeof value === 'number' ? value : parseFloat(String(value));
   const isUS = market === 'US';
 
   useEffect(() => {
-    if (!focused) {
-      if (value !== '' && value !== null && value !== undefined && !isNaN(numValue) && numValue > 0) {
-        setInputValue(formatCurrencyValue(numValue, market));
-      } else {
-        setInputValue(value !== undefined && value !== null ? String(value) : '');
-      }
-    }
-  }, [value, market, focused, numValue]);
-
-  const handleFocus = () => {
-    setFocused(true);
-    // On focus, show raw clean number so editing is seamless
-    if (value !== '' && value !== null && value !== undefined) {
-      setInputValue(String(value));
-    }
-  };
-
-  const handleBlur = () => {
-    setFocused(false);
-    const parsed = parseFloat(inputValue.replace(/[^\d.]/g, ''));
-    if (!isNaN(parsed) && parsed > 0) {
-      onChange(String(parsed));
-      setInputValue(formatCurrencyValue(parsed, market));
-    } else if (inputValue.trim() === '') {
-      onChange('');
+    if (value !== '' && value !== null && value !== undefined && !isNaN(numValue) && numValue > 0) {
+      setInputValue(formatCurrencyValue(numValue, market));
+    } else {
       setInputValue('');
     }
-  };
+  }, [value, market, numValue]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setInputValue(val);
-    
-    // Extract valid numeric characters (digits and at most one decimal point)
-    let clean = val;
+
     if (isUS) {
-      clean = val.replace(/[^\d.]/g, '');
+      const clean = val.replace(/[^\d.]/g, '');
       const parts = clean.split('.');
+      let sanitized = clean;
       if (parts.length > 2) {
-        clean = `${parts[0]}.${parts.slice(1).join('')}`;
+        sanitized = `${parts[0]}.${parts.slice(1).join('')}`;
+      }
+      onChange(sanitized);
+      const parsed = parseFloat(sanitized);
+      if (!isNaN(parsed) && parsed > 0) {
+        setInputValue(formatCurrencyValue(parsed, 'US'));
+      } else {
+        setInputValue(val);
       }
     } else {
-      clean = val.replace(/[^\d]/g, '');
+      const clean = val.replace(/[^\d]/g, '');
+      onChange(clean);
+      if (clean !== '') {
+        const parsed = parseInt(clean, 10);
+        setInputValue(formatCurrencyValue(parsed, 'ID'));
+      } else {
+        setInputValue('');
+      }
     }
-
-    onChange(clean);
   };
 
   const defaultPlaceholder = placeholder || (isUS ? '$ 0.00' : 'Rp 0');
@@ -105,9 +92,7 @@ export default function CurrencyInput({
       className={className}
       style={{ ...style }}
       placeholder={defaultPlaceholder}
-      value={focused ? inputValue : (value ? formatCurrencyValue(value, market) : inputValue)}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
+      value={inputValue}
       onChange={handleChange}
     />
   );
