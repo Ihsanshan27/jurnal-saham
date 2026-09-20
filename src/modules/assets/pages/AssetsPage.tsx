@@ -655,6 +655,7 @@ export default function AssetsPage() {
             <table className="table">
               <thead>
                 <tr>
+                  <th style={{ width: 40, textAlign: 'center' }}>No.</th>
                   <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('name')}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       Nama <SortIcon col="name" />
@@ -663,6 +664,11 @@ export default function AssetsPage() {
                   <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('category')}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       Kategori <SortIcon col="category" />
+                    </span>
+                  </th>
+                  <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('quantity')}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      Qty <SortIcon col="quantity" />
                     </span>
                   </th>
                   <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('purchaseDate')}>
@@ -686,7 +692,7 @@ export default function AssetsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item) => {
+                {filtered.map((item, index) => {
                   const CatIcon = CATEGORY_ICONS[item.category] || Box;
                   const catMeta = ASSET_CATEGORY_LABELS[item.category];
                   const gl = (item.currentValue || 0) - (item.purchasePrice || 0);
@@ -700,6 +706,9 @@ export default function AssetsPage() {
                         style={{ cursor: 'pointer' }}
                         onClick={() => setExpandedRow(isExpanded ? null : item.id)}
                       >
+                        <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 500 }}>
+                          {index + 1}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <div style={{
@@ -714,7 +723,7 @@ export default function AssetsPage() {
                             <div>
                               <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{item.name}</div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {item.code} · {item.quantity} {item.unit}
+                                {item.code}
                               </div>
                             </div>
                           </div>
@@ -725,11 +734,19 @@ export default function AssetsPage() {
                             {ASSET_GROUP_LABELS[item.group]}
                           </div>
                         </td>
+                        <td style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                          {item.quantity} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>{item.unit}</span>
+                        </td>
                         <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                           {formatDate(item.purchaseDate)}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 500, fontFamily: 'var(--font-mono)' }}>
                           {formatRupiah(item.purchasePrice)}
+                          {item.unitPrice && item.quantity > 1 ? (
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                              @{formatRupiah(item.unitPrice)}
+                            </div>
+                          ) : null}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                           {formatRupiah(item.currentValue || item.purchasePrice)}
@@ -770,7 +787,7 @@ export default function AssetsPage() {
                       {/* Expanded detail row */}
                       {isExpanded && (
                         <tr>
-                          <td colSpan={8} style={{ padding: 0, background: 'var(--bg-secondary)' }}>
+                          <td colSpan={10} style={{ padding: 0, background: 'var(--bg-secondary)' }}>
                             <div style={{
                               padding: '12px 20px',
                               display: 'grid',
