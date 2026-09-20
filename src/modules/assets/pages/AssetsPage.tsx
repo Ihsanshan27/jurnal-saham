@@ -62,7 +62,9 @@ const EMPTY_FORM = {
   group: 'investment',
   category: 'gold',
   purchaseDate: new Date().toISOString().split('T')[0],
+  unitPrice: 0,
   purchasePrice: 0,
+  currentUnitPrice: 0,
   currentValue: 0,
   quantity: 1,
   unit: 'unit',
@@ -132,6 +134,82 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
   const handleCategoryChange = (cat) => {
     const group = ASSET_CATEGORY_LABELS[cat]?.group || 'investment';
     setForm((prev) => ({ ...prev, category: cat, group }));
+  };
+
+  const handleQuantityChange = (qtyVal) => {
+    const qty = parseFloat(qtyVal) || 0;
+    setForm((prev) => {
+      const uPrice = prev.unitPrice || (qty > 0 && prev.purchasePrice ? prev.purchasePrice / qty : 0);
+      const currUPrice = prev.currentUnitPrice || (qty > 0 && prev.currentValue ? prev.currentValue / qty : 0);
+      const totalP = uPrice * qty;
+      const totalCurr = currUPrice * qty;
+      return {
+        ...prev,
+        quantity: qty,
+        unitPrice: uPrice,
+        purchasePrice: totalP,
+        currentUnitPrice: currUPrice,
+        currentValue: totalCurr > 0 ? totalCurr : (prev.currentValue || totalP),
+      };
+    });
+  };
+
+  const handleUnitPriceChange = (valStr) => {
+    const uPrice = parseFloat(valStr) || 0;
+    setForm((prev) => {
+      const qty = prev.quantity || 1;
+      const totalP = uPrice * qty;
+      const currUPrice = prev.currentUnitPrice ? prev.currentUnitPrice : uPrice;
+      const totalCurr = currUPrice * qty;
+      return {
+        ...prev,
+        unitPrice: uPrice,
+        purchasePrice: totalP,
+        currentUnitPrice: currUPrice,
+        currentValue: totalCurr,
+      };
+    });
+  };
+
+  const handlePurchasePriceChange = (valStr) => {
+    const totalP = parseFloat(valStr) || 0;
+    setForm((prev) => {
+      const qty = prev.quantity || 1;
+      const uPrice = qty > 0 ? totalP / qty : totalP;
+      return {
+        ...prev,
+        purchasePrice: totalP,
+        unitPrice: uPrice,
+        currentValue: prev.currentValue || totalP,
+        currentUnitPrice: prev.currentUnitPrice || uPrice,
+      };
+    });
+  };
+
+  const handleCurrentUnitPriceChange = (valStr) => {
+    const currUPrice = parseFloat(valStr) || 0;
+    setForm((prev) => {
+      const qty = prev.quantity || 1;
+      const totalCurr = currUPrice * qty;
+      return {
+        ...prev,
+        currentUnitPrice: currUPrice,
+        currentValue: totalCurr,
+      };
+    });
+  };
+
+  const handleCurrentValueChange = (valStr) => {
+    const totalCurr = parseFloat(valStr) || 0;
+    setForm((prev) => {
+      const qty = prev.quantity || 1;
+      const currUPrice = qty > 0 ? totalCurr / qty : totalCurr;
+      return {
+        ...prev,
+        currentValue: totalCurr,
+        currentUnitPrice: currUPrice,
+      };
+    });
   };
 
   const handleSubmit = (e) => {
@@ -240,7 +318,7 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
                     min={0}
                     step="any"
                     value={form.quantity ?? 1}
-                    onChange={(e) => set('quantity', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleQuantityChange(e.target.value)}
                   />
                   <input
                     type="text"
@@ -253,25 +331,47 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
                 </div>
               </div>
 
-              {/* Purchase Price */}
+              {/* Unit Purchase Price */}
+              <div className="form-group">
+                <label className="form-label">Harga Satuan Perolehan (Rp)</label>
+                <CurrencyInput
+                  market="ID"
+                  placeholder="0"
+                  value={form.unitPrice ?? ''}
+                  onChange={handleUnitPriceChange}
+                />
+              </div>
+
+              {/* Total Purchase Price */}
               <div className="form-group">
                 <label className="form-label">
-                  Harga Perolehan (Rp) <span style={{ color: 'var(--accent-red)' }}>*</span>
+                  Total Harga Perolehan (Rp) <span style={{ color: 'var(--accent-red)' }}>*</span>
                 </label>
                 <CurrencyInput
                   market="ID"
                   value={form.purchasePrice ?? ''}
-                  onChange={(v) => set('purchasePrice', parseFloat(v) || 0)}
+                  onChange={handlePurchasePriceChange}
                 />
               </div>
 
-              {/* Current Value */}
+              {/* Current Unit Price */}
               <div className="form-group">
-                <label className="form-label">Nilai Saat Ini (Rp)</label>
+                <label className="form-label">Harga Satuan Saat Ini (Rp)</label>
+                <CurrencyInput
+                  market="ID"
+                  placeholder="0"
+                  value={form.currentUnitPrice ?? ''}
+                  onChange={handleCurrentUnitPriceChange}
+                />
+              </div>
+
+              {/* Total Current Value */}
+              <div className="form-group">
+                <label className="form-label">Total Nilai Saat Ini (Rp)</label>
                 <CurrencyInput
                   market="ID"
                   value={form.currentValue ?? ''}
-                  onChange={(v) => set('currentValue', parseFloat(v) || 0)}
+                  onChange={handleCurrentValueChange}
                 />
               </div>
 

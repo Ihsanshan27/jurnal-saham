@@ -22,7 +22,9 @@ export interface AssetItem {
   category: AssetCategory;
   purchaseDate: string;
   purchasePrice: number;
+  unitPrice?: number;
   currentValue: number;
+  currentUnitPrice?: number;
   quantity: number;
   unit: string; // gram, unit, lembar, unit, lokasi
   pic?: string; // Penanggung Jawab / Lokasi
