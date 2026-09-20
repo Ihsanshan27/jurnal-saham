@@ -173,6 +173,7 @@ export const id = {
   'nav.Kalkulator': 'Kalkulator',
   'nav.Catatan': 'Catatan',
   'nav.Dasbor Admin': 'Dasbor Admin',
+  'nav.Aset & Inventaris': 'Aset & Inventaris',
   'nav.Users': 'Users',
   'nav.Audit Logs': 'Audit Logs',
   'nav.Profil Saya': 'Profil Saya',

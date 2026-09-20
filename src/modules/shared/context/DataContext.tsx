@@ -28,6 +28,7 @@ import {
   normalizeSettings,
 } from '@/modules/shared/context/dataContextStorageUtils';
 import type { AppSettings, Portfolio, Trade, Cashflow, Dividend, WatchlistItem, Note, BsjpTrade, TradingPlan } from '@/modules/shared/types/index';
+import type { AssetItem } from '@/modules/assets/types/assets';
 export interface ToastItem { id: string; message: string; type: string; }
 export interface DataContextType {
   trades: Trade[]; allTrades: Trade[]; addTrade: (trade: Partial<Trade>) => Trade | null; updateTrade: (id: string, updates: Partial<Trade>) => void; deleteTrade: (id: string) => void; updateTrades: (ids: string[], updates: Partial<Trade> & { tagsAppend?: string[] }) => void; deleteTrades: (ids: string[]) => void; getTradeById: (id: string) => Trade | undefined;
@@ -41,6 +42,7 @@ export interface DataContextType {
   tradingPlans: TradingPlan[]; addTradingPlan: (plan: Partial<TradingPlan>) => TradingPlan | null; updateTradingPlan: (id: string, updates: Partial<TradingPlan>) => void; deleteTradingPlan: (id: string) => void;
   ipoEvents: IpoEvent[]; ipoEntries: IpoEntry[]; ipoAccounts: IpoAccount[]; addIpoEvent: any; updateIpoEvent: any; deleteIpoEvent: any; reorderIpoEvents: any; reorderIpoAccounts: any; addIpoAccount: any; updateIpoAccount: any; toggleIpoAccountActive: any; deleteIpoAccount: any; addIpoEntry: any; updateIpoEntry: any; deleteIpoEntry: any; batchAddIpoEntries: any; batchDeleteIpoEntries: any; batchUpdateIpoEntries: any;
   bsjpTrades: BsjpTrade[]; addBsjpTrade: (trade: Partial<BsjpTrade>) => BsjpTrade | null; updateBsjpTrade: (id: string, updates: Partial<BsjpTrade>) => void; deleteBsjpTrade: (id: string) => void;
+  assets: AssetItem[]; addAsset: (asset: Partial<AssetItem>) => AssetItem | null; updateAsset: (id: string, updates: Partial<AssetItem>) => void; deleteAsset: (id: string) => void; reorderAssets: (orderedIds: string[]) => AssetItem[] | null;
   financeAccounts: FinanceAccount[]; financeTransactions: FinanceTransaction[]; addFinanceAccount: (account: Partial<FinanceAccount>) => FinanceAccount | null; updateFinanceAccount: (id: string, updates: Partial<FinanceAccount>) => FinanceAccount | null; toggleFinanceAccountActive: (id: string) => FinanceAccount | null; deleteFinanceAccount: (id: string) => FinanceAccount | null; reorderFinanceAccounts: (orderedIds: string[]) => FinanceAccount[] | null;
   addFinanceTransaction: (transaction: Partial<FinanceTransaction>) => FinanceTransaction | null; updateFinanceTransaction: (id: string, updates: Partial<FinanceTransaction>) => FinanceTransaction | null; deleteFinanceTransaction: (id: string) => FinanceTransaction | null; createFinanceTransfer: (transfer: any) => any; createFinancePortfolioTransfer: (transfer: any) => any; createPortfolioToFinanceTransfer: (transfer: any) => any; getFinanceTransactionsByAccount: (accountId: string) => FinanceTransaction[]; getFinanceAccountCurrentBalance: (accountId: string) => number; getFinanceSummary: () => any;
   dataLoading: boolean; dataError: string; databaseSetupError: string; usedLocalCacheFallback: boolean; exportData: () => any; importData: (data: any) => Promise<void>; clearData: (options?: Record<string, boolean>) => Promise<void>;
@@ -97,7 +99,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   behaviorDoubleConfirmExit: true,
   profileIncludedFinanceAccountIds: [],
 };
-const LOCAL_DATA_KEYS = ['trades', 'watchlist', 'notes', 'cashflows', 'dividends', 'settings', 'marketPrices', 'portfolios', 'tradingPlans', 'ipoEvents', 'ipoEntries', 'ipoAccounts', 'bsjpTrades', 'financeAccounts', 'financeTransactions'];
+const LOCAL_DATA_KEYS = ['trades', 'watchlist', 'notes', 'cashflows', 'dividends', 'settings', 'marketPrices', 'portfolios', 'tradingPlans', 'ipoEvents', 'ipoEntries', 'ipoAccounts', 'bsjpTrades', 'financeAccounts', 'financeTransactions', 'assets'];
 
 const DEFAULT_PORTFOLIO = {
   id: 'default',
@@ -126,6 +128,7 @@ export function DataProvider({ children }) {
   const [ipoEntries, setIpoEntries] = useState<IpoEntry[]>([]);
   const [ipoAccounts, setIpoAccounts] = useState<IpoAccount[]>([]);
   const [bsjpTrades, setBsjpTrades] = useState<BsjpTrade[]>([]);
+  const [assets, setAssets] = useState<AssetItem[]>([]);
   const [financeAccounts, setFinanceAccounts] = useState<FinanceAccount[]>([]);
   const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -171,6 +174,7 @@ export function DataProvider({ children }) {
     setIpoEntries(normalizedIpo.entries);
     setIpoAccounts(normalizedIpo.accounts);
     setBsjpTrades(data.bsjpTrades || []);
+    setAssets(data.assets || []);
     setFinanceAccounts(data.financeAccounts || []);
     setFinanceTransactions(data.financeTransactions || []);
   }, []);
@@ -886,6 +890,98 @@ export function DataProvider({ children }) {
     return existingAccount;
   };
 
+  // === ASSETS & INVENTORY CRUD ===
+  const saveAssets = (newAssets: AssetItem[]) => {
+    setAssets(newAssets);
+    persistData('assets', newAssets);
+    if (userId) {
+      cacheLocalData(userId, { assets: newAssets }, LOCAL_DATA_KEYS);
+    }
+  };
+
+  const addAsset = (asset: Partial<AssetItem>): AssetItem | null => {
+    if (!ensureWritable()) return null;
+    const now = new Date().toISOString();
+    const newAsset: AssetItem = {
+      id: generateId(),
+      code: asset.code ? asset.code.trim().toUpperCase() : `AST-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      name: asset.name ? asset.name.trim() : 'Aset Baru',
+      group: asset.group || 'investment',
+      category: asset.category || 'other',
+      purchaseDate: asset.purchaseDate || now.split('T')[0],
+      purchasePrice: Number(asset.purchasePrice) || 0,
+      currentValue: Number(asset.currentValue != null ? asset.currentValue : asset.purchasePrice) || 0,
+      quantity: Number(asset.quantity) || 1,
+      unit: asset.unit ? asset.unit.trim() : 'unit',
+      pic: asset.pic ? asset.pic.trim() : '',
+      serialNumber: asset.serialNumber ? asset.serialNumber.trim() : '',
+      warrantyExpiry: asset.warrantyExpiry || '',
+      depreciationRateYearly: Number(asset.depreciationRateYearly) || 0,
+      linkedFinanceAccountId: asset.linkedFinanceAccountId || '',
+      notes: asset.notes || '',
+      status: asset.status || 'active',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const nextAssets = [newAsset, ...(assets || [])];
+    saveAssets(nextAssets);
+
+    if (asset.linkedFinanceAccountId && newAsset.purchasePrice > 0) {
+      addFinanceTransaction({
+        accountId: asset.linkedFinanceAccountId,
+        type: 'expense',
+        category: 'Pembelian Aset',
+        amount: newAsset.purchasePrice,
+        date: newAsset.purchaseDate,
+        notes: `Pembelian Aset: ${newAsset.name} (${newAsset.code})`,
+      });
+    }
+
+    logUserActivity('asset.created', 'asset', newAsset.id, { name: newAsset.name, code: newAsset.code });
+    showToast(`Aset "${newAsset.name}" berhasil ditambahkan`);
+    return newAsset;
+  };
+
+  const updateAsset = (id: string, updates: Partial<AssetItem>) => {
+    if (!ensureWritable()) return;
+    const nextAssets = (assets || []).map((a) => {
+      if (a.id === id) {
+        return {
+          ...a,
+          ...updates,
+          code: updates.code ? updates.code.trim().toUpperCase() : a.code,
+          name: updates.name ? updates.name.trim() : a.name,
+          purchasePrice: updates.purchasePrice != null ? Number(updates.purchasePrice) : a.purchasePrice,
+          currentValue: updates.currentValue != null ? Number(updates.currentValue) : a.currentValue,
+          quantity: updates.quantity != null ? Number(updates.quantity) : a.quantity,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return a;
+    });
+    saveAssets(nextAssets);
+    logUserActivity('asset.updated', 'asset', id, { fields: Object.keys(updates || {}) });
+    showToast('Data aset berhasil diperbarui');
+  };
+
+  const deleteAsset = (id: string) => {
+    if (!ensureWritable()) return;
+    const target = (assets || []).find((a) => a.id === id);
+    const nextAssets = (assets || []).filter((a) => a.id !== id);
+    saveAssets(nextAssets);
+    logUserActivity('asset.deleted', 'asset', id, { name: target?.name });
+    showToast(`Aset "${target?.name || ''}" berhasil dihapus`);
+  };
+
+  const reorderAssets = (orderedIds: string[]) => {
+    if (!ensureWritable()) return null;
+    const map = new Map((assets || []).map((a) => [a.id, a]));
+    const nextAssets = orderedIds.map((id) => map.get(id)).filter(Boolean) as AssetItem[];
+    saveAssets(nextAssets);
+    return nextAssets;
+  };
+
   // === FINANCE TRANSACTIONS CRUD ===
   const addFinanceTransaction = (transaction: Partial<FinanceTransaction>): any => {
     if (!ensureWritable()) return null;
@@ -1478,6 +1574,7 @@ export function DataProvider({ children }) {
     ipoEntries,
     ipoAccounts,
     bsjpTrades,
+    assets,
     financeAccounts,
     financeTransactions,
     exportDate: new Date().toISOString(),
@@ -1505,6 +1602,7 @@ export function DataProvider({ children }) {
       ipoEntries: migratedData.ipoEntries || [],
       ipoAccounts: migratedData.ipoAccounts || [],
       bsjpTrades: migratedData.bsjpTrades || [],
+      assets: migratedData.assets || [],
       financeAccounts: migratedData.financeAccounts || [],
       financeTransactions: migratedData.financeTransactions || [],
     };
@@ -1541,6 +1639,7 @@ export function DataProvider({ children }) {
     if (clearAll || options?.ipoEntries) setIpoEntries([]);
     if (clearAll || options?.ipoAccounts) setIpoAccounts([]);
     if (clearAll || options?.bsjpTrades) setBsjpTrades([]);
+    if (clearAll || options?.assets) setAssets([]);
     if (clearAll || options?.financeAccounts) setFinanceAccounts([]);
     if (clearAll || options?.financeTransactions) setFinanceTransactions([]);
 
@@ -1647,6 +1746,11 @@ export function DataProvider({ children }) {
       addBsjpTrade,
       updateBsjpTrade,
       deleteBsjpTrade,
+      assets,
+      addAsset,
+      updateAsset,
+      deleteAsset,
+      reorderAssets,
       financeAccounts,
       financeTransactions,
       addFinanceAccount,

@@ -52,6 +52,7 @@ const AdminDashboardPage = lazy(() => import('@/modules/admin/pages/AdminDashboa
 const AdminAuditLogsPage = lazy(() => import('@/modules/admin/pages/AdminAuditLogsPage'));
 const ReportsPage = lazy(() => import('@/modules/reports/pages/ReportsPage'));
 const SharedReportPage = lazy(() => import('@/modules/reports/pages/SharedReportPage'));
+const AssetsPage = lazy(() => import('@/modules/assets/pages/AssetsPage'));
 const TermsPage = lazy(() => import('@/modules/public/pages/TermsPage'));
 const PrivacyPage = lazy(() => import('@/modules/public/pages/PrivacyPage'));
 // [MENTOR DISABLED] const MentorTradersPage = lazy(() => import('@/modules/mentor/pages/MentorTradersPage'));
@@ -193,6 +194,7 @@ function AppRoutes() {
         <Route path="/ipo/summary" element={<LazyPage><IpoSummaryPage /></LazyPage>} />
         <Route path="/ipo/:id" element={<LazyPage><IpoDetailPage /></LazyPage>} />
         <Route path="/admin/dashboard" element={<AdminRoute><LazyPage><AdminDashboardPage /></LazyPage></AdminRoute>} />
+        <Route path="/assets" element={<AdminRoute><LazyPage><AssetsPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/users" element={<AdminRoute><LazyPage><AdminUsersPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/workspaces" element={<AdminRoute><LazyPage><AdminWorkspacesPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/audit-logs" element={<AdminRoute><LazyPage><AdminAuditLogsPage /></LazyPage></AdminRoute>} />
