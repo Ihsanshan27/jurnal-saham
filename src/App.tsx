@@ -194,7 +194,7 @@ function AppRoutes() {
         <Route path="/ipo/summary" element={<LazyPage><IpoSummaryPage /></LazyPage>} />
         <Route path="/ipo/:id" element={<LazyPage><IpoDetailPage /></LazyPage>} />
         <Route path="/admin/dashboard" element={<AdminRoute><LazyPage><AdminDashboardPage /></LazyPage></AdminRoute>} />
-        <Route path="/assets" element={<AdminRoute><LazyPage><AssetsPage /></LazyPage></AdminRoute>} />
+        <Route path="/assets" element={<LazyPage><AssetsPage /></LazyPage>} />
         <Route path="/admin/users" element={<AdminRoute><LazyPage><AdminUsersPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/workspaces" element={<AdminRoute><LazyPage><AdminWorkspacesPage /></LazyPage></AdminRoute>} />
         <Route path="/admin/audit-logs" element={<AdminRoute><LazyPage><AdminAuditLogsPage /></LazyPage></AdminRoute>} />

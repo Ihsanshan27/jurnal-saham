@@ -21,7 +21,10 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Upload,
+  Download,
 } from 'lucide-react';
+import ImportAssetsModal from '@/modules/assets/components/ImportAssetsModal';
 import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
 import StatCard from '@/modules/shared/components/StatCard';
@@ -451,12 +454,13 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────
 export default function AssetsPage() {
-  const { assets, addAsset, updateAsset, deleteAsset, showToast } = useData();
+  const { assets, addAsset, batchAddAssets, updateAsset, deleteAsset, showToast } = useData();
   const rawAssets = useMemo(() => (Array.isArray(assets) ? assets : []), [assets]);
   const { isAdmin, roleLabel } = usePermissions();
 
   // ── All useState hooks first ─────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [search, setSearch] = useState('');
@@ -470,37 +474,33 @@ export default function AssetsPage() {
   const summary = useMemo(() => calculateAssetSummary(rawAssets), [rawAssets]);
 
   const filtered = useMemo(() => {
-    let list = [...rawAssets];
+    let list = (rawAssets || []).filter((a) => a && typeof a === 'object');
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
         (a) =>
-          a.name?.toLowerCase().includes(q) ||
-          a.code?.toLowerCase().includes(q) ||
-          a.pic?.toLowerCase().includes(q)
+          a?.name?.toLowerCase().includes(q) ||
+          a?.code?.toLowerCase().includes(q) ||
+          a?.pic?.toLowerCase().includes(q)
       );
     }
-    if (filterGroup !== 'all') list = list.filter((a) => a.group === filterGroup);
-    if (filterStatus !== 'all') list = list.filter((a) => a.status === filterStatus);
+    if (filterGroup !== 'all') list = list.filter((a) => a?.group === filterGroup);
+    if (filterStatus !== 'all') list = list.filter((a) => a?.status === filterStatus);
 
     list.sort((a, b) => {
-      const av = a[sortKey] ?? '';
-      const bv = b[sortKey] ?? '';
+      const av = a?.[sortKey] ?? '';
+      const bv = b?.[sortKey] ?? '';
       if (typeof av === 'number' && typeof bv === 'number') return sortAsc ? av - bv : bv - av;
       return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     return list;
   }, [rawAssets, search, filterGroup, filterStatus, sortKey, sortAsc]);
 
-  // ── Guard (after all hooks) ──────────────────────────────────────────────
-  if (!isAdmin) {
-    return <AccessDenied roleLabel={roleLabel} message="Halaman Aset & Inventaris hanya bisa diakses oleh Admin." />;
-  }
-
   // ── Derived values ───────────────────────────────────────────────────────
-  const totalActive = rawAssets.filter((a) => a.status === 'active').length;
-  const totalInvestment = rawAssets.filter((a) => a.group === 'investment' && a.status !== 'disposed').length;
-  const totalInventory = rawAssets.filter((a) => a.group === 'office_inventory' && a.status !== 'disposed').length;
+  const validAssets = useMemo(() => (rawAssets || []).filter((a) => a && typeof a === 'object'), [rawAssets]);
+  const totalActive = validAssets.filter((a) => a.status === 'active').length;
+  const totalInvestment = validAssets.filter((a) => a.group === 'investment' && a.status !== 'disposed').length;
+  const totalInventory = validAssets.filter((a) => a.group === 'office_inventory' && a.status !== 'disposed').length;
   const gainLossColor = summary.totalGainLoss >= 0 ? 'text-profit' : 'text-loss';
   const GainLossIcon = summary.totalGainLoss >= 0 ? TrendingUp : TrendingDown;
 
@@ -534,6 +534,73 @@ export default function AssetsPage() {
     return sortAsc ? <ChevronUp size={13} /> : <ChevronDown size={13} />;
   };
 
+  const handleBatchImport = (items: any[]) => {
+    if (batchAddAssets) {
+      batchAddAssets(items);
+    } else {
+      items.forEach((item) => {
+        addAsset(item);
+      });
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!rawAssets || rawAssets.length === 0) {
+      showToast('Tidak ada data aset untuk diekspor', 'error');
+      return;
+    }
+    const headers = [
+      'Nama Aset',
+      'Kode Aset',
+      'Kelompok',
+      'Kategori',
+      'Tanggal Perolehan',
+      'Jumlah',
+      'Satuan',
+      'Harga Perolehan',
+      'Nilai Saat Ini',
+      'PIC / Lokasi',
+      'Serial Number',
+      'Garansi s.d.',
+      'Penyusutan per Tahun (%)',
+      'Catatan',
+      'Status',
+    ];
+
+    const rows = rawAssets.map((a) => [
+      a.name || '',
+      a.code || '',
+      ASSET_GROUP_LABELS[a.group] || a.group || '',
+      ASSET_CATEGORY_LABELS[a.category]?.label || a.category || '',
+      a.purchaseDate || '',
+      a.quantity || 1,
+      a.unit || '',
+      a.purchasePrice || 0,
+      a.currentValue || 0,
+      a.pic || '',
+      a.serialNumber || '',
+      a.warrantyExpiry || '',
+      a.depreciationRateYearly || 0,
+      a.notes || '',
+      ASSET_STATUS_LABELS[a.status]?.label || a.status || '',
+    ]);
+
+    const csvContent =
+      '\uFEFF' +
+      [
+        headers.join(','),
+        ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')),
+      ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ekspor_aset_inventaris_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('Data aset berhasil diekspor ke CSV');
+  };
+
   return (
     <div>
       {/* Header */}
@@ -542,13 +609,29 @@ export default function AssetsPage() {
           <h1 className="page-title">Aset &amp; Inventaris</h1>
           <p className="page-subtitle">Kelola aset investasi pribadi dan inventaris peralatan kantor</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleOpenAdd}
-          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-          <Plus size={16} /> Tambah Aset
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleExportCSV}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Download size={15} /> Ekspor CSV
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setImportModalOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Upload size={15} /> Impor CSV / Excel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleOpenAdd}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Plus size={16} /> Tambah Aset
+          </button>
+        </div>
       </div>
 
       {/* Bento Stats */}
@@ -693,10 +776,14 @@ export default function AssetsPage() {
               </thead>
               <tbody>
                 {filtered.map((item, index) => {
-                  const CatIcon = CATEGORY_ICONS[item.category] || Box;
-                  const catMeta = ASSET_CATEGORY_LABELS[item.category];
-                  const gl = (item.currentValue || 0) - (item.purchasePrice || 0);
-                  const glPct = (item.purchasePrice || 0) > 0 ? (gl / item.purchasePrice) * 100 : 0;
+                  if (!item) return null;
+                  const category = item.category || 'other';
+                  const CatIcon = CATEGORY_ICONS[category] || Box;
+                  const catMeta = ASSET_CATEGORY_LABELS[category] || { label: category };
+                  const purchasePrice = Number(item.purchasePrice) || 0;
+                  const currentValue = Number(item.currentValue != null ? item.currentValue : purchasePrice) || purchasePrice;
+                  const gl = currentValue - purchasePrice;
+                  const glPct = purchasePrice > 0 ? (gl / purchasePrice) * 100 : 0;
                   const isExpanded = expandedRow === item.id;
 
                   return (
@@ -885,6 +972,14 @@ export default function AssetsPage() {
           </div>
         </div>
       )}
+
+      {/* Import Modal */}
+      <ImportAssetsModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSaveAssets={handleBatchImport}
+        showToast={showToast}
+      />
     </div>
   );
 }

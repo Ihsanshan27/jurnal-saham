@@ -17,6 +17,7 @@ const DATA_KEYS = [
   'bsjpTrades',
   'financeAccounts',
   'financeTransactions',
+  'assets',
 ];
 
 export async function loadUserData(userId) {

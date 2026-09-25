@@ -69,11 +69,11 @@ export function calculateAssetSummary(assets: AssetItem[] = []) {
   let investmentValue = 0;
   let inventoryValue = 0;
 
-  const list = Array.isArray(assets) ? assets : [];
+  const list = Array.isArray(assets) ? assets.filter((a) => a && typeof a === 'object') : [];
   list.forEach((a) => {
     if (a && a.status !== 'disposed') {
-      const val = a.currentValue || a.purchasePrice || 0;
-      const cost = a.purchasePrice || 0;
+      const cost = Number(a.purchasePrice) || 0;
+      const val = Number(a.currentValue != null ? a.currentValue : cost) || cost;
       totalPurchaseCost += cost;
       totalCurrentValue += val;
 

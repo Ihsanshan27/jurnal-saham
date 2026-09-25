@@ -1,4 +1,4 @@
-import { getScopedItem, setScopedItem } from '@/modules/shared/utils/storage';
+import { getItem, getScopedItem, setScopedItem } from '@/modules/shared/utils/storage';
 
 export function normalizeSettings<T extends object>(settings: unknown, defaultSettings: T): T {
   return { ...defaultSettings, ...((settings as Partial<T>) || {}) };
@@ -28,6 +28,7 @@ export function loadLocalData(userId: string, options: LoadLocalDataOptions) {
     bsjpTrades: getScopedItem('bsjpTrades', userId) || [],
     financeAccounts: getScopedItem('financeAccounts', userId) || [],
     financeTransactions: getScopedItem('financeTransactions', userId) || [],
+    assets: getScopedItem('assets', userId) || getItem('assets') || getItem(`assets_${userId}_personal`) || [],
   };
 }
 

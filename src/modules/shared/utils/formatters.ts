@@ -29,6 +29,7 @@ export function formatPercent(value, decimals = 2) {
 export function formatDate(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return String(dateString);
   return new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'short',
@@ -39,6 +40,7 @@ export function formatDate(dateString) {
 export function formatDateTime(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return String(dateString);
   return new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'short',
@@ -51,6 +53,7 @@ export function formatDateTime(dateString) {
 export function formatDateShort(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return String(dateString);
   return new Intl.DateTimeFormat('id-ID', {
     day: 'numeric',
     month: 'short',
@@ -60,6 +63,7 @@ export function formatDateShort(dateString) {
 export function formatDateInput(date) {
   if (!date) return '';
   const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
   return d.toISOString().split('T')[0];
 }
 
@@ -76,12 +80,15 @@ export function daysBetween(date1, date2) {
   if (!date1 || !date2) return 0;
   const d1 = new Date(date1);
   const d2 = new Date(date2);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
   const diff = Math.abs(d2.getTime() - d1.getTime());
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
 export function getMonthYear(dateString) {
+  if (!dateString) return '-';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return String(dateString);
   return new Intl.DateTimeFormat('id-ID', {
     month: 'short',
     year: 'numeric',
@@ -89,7 +96,9 @@ export function getMonthYear(dateString) {
 }
 
 export function getDayOfWeek(dateString) {
+  if (!dateString) return '-';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   return days[date.getDay()];
 }

@@ -42,7 +42,7 @@ export interface DataContextType {
   tradingPlans: TradingPlan[]; addTradingPlan: (plan: Partial<TradingPlan>) => TradingPlan | null; updateTradingPlan: (id: string, updates: Partial<TradingPlan>) => void; deleteTradingPlan: (id: string) => void;
   ipoEvents: IpoEvent[]; ipoEntries: IpoEntry[]; ipoAccounts: IpoAccount[]; addIpoEvent: any; updateIpoEvent: any; deleteIpoEvent: any; reorderIpoEvents: any; reorderIpoAccounts: any; addIpoAccount: any; updateIpoAccount: any; toggleIpoAccountActive: any; deleteIpoAccount: any; addIpoEntry: any; updateIpoEntry: any; deleteIpoEntry: any; batchAddIpoEntries: any; batchDeleteIpoEntries: any; batchUpdateIpoEntries: any;
   bsjpTrades: BsjpTrade[]; addBsjpTrade: (trade: Partial<BsjpTrade>) => BsjpTrade | null; updateBsjpTrade: (id: string, updates: Partial<BsjpTrade>) => void; deleteBsjpTrade: (id: string) => void;
-  assets: AssetItem[]; addAsset: (asset: Partial<AssetItem>) => AssetItem | null; updateAsset: (id: string, updates: Partial<AssetItem>) => void; deleteAsset: (id: string) => void; reorderAssets: (orderedIds: string[]) => AssetItem[] | null;
+  assets: AssetItem[]; addAsset: (asset: Partial<AssetItem>) => AssetItem | null; batchAddAssets: (assets: Partial<AssetItem>[]) => AssetItem[]; updateAsset: (id: string, updates: Partial<AssetItem>) => void; deleteAsset: (id: string) => void; reorderAssets: (orderedIds: string[]) => AssetItem[] | null;
   financeAccounts: FinanceAccount[]; financeTransactions: FinanceTransaction[]; addFinanceAccount: (account: Partial<FinanceAccount>) => FinanceAccount | null; updateFinanceAccount: (id: string, updates: Partial<FinanceAccount>) => FinanceAccount | null; toggleFinanceAccountActive: (id: string) => FinanceAccount | null; deleteFinanceAccount: (id: string) => FinanceAccount | null; reorderFinanceAccounts: (orderedIds: string[]) => FinanceAccount[] | null;
   addFinanceTransaction: (transaction: Partial<FinanceTransaction>) => FinanceTransaction | null; updateFinanceTransaction: (id: string, updates: Partial<FinanceTransaction>) => FinanceTransaction | null; deleteFinanceTransaction: (id: string) => FinanceTransaction | null; createFinanceTransfer: (transfer: any) => any; createFinancePortfolioTransfer: (transfer: any) => any; createPortfolioToFinanceTransfer: (transfer: any) => any; getFinanceTransactionsByAccount: (accountId: string) => FinanceTransaction[]; getFinanceAccountCurrentBalance: (accountId: string) => number; getFinanceSummary: () => any;
   dataLoading: boolean; dataError: string; databaseSetupError: string; usedLocalCacheFallback: boolean; exportData: () => any; importData: (data: any) => Promise<void>; clearData: (options?: Record<string, boolean>) => Promise<void>;
@@ -129,6 +129,7 @@ export function DataProvider({ children }) {
   const [ipoAccounts, setIpoAccounts] = useState<IpoAccount[]>([]);
   const [bsjpTrades, setBsjpTrades] = useState<BsjpTrade[]>([]);
   const [assets, setAssets] = useState<AssetItem[]>([]);
+  const assetsRef = useRef<AssetItem[]>([]);
   const [financeAccounts, setFinanceAccounts] = useState<FinanceAccount[]>([]);
   const [financeTransactions, setFinanceTransactions] = useState<FinanceTransaction[]>([]);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -175,6 +176,7 @@ export function DataProvider({ children }) {
     setIpoAccounts(normalizedIpo.accounts);
     setBsjpTrades(data.bsjpTrades || []);
     setAssets(data.assets || []);
+    assetsRef.current = data.assets || [];
     setFinanceAccounts(data.financeAccounts || []);
     setFinanceTransactions(data.financeTransactions || []);
   }, []);
@@ -892,6 +894,7 @@ export function DataProvider({ children }) {
 
   // === ASSETS & INVENTORY CRUD ===
   const saveAssets = (newAssets: AssetItem[]) => {
+    assetsRef.current = newAssets;
     setAssets(newAssets);
     persistData('assets', newAssets);
     if (userId) {
@@ -924,7 +927,7 @@ export function DataProvider({ children }) {
       updatedAt: now,
     };
 
-    const nextAssets = [newAsset, ...(assets || [])];
+    const nextAssets = [newAsset, ...(assetsRef.current || [])];
     saveAssets(nextAssets);
 
     if (asset.linkedFinanceAccountId && newAsset.purchasePrice > 0) {
@@ -943,9 +946,43 @@ export function DataProvider({ children }) {
     return newAsset;
   };
 
+  const batchAddAssets = (assetsList: Partial<AssetItem>[]): AssetItem[] => {
+    if (!ensureWritable() || !Array.isArray(assetsList) || assetsList.length === 0) return [];
+    const now = new Date().toISOString();
+    const year = new Date().getFullYear();
+    const created: AssetItem[] = assetsList.map((asset, idx) => ({
+      id: generateId(),
+      code: asset.code ? asset.code.trim().toUpperCase() : `AST-${year}-${String(idx + 1).padStart(3, '0')}`,
+      name: asset.name ? asset.name.trim() : 'Aset Baru',
+      group: asset.group || 'investment',
+      category: asset.category || 'other',
+      purchaseDate: asset.purchaseDate || now.split('T')[0],
+      purchasePrice: Number(asset.purchasePrice) || 0,
+      currentValue: Number(asset.currentValue != null ? asset.currentValue : asset.purchasePrice) || 0,
+      quantity: Number(asset.quantity) || 1,
+      unit: asset.unit ? asset.unit.trim() : 'unit',
+      pic: asset.pic ? asset.pic.trim() : '',
+      serialNumber: asset.serialNumber ? asset.serialNumber.trim() : '',
+      warrantyExpiry: asset.warrantyExpiry || '',
+      depreciationRateYearly: Number(asset.depreciationRateYearly) || 0,
+      linkedFinanceAccountId: asset.linkedFinanceAccountId || '',
+      notes: asset.notes || '',
+      status: asset.status || 'active',
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    const nextAssets = [...created, ...(assetsRef.current || [])];
+    saveAssets(nextAssets);
+    logUserActivity('asset.batch_created', 'asset', created.map((i) => i.id).join(','), { count: created.length });
+    showToast(`Berhasil mengimpor ${created.length} data aset & inventaris!`);
+    return created;
+  };
+
   const updateAsset = (id: string, updates: Partial<AssetItem>) => {
     if (!ensureWritable()) return;
-    const nextAssets = (assets || []).map((a) => {
+    const currentList = assetsRef.current && assetsRef.current.length > 0 ? assetsRef.current : (assets || []);
+    const nextAssets = currentList.map((a) => {
       if (a.id === id) {
         return {
           ...a,
@@ -967,8 +1004,9 @@ export function DataProvider({ children }) {
 
   const deleteAsset = (id: string) => {
     if (!ensureWritable()) return;
-    const target = (assets || []).find((a) => a.id === id);
-    const nextAssets = (assets || []).filter((a) => a.id !== id);
+    const currentList = assetsRef.current && assetsRef.current.length > 0 ? assetsRef.current : (assets || []);
+    const target = currentList.find((a) => a.id === id);
+    const nextAssets = currentList.filter((a) => a.id !== id);
     saveAssets(nextAssets);
     logUserActivity('asset.deleted', 'asset', id, { name: target?.name });
     showToast(`Aset "${target?.name || ''}" berhasil dihapus`);
@@ -976,7 +1014,8 @@ export function DataProvider({ children }) {
 
   const reorderAssets = (orderedIds: string[]) => {
     if (!ensureWritable()) return null;
-    const map = new Map((assets || []).map((a) => [a.id, a]));
+    const currentList = assetsRef.current && assetsRef.current.length > 0 ? assetsRef.current : (assets || []);
+    const map = new Map(currentList.map((a) => [a.id, a]));
     const nextAssets = orderedIds.map((id) => map.get(id)).filter(Boolean) as AssetItem[];
     saveAssets(nextAssets);
     return nextAssets;
@@ -1748,6 +1787,7 @@ export function DataProvider({ children }) {
       deleteBsjpTrade,
       assets,
       addAsset,
+      batchAddAssets,
       updateAsset,
       deleteAsset,
       reorderAssets,
@@ -1800,23 +1840,27 @@ export function DataProvider({ children }) {
 }
 
 async function migrateLocalDataToSupabase(userId, remoteData) {
-  const normalizedRemote = {
-    ...remoteData,
-    settings: normalizeSettings(remoteData.settings, DEFAULT_SETTINGS),
-  };
-
-  if (hasStoredData(remoteData, LOCAL_DATA_KEYS)) return normalizedRemote;
-
   migrateGlobalToUser(userId);
   migrateWorkspaceScopeToUserScope(userId);
   const localData = loadLocalData(userId, {
     defaultPortfolio: DEFAULT_PORTFOLIO,
     defaultSettings: DEFAULT_SETTINGS,
   });
-  if (!hasStoredData(localData, LOCAL_DATA_KEYS)) return normalizedRemote;
 
-  await replaceAllUserData(localData, userId);
-  return localData;
+  const mergedData = { ...localData, ...remoteData };
+  mergedData.settings = normalizeSettings(mergedData.settings, DEFAULT_SETTINGS);
+
+  const missingKeysInRemote = LOCAL_DATA_KEYS.filter(
+    (key) => remoteData[key] === undefined && localData[key] != null
+  );
+
+  if (isSupabaseConfigured && missingKeysInRemote.length > 0) {
+    await Promise.all(
+      missingKeysInRemote.map((key) => saveUserData(key, localData[key], userId).catch(() => {}))
+    );
+  }
+
+  return mergedData;
 }
 
 export function useData() {

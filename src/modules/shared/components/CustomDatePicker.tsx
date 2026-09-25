@@ -178,10 +178,15 @@ export default function CustomDatePicker({
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
   
   // Normalized selected date
-  const selectedDate = value ? (typeof value === 'string' ? parseISO(value) : value) : null;
+  const _parsedDate = value ? (typeof value === 'string' ? parseISO(value) : value) : null;
+  // Guard against Invalid Date (e.g. empty string or bad format from data)
+  const selectedDate = _parsedDate && !isNaN(_parsedDate.getTime()) ? _parsedDate : null;
   
-  // Current month being viewed in calendar
-  const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+  // Current month being viewed in calendar — always a valid Date
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = selectedDate && !isNaN(selectedDate.getTime()) ? selectedDate : new Date();
+    return isNaN(d.getTime()) ? new Date() : d;
+  });
 
   useEffect(() => {
     if (selectedDate && !isOpen) {
@@ -410,7 +415,7 @@ export default function CustomDatePicker({
   };
 
   // formatting for display
-  const displayValue = selectedDate ? format(selectedDate, 'dd/MM/yyyy') : '';
+  const displayValue = (selectedDate && !isNaN(selectedDate.getTime())) ? format(selectedDate, 'dd/MM/yyyy') : '';
 
   return (
     <div
@@ -422,7 +427,7 @@ export default function CustomDatePicker({
         type="hidden" 
         name={name} 
         id={inputId} 
-        value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''} 
+        value={(selectedDate && !isNaN(selectedDate.getTime())) ? format(selectedDate, 'yyyy-MM-dd') : ''} 
       />
       
       <button
