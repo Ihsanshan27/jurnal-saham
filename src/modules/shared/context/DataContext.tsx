@@ -42,7 +42,7 @@ export interface DataContextType {
   tradingPlans: TradingPlan[]; addTradingPlan: (plan: Partial<TradingPlan>) => TradingPlan | null; updateTradingPlan: (id: string, updates: Partial<TradingPlan>) => void; deleteTradingPlan: (id: string) => void;
   ipoEvents: IpoEvent[]; ipoEntries: IpoEntry[]; ipoAccounts: IpoAccount[]; addIpoEvent: any; updateIpoEvent: any; deleteIpoEvent: any; reorderIpoEvents: any; reorderIpoAccounts: any; addIpoAccount: any; updateIpoAccount: any; toggleIpoAccountActive: any; deleteIpoAccount: any; addIpoEntry: any; updateIpoEntry: any; deleteIpoEntry: any; batchAddIpoEntries: any; batchDeleteIpoEntries: any; batchUpdateIpoEntries: any;
   bsjpTrades: BsjpTrade[]; addBsjpTrade: (trade: Partial<BsjpTrade>) => BsjpTrade | null; updateBsjpTrade: (id: string, updates: Partial<BsjpTrade>) => void; deleteBsjpTrade: (id: string) => void;
-  assets: AssetItem[]; addAsset: (asset: Partial<AssetItem>) => AssetItem | null; batchAddAssets: (assets: Partial<AssetItem>[]) => AssetItem[]; updateAsset: (id: string, updates: Partial<AssetItem>) => void; deleteAsset: (id: string) => void; reorderAssets: (orderedIds: string[]) => AssetItem[] | null;
+  assets: AssetItem[]; addAsset: (asset: Partial<AssetItem>) => AssetItem | null; batchAddAssets: (assets: Partial<AssetItem>[]) => AssetItem[]; updateAsset: (id: string, updates: Partial<AssetItem>) => void; deleteAsset: (id: string) => void; batchDeleteAssets: (ids: string[]) => void; reorderAssets: (orderedIds: string[]) => AssetItem[] | null;
   financeAccounts: FinanceAccount[]; financeTransactions: FinanceTransaction[]; addFinanceAccount: (account: Partial<FinanceAccount>) => FinanceAccount | null; updateFinanceAccount: (id: string, updates: Partial<FinanceAccount>) => FinanceAccount | null; toggleFinanceAccountActive: (id: string) => FinanceAccount | null; deleteFinanceAccount: (id: string) => FinanceAccount | null; reorderFinanceAccounts: (orderedIds: string[]) => FinanceAccount[] | null;
   addFinanceTransaction: (transaction: Partial<FinanceTransaction>) => FinanceTransaction | null; updateFinanceTransaction: (id: string, updates: Partial<FinanceTransaction>) => FinanceTransaction | null; deleteFinanceTransaction: (id: string) => FinanceTransaction | null; createFinanceTransfer: (transfer: any) => any; createFinancePortfolioTransfer: (transfer: any) => any; createPortfolioToFinanceTransfer: (transfer: any) => any; getFinanceTransactionsByAccount: (accountId: string) => FinanceTransaction[]; getFinanceAccountCurrentBalance: (accountId: string) => number; getFinanceSummary: () => any;
   dataLoading: boolean; dataError: string; databaseSetupError: string; usedLocalCacheFallback: boolean; exportData: () => any; importData: (data: any) => Promise<void>; clearData: (options?: Record<string, boolean>) => Promise<void>;
@@ -1012,6 +1012,16 @@ export function DataProvider({ children }) {
     showToast(`Aset "${target?.name || ''}" berhasil dihapus`);
   };
 
+  const batchDeleteAssets = (ids: string[]) => {
+    if (!ensureWritable() || !Array.isArray(ids) || ids.length === 0) return;
+    const currentList = assetsRef.current && assetsRef.current.length > 0 ? assetsRef.current : (assets || []);
+    const idSet = new Set(ids);
+    const nextAssets = currentList.filter((a) => !idSet.has(a.id));
+    saveAssets(nextAssets);
+    logUserActivity('asset.batch_deleted', 'asset', ids.join(','), { count: ids.length });
+    showToast(`${ids.length} aset berhasil dihapus`);
+  };
+
   const reorderAssets = (orderedIds: string[]) => {
     if (!ensureWritable()) return null;
     const currentList = assetsRef.current && assetsRef.current.length > 0 ? assetsRef.current : (assets || []);
@@ -1790,6 +1800,7 @@ export function DataProvider({ children }) {
       batchAddAssets,
       updateAsset,
       deleteAsset,
+      batchDeleteAssets,
       reorderAssets,
       financeAccounts,
       financeTransactions,

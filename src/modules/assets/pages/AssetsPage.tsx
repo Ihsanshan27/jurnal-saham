@@ -454,7 +454,7 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────
 export default function AssetsPage() {
-  const { assets, addAsset, batchAddAssets, updateAsset, deleteAsset, showToast } = useData();
+  const { assets, addAsset, batchAddAssets, updateAsset, deleteAsset, batchDeleteAssets, showToast } = useData();
   const rawAssets = useMemo(() => (Array.isArray(assets) ? assets : []), [assets]);
   const { isAdmin, roleLabel } = usePermissions();
 
@@ -463,6 +463,8 @@ export default function AssetsPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -521,7 +523,30 @@ export default function AssetsPage() {
   const handleDelete = (id) => {
     deleteAsset(id);
     setDeleteConfirmId(null);
-    showToast('Aset berhasil dihapus', 'success');
+    setSelectedIds((prev) => prev.filter((item) => item !== id));
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const filteredIds = filtered.map((item) => item.id).filter(Boolean);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    } else {
+      const filteredIdSet = new Set(filtered.map((item) => item.id).filter(Boolean));
+      setSelectedIds((prev) => prev.filter((id) => !filteredIdSet.has(id)));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    batchDeleteAssets(selectedIds);
+    setSelectedIds([]);
+    setBulkDeleteConfirm(false);
   };
 
   const toggleSort = (key) => {
@@ -720,6 +745,38 @@ export default function AssetsPage() {
 
       {/* Table */}
       <div className="card">
+        {selectedIds.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 16px',
+            marginBottom: 16,
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+              <span>{selectedIds.length} aset dipilih</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                className="btn btn-ghost"
+                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                onClick={() => setSelectedIds([])}
+              >
+                Batal Pilihan
+              </button>
+              <button
+                className="btn btn-danger"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: '0.82rem' }}
+                onClick={() => setBulkDeleteConfirm(true)}
+              >
+                <Trash2 size={14} /> Hapus Dipilih ({selectedIds.length})
+              </button>
+            </div>
+          </div>
+        )}
         <div className="table-container">
           {filtered.length === 0 ? (
             <div className="empty-state" style={{ padding: '48px 0' }}>
@@ -738,6 +795,14 @@ export default function AssetsPage() {
             <table className="table">
               <thead>
                 <tr>
+                  <th style={{ width: 36, textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={filtered.length > 0 && filtered.every((item) => selectedIds.includes(item.id))}
+                      onChange={handleSelectAll}
+                      style={{ cursor: 'pointer', width: 16, height: 16, accentColor: 'var(--accent-blue)' }}
+                    />
+                  </th>
                   <th style={{ width: 40, textAlign: 'center' }}>No.</th>
                   <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('name')}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -785,14 +850,23 @@ export default function AssetsPage() {
                   const gl = currentValue - purchasePrice;
                   const glPct = purchasePrice > 0 ? (gl / purchasePrice) * 100 : 0;
                   const isExpanded = expandedRow === item.id;
+                  const isSelected = selectedIds.includes(item.id);
 
                   return (
                     <React.Fragment key={item.id}>
                       {/* Main row */}
                       <tr
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.08)' : undefined }}
                         onClick={() => setExpandedRow(isExpanded ? null : item.id)}
                       >
+                        <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelect(item.id)}
+                            style={{ cursor: 'pointer', width: 16, height: 16, accentColor: 'var(--accent-blue)' }}
+                          />
+                        </td>
                         <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 500 }}>
                           {index + 1}
                         </td>
@@ -874,7 +948,7 @@ export default function AssetsPage() {
                       {/* Expanded detail row */}
                       {isExpanded && (
                         <tr>
-                          <td colSpan={10} style={{ padding: 0, background: 'var(--bg-secondary)' }}>
+                          <td colSpan={11} style={{ padding: 0, background: 'var(--bg-secondary)' }}>
                             <div style={{
                               padding: '12px 20px',
                               display: 'grid',
@@ -967,6 +1041,33 @@ export default function AssetsPage() {
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 <Trash2 size={14} /> Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirm Modal */}
+      {bulkDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setBulkDeleteConfirm(false)}>
+          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Hapus {selectedIds.length} Aset</h2>
+              <button className="modal-close" onClick={() => setBulkDeleteConfirm(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-secondary)' }}>
+                Apakah Anda yakin ingin menghapus <strong>{selectedIds.length}</strong> aset yang dipilih? Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={() => setBulkDeleteConfirm(false)}>Batal</button>
+              <button
+                className="btn btn-danger"
+                onClick={handleBatchDelete}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Trash2 size={14} /> Hapus {selectedIds.length} Aset
               </button>
             </div>
           </div>
