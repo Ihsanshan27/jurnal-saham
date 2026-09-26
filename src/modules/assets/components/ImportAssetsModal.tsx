@@ -363,7 +363,7 @@ export default function ImportAssetsModal({
           <h2 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Upload size={20} /> Impor Aset &amp; Inventaris (CSV / Excel)
           </h2>
-          <button className="modal-close" onClick={onClose}>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup">
             <X size={18} />
           </button>
         </div>

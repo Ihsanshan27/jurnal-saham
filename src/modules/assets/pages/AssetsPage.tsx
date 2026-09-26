@@ -231,7 +231,7 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
       >
         <div className="modal-header">
           <h2 className="modal-title">{isEdit ? 'Edit Aset / Inventaris' : 'Tambah Aset / Inventaris'}</h2>
-          <button className="modal-close" onClick={onClose}><X size={18} /></button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup"><X size={18} /></button>
         </div>
 
         <div className="modal-body">
@@ -1026,7 +1026,7 @@ export default function AssetsPage() {
           <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">Hapus Aset</h2>
-              <button className="modal-close" onClick={() => setDeleteConfirmId(null)}><X size={18} /></button>
+              <button type="button" className="modal-close" onClick={() => setDeleteConfirmId(null)} aria-label="Tutup"><X size={18} /></button>
             </div>
             <div className="modal-body">
               <p style={{ color: 'var(--text-secondary)' }}>
@@ -1053,7 +1053,7 @@ export default function AssetsPage() {
           <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">Hapus {selectedIds.length} Aset</h2>
-              <button className="modal-close" onClick={() => setBulkDeleteConfirm(false)}><X size={18} /></button>
+              <button type="button" className="modal-close" onClick={() => setBulkDeleteConfirm(false)} aria-label="Tutup"><X size={18} /></button>
             </div>
             <div className="modal-body">
               <p style={{ color: 'var(--text-secondary)' }}>

@@ -981,6 +981,26 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled {
   justify-content: space-between;
 }
 
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.modal-close:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-primary);
+}
+
 .modal-body {
   padding: 24px;
 }
