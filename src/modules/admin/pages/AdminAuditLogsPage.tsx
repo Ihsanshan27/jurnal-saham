@@ -71,7 +71,7 @@ export default function AdminAuditLogsPage() {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const retentionDays = parseInt(settings.logRetentionDays) || 0;
+      const retentionDays = parseInt(String(settings.logRetentionDays || '0')) || 0;
       if (retentionDays > 0) {
         try {
           const deletedCount = await cleanOldAuditLogs(retentionDays);

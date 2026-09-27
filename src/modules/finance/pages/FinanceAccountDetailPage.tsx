@@ -1249,9 +1249,21 @@ export default function FinanceAccountDetailPage() {
                               <span className="finance-pill" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{getFinanceTransactionTypeLabel(transaction.type)}</span>
                             </div>
                             <div className="finance-helper-text" style={{ fontSize: '0.8rem' }}>
-                              <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
-                              {account?.institutionName ? ` (${account.institutionName})` : ''}
-                              {counterparty ? ` ➔ ${counterparty.name} (${counterparty.currency || 'IDR'})` : ''}
+                              {transaction.type === 'transfer_in' && counterparty ? (
+                                <>
+                                  <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{counterparty.name}</span>
+                                  {counterparty.institutionName ? ` (${counterparty.institutionName})` : ''}
+                                  {' ➔ '}
+                                  <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
+                                  {account?.institutionName ? ` (${account.institutionName})` : ''}
+                                </>
+                              ) : (
+                                <>
+                                  <span style={{ fontWeight: 500, color: 'var(--text-color)' }}>{account?.name || 'Unknown'}</span>
+                                  {account?.institutionName ? ` (${account.institutionName})` : ''}
+                                  {counterparty ? ` ➔ ${counterparty.name} (${counterparty.currency || 'IDR'})` : ''}
+                                </>
+                              )}
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>

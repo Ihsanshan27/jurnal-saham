@@ -92,7 +92,7 @@ export const FinanceTransactionDetailModal: React.FC<FinanceTransactionDetailMod
             </div>
             {counterparty && (
               <div className="calc-result-row">
-                <span className="calc-result-label">Rekening Tujuan</span>
+                <span className="calc-result-label">{transaction.type === 'transfer_in' ? 'Rekening Asal' : 'Rekening Tujuan'}</span>
                 <span className="calc-result-value" style={{ fontWeight: 600 }}>
                   {counterparty.name} ({counterparty.institutionName}) ({counterparty.currency || 'IDR'})
                 </span>
