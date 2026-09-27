@@ -49,6 +49,7 @@ export function validateDataSchema(data: any): boolean {
     'bsjpTrades',
     'financeAccounts',
     'financeTransactions',
+    'assets',
   ];
 
   for (const key of arrayKeys) {

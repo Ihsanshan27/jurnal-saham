@@ -27,6 +27,7 @@ import {
   loadLocalData,
   normalizeSettings,
 } from '@/modules/shared/context/dataContextStorageUtils';
+import { ALL_STORAGE_KEYS } from '@/modules/shared/constants/storageKeys';
 import type { AppSettings, Portfolio, Trade, Cashflow, Dividend, WatchlistItem, Note, BsjpTrade, TradingPlan } from '@/modules/shared/types/index';
 import type { AssetItem } from '@/modules/assets/types/assets';
 export interface ToastItem { id: string; message: string; type: string; }
@@ -99,7 +100,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   behaviorDoubleConfirmExit: true,
   profileIncludedFinanceAccountIds: [],
 };
-const LOCAL_DATA_KEYS = ['trades', 'watchlist', 'notes', 'cashflows', 'dividends', 'settings', 'marketPrices', 'portfolios', 'tradingPlans', 'ipoEvents', 'ipoEntries', 'ipoAccounts', 'bsjpTrades', 'financeAccounts', 'financeTransactions', 'assets'];
+const LOCAL_DATA_KEYS = ALL_STORAGE_KEYS;
 
 const DEFAULT_PORTFOLIO = {
   id: 'default',

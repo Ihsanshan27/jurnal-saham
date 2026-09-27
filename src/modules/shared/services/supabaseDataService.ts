@@ -1,24 +1,8 @@
 import { supabase } from '@/modules/shared/services/supabaseClient';
+import { ALL_STORAGE_KEYS } from '@/modules/shared/constants/storageKeys';
 
 const TABLE_NAME = 'journal_data';
-const DATA_KEYS = [
-  'trades',
-  'watchlist',
-  'notes',
-  'cashflows',
-  'dividends',
-  'settings',
-  'marketPrices',
-  'portfolios',
-  'tradingPlans',
-  'ipoEvents',
-  'ipoEntries',
-  'ipoAccounts',
-  'bsjpTrades',
-  'financeAccounts',
-  'financeTransactions',
-  'assets',
-];
+const DATA_KEYS = ALL_STORAGE_KEYS;
 
 export async function loadUserData(userId) {
   const ownerId = getRequiredUserId(userId);

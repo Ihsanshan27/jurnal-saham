@@ -1,5 +1,7 @@
+import { ALL_STORAGE_KEYS } from '@/modules/shared/constants/storageKeys';
+
 const PREFIX = 'jurnal_saham_';
-const USER_DATA_KEYS = ['trades', 'watchlist', 'notes', 'settings', 'cashflows', 'dividends', 'marketPrices', 'portfolios', 'tradingPlans', 'ipoEvents', 'ipoEntries', 'ipoAccounts', 'bsjpTrades', 'financeAccounts', 'financeTransactions', 'assets'];
+const USER_DATA_KEYS = ALL_STORAGE_KEYS;
 
 // --- Generic key helpers ---
 
