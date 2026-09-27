@@ -660,7 +660,7 @@ export default function AssetsPage() {
       </div>
 
       {/* Bento Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
         <StatCard
           icon={Package}
           label="Total Aset Aktif"

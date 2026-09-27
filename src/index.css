@@ -506,9 +506,13 @@ img {
 }
 
 .stat-card-value {
-  font-size: 1.6rem;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
   font-weight: 700;
   line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .stat-card-change {
@@ -1856,6 +1860,9 @@ input[type="checkbox"]:disabled, input[type="radio"]:disabled {
   display: flex;
   flex-direction: column;
   transition: all var(--transition-base);
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .bento-card:hover {
