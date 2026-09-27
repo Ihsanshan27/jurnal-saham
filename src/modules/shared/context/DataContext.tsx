@@ -1200,7 +1200,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       category: transfer.category || 'Transfer ke dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
-      cashflowSyncMode: 'transfer_to_portfolio',
+      cashflowSyncMode: 'transfer_to_portfolio' as const,
       linkedMarket: transfer.market || 'ID',
       linkedCashflowAmount: isUS ? targetUsdAmount : amountInIdr,
     };
@@ -1246,7 +1246,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       category: transfer.category || 'Transfer dari dompet',
       linkToCashflow: true,
       linkedPortfolioId: transfer.portfolioId || activePortfolioId,
-      cashflowSyncMode: 'transfer_from_portfolio',
+      cashflowSyncMode: 'transfer_from_portfolio' as const,
       linkedMarket: transfer.market || 'ID',
       linkedCashflowAmount: isUS ? targetUsdAmount : amountInIdr,
     };
