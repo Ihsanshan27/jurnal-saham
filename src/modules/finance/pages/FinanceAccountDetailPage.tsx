@@ -764,7 +764,8 @@ export default function FinanceAccountDetailPage() {
                           id="finance-transfer-amount"
                           value={transferForm.amount}
                           onChange={(value) => handleTransferChange('amount', value)}
-                          placeholder={account.currency === 'USD' ? '1.000' : '1.000.000'}
+                          placeholder={account.currency === 'USD' ? '$ 1,000.00' : '1.000.000'}
+                          market={account.currency === 'USD' ? 'US' : 'ID'}
                         />
                       </div>
                       {isCross ? (
@@ -785,7 +786,8 @@ export default function FinanceAccountDetailPage() {
                             id="finance-transfer-target-amount"
                             value={transferForm.targetAmount}
                             onChange={(value) => handleTransferChange('targetAmount', value)}
-                            placeholder={targetAccount.currency === 'USD' ? '1.000' : '16.200.000'}
+                            placeholder={targetAccount.currency === 'USD' ? '$ 1,000.00' : '16.200.000'}
+                            market={targetAccount.currency === 'USD' ? 'US' : 'ID'}
                           />
                         </div>
                       ) : null}
@@ -889,7 +891,8 @@ export default function FinanceAccountDetailPage() {
                         id="finance-portfolio-transfer-target-amount"
                         value={portfolioTransferForm.targetAmount}
                         onChange={(value) => handlePortfolioTransferChange('targetAmount', value)}
-                        placeholder="1.000.00"
+                        placeholder="1,000.00"
+                        market="US"
                         allowDecimal
                       />
                     </div>
@@ -999,7 +1002,8 @@ export default function FinanceAccountDetailPage() {
                         id="finance-portfolio-withdrawal-amount"
                         value={portfolioWithdrawalForm.amount}
                         onChange={(value) => handlePortfolioWithdrawalChange('amount', value)}
-                        placeholder="1.200.00"
+                        placeholder="1,200.00"
+                        market="US"
                         allowDecimal
                       />
                     </div>
