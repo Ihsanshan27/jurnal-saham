@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   generateId,
   migrateGlobalToUser,
@@ -109,7 +108,7 @@ const DEFAULT_PORTFOLIO = {
   createdAt: new Date().toISOString(),
 };
 
-export function DataProvider({ children }) {
+export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { can, roleLabel } = usePermissions();
   const userId = user?.id;
@@ -324,6 +323,24 @@ export function DataProvider({ children }) {
     }
   }, [userId, showToast]);
 
+  /**
+   * Generic helper: mutates a simple collection (add/update/delete),
+   * syncs state and persists in one shot.
+   * @param collection  Current snapshot of the array
+   * @param setter      React state setter for this collection
+   * @param storageKey  Key used by persistData
+   * @param mutate      Pure function that receives the current array and returns the next array
+   */
+  const mutateCollection = useCallback(
+    <T extends { id: string }>(collection: T[], setter: React.Dispatch<React.SetStateAction<T[]>>, storageKey: string, mutate: (col: T[]) => T[]): T[] => {
+      const next = mutate(collection);
+      setter(next);
+      persistData(storageKey, next);
+      return next;
+    },
+    [persistData]
+  );
+
   const [initialPricesFetched, setInitialPricesFetched] = useState(false);
 
   const fetchLivePrices = useCallback(async (stockCodes: string[], forceFetch: boolean = false) => {
@@ -496,10 +513,8 @@ export function DataProvider({ children }) {
   // === WATCHLIST CRUD ===
   const addWatchlistItem = (item: Partial<WatchlistItem>) => {
     if (!ensureWritable()) return;
-    const newItem = { ...item, id: generateId(), createdAt: new Date().toISOString() };
-    const updated = [newItem, ...watchlist];
-    setWatchlist(updated);
-    persistData('watchlist', updated);
+    const newItem = { ...item, id: generateId(), createdAt: new Date().toISOString() } as WatchlistItem;
+    mutateCollection(watchlist, setWatchlist, 'watchlist', col => [newItem, ...col]);
     logUserActivity('watchlist.created', 'watchlist_item', newItem.id, {
       stockCode: newItem.stockCode || null,
       market: newItem.market || 'ID',
@@ -510,9 +525,7 @@ export function DataProvider({ children }) {
   const updateWatchlistItem = (id: string, updates: Partial<WatchlistItem>) => {
     if (!ensureWritable()) return;
     const existingItem = watchlist.find(w => w.id === id);
-    const updated = watchlist.map(w => w.id === id ? { ...w, ...updates } : w);
-    setWatchlist(updated);
-    persistData('watchlist', updated);
+    mutateCollection(watchlist, setWatchlist, 'watchlist', col => col.map(w => w.id === id ? { ...w, ...updates } : w));
     if (existingItem) {
       logUserActivity('watchlist.updated', 'watchlist_item', id, {
         stockCode: updates.stockCode || existingItem.stockCode || null,
@@ -525,9 +538,7 @@ export function DataProvider({ children }) {
   const deleteWatchlistItem = (id: string) => {
     if (!ensureWritable()) return;
     const existingItem = watchlist.find(w => w.id === id);
-    const updated = watchlist.filter(w => w.id !== id);
-    setWatchlist(updated);
-    persistData('watchlist', updated);
+    mutateCollection(watchlist, setWatchlist, 'watchlist', col => col.filter(w => w.id !== id));
     if (existingItem) {
       logUserActivity('watchlist.deleted', 'watchlist_item', id, {
         stockCode: existingItem.stockCode || null,
@@ -540,10 +551,8 @@ export function DataProvider({ children }) {
   // === NOTES CRUD ===
   const addNote = (note: Partial<Note>) => {
     if (!ensureWritable()) return;
-    const newNote = { ...note, id: generateId(), createdAt: new Date().toISOString() };
-    const updated = [newNote, ...notes];
-    setNotes(updated);
-    persistData('notes', updated);
+    const newNote = { ...note, id: generateId(), createdAt: new Date().toISOString() } as Note;
+    mutateCollection(notes, setNotes, 'notes', col => [newNote, ...col]);
     logUserActivity('note.created', 'note', newNote.id, {
       title: newNote.title || null,
     });
@@ -553,9 +562,7 @@ export function DataProvider({ children }) {
   const updateNote = (id: string, updates: Partial<Note>) => {
     if (!ensureWritable()) return;
     const existingNote = notes.find(n => n.id === id);
-    const updated = notes.map(n => n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n);
-    setNotes(updated);
-    persistData('notes', updated);
+    mutateCollection(notes, setNotes, 'notes', col => col.map(n => n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n));
     if (existingNote) {
       logUserActivity('note.updated', 'note', id, {
         title: updates.title || existingNote.title || null,
@@ -567,9 +574,7 @@ export function DataProvider({ children }) {
   const deleteNote = (id: string) => {
     if (!ensureWritable()) return;
     const existingNote = notes.find(n => n.id === id);
-    const updated = notes.filter(n => n.id !== id);
-    setNotes(updated);
-    persistData('notes', updated);
+    mutateCollection(notes, setNotes, 'notes', col => col.filter(n => n.id !== id));
     if (existingNote) {
       logUserActivity('note.deleted', 'note', id, {
         title: existingNote.title || null,
@@ -1467,28 +1472,23 @@ export function DataProvider({ children }) {
     };
 
     // === TRADING PLANS CRUD ===
-    const addTradingPlan = (plan: Partial<TradingPlan>) => {
-      if (!ensureWritable()) return;
-      const newPlan = { ...plan, id: generateId(), createdAt: new Date().toISOString() };
-    const updated = [newPlan as any, ...tradingPlans];
-    setTradingPlans(updated);
-    persistData('tradingPlans', updated);
+  const addTradingPlan = (plan: Partial<TradingPlan>): TradingPlan | null => {
+    if (!ensureWritable()) return null;
+    const newPlan = { ...plan, id: generateId(), createdAt: new Date().toISOString() } as TradingPlan;
+    mutateCollection(tradingPlans, setTradingPlans, 'tradingPlans', col => [newPlan, ...col]);
     logUserActivity('trading_plan.created', 'trading_plan', newPlan.id, {
       stockCode: newPlan.stockCode || null,
       market: newPlan.market || 'ID',
     });
     showToast('Rencana trading disimpan');
+    return newPlan;
   };
 
-    const updateTradingPlan = (id: string, updates: Partial<TradingPlan>) => {
+  const updateTradingPlan = (id: string, updates: Partial<TradingPlan>) => {
     if (!ensureWritable()) return;
     const existingPlan = tradingPlans.find(p => p.id === id);
     if (!existingPlan) return;
-    
-    const updatedPlan = { ...existingPlan, ...updates, updatedAt: new Date().toISOString() };
-    const updated = tradingPlans.map(p => p.id === id ? updatedPlan : p);
-    setTradingPlans(updated);
-    persistData('tradingPlans', updated);
+    mutateCollection(tradingPlans, setTradingPlans, 'tradingPlans', col => col.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p));
     logUserActivity('trading_plan.updated', 'trading_plan', id, {
       stockCode: updates.stockCode || existingPlan.stockCode || null,
       fieldsUpdated: Object.keys(updates || {}),
@@ -1497,10 +1497,8 @@ export function DataProvider({ children }) {
   };
 
   const deleteTradingPlan = (id: string) => {
-      if (!ensureWritable()) return;
-    const updated = tradingPlans.filter(p => p.id !== id);
-    setTradingPlans(updated);
-    persistData('tradingPlans', updated);
+    if (!ensureWritable()) return;
+    mutateCollection(tradingPlans, setTradingPlans, 'tradingPlans', col => col.filter(p => p.id !== id));
     logUserActivity('trading_plan.deleted', 'trading_plan', id);
     showToast('Rencana trading dihapus');
   };
@@ -1544,16 +1542,10 @@ export function DataProvider({ children }) {
 
   // Batch add — used for duplicating; avoids stale-state bug of calling addIpoEntry in a loop
   // === BSJP CRUD ===
-  const addBsjpTrade = (trade: Partial<BsjpTrade>): any => {
+  const addBsjpTrade = (trade: Partial<BsjpTrade>): BsjpTrade | null => {
     if (!ensureWritable()) return null;
-    const newTrade = {
-      ...trade,
-      id: generateId(),
-      createdAt: new Date().toISOString()
-    };
-    const updated = [newTrade as any, ...bsjpTrades];
-    setBsjpTrades(updated);
-    persistData('bsjpTrades', updated);
+    const newTrade = { ...trade, id: generateId(), createdAt: new Date().toISOString() } as BsjpTrade;
+    mutateCollection(bsjpTrades, setBsjpTrades, 'bsjpTrades', col => [newTrade, ...col]);
     logUserActivity('bsjp_trade.created', 'bsjp_trade', newTrade.id, {
       stockCode: newTrade.stockCode || null,
       date: newTrade.date || null,
@@ -1565,9 +1557,7 @@ export function DataProvider({ children }) {
   const updateBsjpTrade = (id: string, updates: Partial<BsjpTrade>) => {
     if (!ensureWritable()) return;
     const existingTrade = bsjpTrades.find(t => t.id === id);
-    const updated = bsjpTrades.map(t => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t);
-    setBsjpTrades(updated);
-    persistData('bsjpTrades', updated);
+    mutateCollection(bsjpTrades, setBsjpTrades, 'bsjpTrades', col => col.map(t => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t));
     if (existingTrade) {
       logUserActivity('bsjp_trade.updated', 'bsjp_trade', id, {
         stockCode: updates.stockCode || existingTrade.stockCode || null,
@@ -1580,9 +1570,7 @@ export function DataProvider({ children }) {
   const deleteBsjpTrade = (id: string) => {
     if (!ensureWritable()) return;
     const existingTrade = bsjpTrades.find(t => t.id === id);
-    const updated = bsjpTrades.filter(t => t.id !== id);
-    setBsjpTrades(updated);
-    persistData('bsjpTrades', updated);
+    mutateCollection(bsjpTrades, setBsjpTrades, 'bsjpTrades', col => col.filter(t => t.id !== id));
     if (existingTrade) {
       logUserActivity('bsjp_trade.deleted', 'bsjp_trade', id, {
         stockCode: existingTrade.stockCode || null,
