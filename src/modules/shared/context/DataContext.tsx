@@ -793,6 +793,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     };
     saveFinanceAccounts([newAccount, ...financeAccounts]);
     logUserActivity('finance_account.created', 'finance_account', newAccount.id, {
+      name: newAccount.name,
       type: newAccount.type,
       institutionName: newAccount.institutionName || null,
     });
@@ -818,6 +819,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const updatedAccount = updatedAccounts.find((item: any) => item.id === id) || null;
     saveFinanceAccounts(updatedAccounts);
     logUserActivity('finance_account.updated', 'finance_account', id, {
+      name: updatedAccount?.name || existingAccount.name,
       fieldsUpdated: Object.keys(updates || {}),
       type: updatedAccount?.type || existingAccount.type,
     });
@@ -889,6 +891,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     logUserActivity('finance_account.deleted', 'finance_account', id, {
+      name: existingAccount.name,
       type: existingAccount.type,
       institutionName: existingAccount.institutionName || null,
       deletedTransactionCount: transactionIdsToDelete.size,
@@ -1063,10 +1066,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       : baseTransaction;
 
     saveFinanceTransactions([finalTransaction, ...financeTransactions]);
+    const targetAccount = financeAccounts.find(a => a.id === finalTransaction.accountId);
     logUserActivity('finance_transaction.created', 'finance_transaction', finalTransaction.id, {
       accountId: finalTransaction.accountId,
+      accountName: targetAccount?.name || null,
       type: finalTransaction.type,
       amount: finalTransaction.amount,
+      category: finalTransaction.category || null,
+      description: finalTransaction.description || null,
       linkedCashflowId: finalTransaction.linkedCashflowId || null,
     });
     showToast('Transaksi finance berhasil dicatat');
@@ -1207,9 +1214,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const createdTransaction = addFinanceTransaction(payload);
     if (createdTransaction) {
+      const fromAcc = financeAccounts.find(a => a.id === transfer.accountId);
+      const targetPort = portfolios.find(p => p.id === (payload.linkedPortfolioId || activePortfolioId));
       logUserActivity('finance_portfolio_transfer.created', 'finance_transaction', createdTransaction.id, {
         accountId: transfer.accountId,
+        accountName: fromAcc?.name || null,
         portfolioId: payload.linkedPortfolioId || null,
+        portfolioName: targetPort?.name || null,
         amount: amountInIdr,
         targetUsdAmount: isUS ? targetUsdAmount : undefined,
       });
@@ -1253,9 +1264,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const createdTransaction = addFinanceTransaction(payload);
     if (createdTransaction) {
+      const toAcc = financeAccounts.find(a => a.id === transfer.accountId);
+      const fromPort = portfolios.find(p => p.id === (payload.linkedPortfolioId || activePortfolioId));
       logUserActivity('portfolio_finance_transfer.created', 'finance_transaction', createdTransaction.id, {
         accountId: transfer.accountId,
+        accountName: toAcc?.name || null,
         portfolioId: payload.linkedPortfolioId || null,
+        portfolioName: fromPort?.name || null,
         amount: amountInIdr,
         targetUsdAmount: isUS ? targetUsdAmount : undefined,
       });
@@ -1311,9 +1326,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     };
 
     saveFinanceTransactions([sourceTransaction, targetTransaction, ...financeTransactions]);
+    const fromAcc = financeAccounts.find(a => a.id === transfer.fromAccountId);
+    const toAcc = financeAccounts.find(a => a.id === transfer.toAccountId);
     logUserActivity('finance_transfer.created', 'finance_transaction', transferGroupId, {
       fromAccountId: transfer.fromAccountId,
+      fromAccountName: fromAcc?.name || null,
       toAccountId: transfer.toAccountId,
+      toAccountName: toAcc?.name || null,
       amount,
       targetAmount,
       exchangeRate,
