@@ -9,6 +9,7 @@ interface SortableTableHeaderProps<K extends string> {
   onSort: (key: K) => void;
   style?: CSSProperties;
   title?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 export default function SortableTableHeader<K extends string>({
@@ -18,11 +19,14 @@ export default function SortableTableHeader<K extends string>({
   onSort,
   style,
   title,
+  align = 'left',
 }: SortableTableHeaderProps<K>) {
   const isActive = sortConfig.key === sortKey;
   const SortIcon = isActive
     ? (sortConfig.direction === 'asc' ? Icons.ChevronUp : Icons.ChevronDown)
     : Icons.ChevronsUpDown;
+
+  const justifyContent = align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start';
 
   return (
     <button
@@ -31,6 +35,7 @@ export default function SortableTableHeader<K extends string>({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent,
         gap: 4,
         width: '100%',
         padding: 0,
@@ -40,7 +45,7 @@ export default function SortableTableHeader<K extends string>({
         font: 'inherit',
         fontWeight: 700,
         cursor: 'pointer',
-        textAlign: 'left',
+        textAlign: align,
         textTransform: 'inherit',
         letterSpacing: 'inherit',
         ...style,
