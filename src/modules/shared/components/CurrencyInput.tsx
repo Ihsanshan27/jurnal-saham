@@ -12,6 +12,7 @@ interface CurrencyInputProps {
   name?: string;
   required?: boolean;
   autoFocus?: boolean;
+  allowDecimal?: boolean;
 }
 
 export function formatCurrencyValue(val: number | string, market: string = 'ID'): string {
@@ -35,6 +36,7 @@ export default function CurrencyInput({
   name,
   required = false,
   autoFocus = false,
+  allowDecimal = false,
 }: CurrencyInputProps) {
   const [inputValue, setInputValue] = useState('');
 
@@ -49,10 +51,12 @@ export default function CurrencyInput({
     }
   }, [value, market, numValue]);
 
+  const canDecimal = isUS || allowDecimal;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
 
-    if (isUS) {
+    if (canDecimal) {
       const clean = val.replace(/[^\d.]/g, '');
       const parts = clean.split('.');
       let sanitized = clean;
@@ -62,7 +66,7 @@ export default function CurrencyInput({
       onChange(sanitized);
       const parsed = parseFloat(sanitized);
       if (!isNaN(parsed) && parsed > 0) {
-        setInputValue(formatCurrencyValue(parsed, 'US'));
+        setInputValue(formatCurrencyValue(parsed, isUS ? 'US' : 'ID'));
       } else {
         setInputValue(val);
       }
@@ -78,12 +82,12 @@ export default function CurrencyInput({
     }
   };
 
-  const defaultPlaceholder = placeholder || (isUS ? '$ 0.00' : 'Rp 0');
+  const defaultPlaceholder = placeholder || (canDecimal ? '$ 0.00' : 'Rp 0');
 
   return (
     <input
       type="text"
-      inputMode={isUS ? 'decimal' : 'numeric'}
+      inputMode={canDecimal ? 'decimal' : 'numeric'}
       id={id}
       name={name}
       required={required}
