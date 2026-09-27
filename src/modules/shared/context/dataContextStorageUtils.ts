@@ -32,7 +32,7 @@ export function loadLocalData(userId: string, options: LoadLocalDataOptions) {
   };
 }
 
-export function cacheLocalData(userId: string, data: any, dataKeys: string[]) {
+export function cacheLocalData(userId: string, data: any, dataKeys: readonly string[]) {
   if (!userId || !data) return;
 
   dataKeys.forEach((key) => {
@@ -42,7 +42,7 @@ export function cacheLocalData(userId: string, data: any, dataKeys: string[]) {
   });
 }
 
-export function hasStoredData(data: any, dataKeys: string[]) {
+export function hasStoredData(data: any, dataKeys: readonly string[]) {
   return dataKeys.some((key) => {
     const value = data[key];
     if (Array.isArray(value)) return value.length > 0;

@@ -14,7 +14,7 @@ import { clearUserData, loadUserData, replaceAllUserData, saveUserData } from '@
 import { isMissingDatabaseSetupError } from '@/modules/shared/utils/errorMessages';
 import { createAuditLogSafe } from '@/modules/admin/services/auditLogService';
 import { buildFinanceOverview, getFinanceAccountBalance, getFinanceTransactionDelta, isTransferTransaction } from '@/modules/finance/utils/finance';
-import type { FinanceAccount, FinanceTransaction } from '@/modules/finance/types/finance';
+import type { FinanceAccount, FinanceTransaction, FinanceTransactionType } from '@/modules/finance/types/finance';
 import type { IpoAccount, IpoEntry, IpoEvent } from '@/modules/ipo/types/ipo';
 import { fetchQuotesBatch } from '@/modules/shared/services/yahooFinanceService';
 import { buildIpoDomain } from '@/modules/shared/context/dataContextIpoDomain';
@@ -517,7 +517,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     mutateCollection(watchlist, setWatchlist, 'watchlist', col => [newItem, ...col]);
     logUserActivity('watchlist.created', 'watchlist_item', newItem.id, {
       stockCode: newItem.stockCode || null,
-      market: newItem.market || 'ID',
     });
     showToast('Item watchlist ditambahkan');
   };
@@ -529,7 +528,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (existingItem) {
       logUserActivity('watchlist.updated', 'watchlist_item', id, {
         stockCode: updates.stockCode || existingItem.stockCode || null,
-        market: updates.market || existingItem.market || 'ID',
         fieldsUpdated: Object.keys(updates || {}),
       });
     }
@@ -542,7 +540,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (existingItem) {
       logUserActivity('watchlist.deleted', 'watchlist_item', id, {
         stockCode: existingItem.stockCode || null,
-        market: existingItem.market || 'ID',
       });
     }
     showToast('Item watchlist dihapus');
@@ -597,7 +594,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
       portfolioId,
     };
-    const updated = [newCf, ...allCashflows];
+    const updated = [newCf as Cashflow, ...allCashflows];
     setAllCashflows(updated);
     persistData('cashflows', updated);
     logUserActivity(action, 'cashflow', newCf.id, {
@@ -703,7 +700,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (syncMode === 'transfer_to_portfolio') {
       return {
-        type: 'deposit',
+        type: 'deposit' as const,
         amount: normalizedAmount,
         date: transaction.date,
         notes: transaction.description || 'Transfer dari finance tracker ke dompet trading',
@@ -714,7 +711,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (syncMode === 'transfer_from_portfolio') {
       return {
-        type: 'withdraw',
+        type: 'withdraw' as const,
         amount: normalizedAmount,
         date: transaction.date,
         notes: transaction.description || 'Transfer dari dompet trading ke finance tracker',
@@ -724,7 +721,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     return {
-      type: delta >= 0 ? 'deposit' : 'withdraw',
+      type: (delta >= 0 ? 'deposit' : 'withdraw') as 'deposit' | 'withdraw',
       amount: normalizedAmount,
       date: transaction.date,
       notes: transaction.description || 'Finance tracker linkage',
@@ -783,9 +780,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // === FINANCE ACCOUNTS CRUD ===
   const addFinanceAccount = (account: Partial<FinanceAccount>): any => {
     if (!ensureWritable()) return null;
-    const newAccount = {
+    const newAccount: FinanceAccount = {
       ...account,
       id: generateId(),
+      name: account.name || '',
+      institutionName: account.institutionName || '',
+      type: account.type || 'bank',
       currency: account.currency || 'IDR',
       openingBalance: Number(account.openingBalance) || 0,
       isActive: account.isActive ?? true,
@@ -1052,9 +1052,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ...transaction,
       id: generateId(),
       amount: normalizedAmount,
-      cashflowSyncMode: isRdnSync ? rdnSyncMode : (transaction.linkToCashflow ? (transaction.cashflowSyncMode || 'mirror') : undefined),
-      linkedPortfolioId: isRdnSync ? transaction.linkedPortfolioId || activePortfolioId || 'default' : (transaction.linkToCashflow ? transaction.linkedPortfolioId || activePortfolioId : undefined),
-      linkToCashflow: isRdnSync ? true : transaction.linkToCashflow,
+      cashflowSyncMode: isRdnSync ? rdnSyncMode : ((transaction as any).linkToCashflow ? (transaction.cashflowSyncMode || 'mirror') : undefined),
+      linkedPortfolioId: isRdnSync ? transaction.linkedPortfolioId || activePortfolioId || 'default' : ((transaction as any).linkToCashflow ? transaction.linkedPortfolioId || activePortfolioId : undefined),
+      linkToCashflow: isRdnSync ? true : (transaction as any).linkToCashflow,
       linkedCashflowId: undefined,
       createdAt: new Date().toISOString(),
     };
@@ -1093,8 +1093,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const normalizedAmount = updates.amount != null
       ? (nextType === 'adjustment' ? Number(updates.amount) || 0 : Math.abs(Number(updates.amount) || 0))
       : existingTransaction.amount;
-    const wantsLink = isRdnSync ? true : (updates.linkToCashflow != null
-      ? updates.linkToCashflow
+    const wantsLink = isRdnSync ? true : ((updates as any).linkToCashflow != null
+      ? (updates as any).linkToCashflow
       : Boolean(existingTransaction.linkedCashflowId));
     const linkedPortfolioId = wantsLink
       ? (updates.linkedPortfolioId || existingTransaction.linkedPortfolioId || activePortfolioId)
@@ -1190,7 +1190,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const payload = {
       accountId: transfer.accountId,
-      type: 'expense',
+      type: 'expense' as FinanceTransactionType,
       amount: amountInIdr,
       exchangeRate: isUS ? exchangeRate : undefined,
       targetAmount: isUS ? targetUsdAmount : undefined,
@@ -1236,7 +1236,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const payload = {
       accountId: transfer.accountId,
-      type: 'income',
+      type: 'income' as FinanceTransactionType,
       amount: amountInIdr,
       exchangeRate: isUS ? exchangeRate : undefined,
       targetAmount: isUS ? targetUsdAmount : undefined,
@@ -1281,10 +1281,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const createdAt = new Date().toISOString();
     const description = transfer.description || 'Transfer internal';
     const notes = transfer.notes || '';
-    const sourceTransaction = {
+    const sourceTransaction: FinanceTransaction = {
       id: generateId(),
       accountId: transfer.fromAccountId,
-      type: 'transfer_out',
+      type: 'transfer_out' as FinanceTransactionType,
       amount,
       date: transfer.date,
       description,
@@ -1295,10 +1295,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       targetAmount,
       createdAt,
     };
-    const targetTransaction = {
+    const targetTransaction: FinanceTransaction = {
       id: generateId(),
       accountId: transfer.toAccountId,
-      type: 'transfer_in',
+      type: 'transfer_in' as FinanceTransactionType,
       amount: targetAmount,
       date: transfer.date,
       description,
@@ -1336,7 +1336,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     persistData('dividends', updated);
     logUserActivity('dividend.created', 'dividend', newDiv.id, {
       stockCode: newDiv.stockCode || null,
-      amount: newDiv.amount || null,
+      totalAmount: newDiv.totalAmount || null,
       market: newDiv.market || 'ID',
       portfolioId: newDiv.portfolioId || 'default',
     });
@@ -1368,7 +1368,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (existingDividend) {
       logUserActivity('dividend.deleted', 'dividend', id, {
         stockCode: existingDividend.stockCode || null,
-        amount: existingDividend.amount || null,
+        totalAmount: existingDividend.totalAmount || null,
         market: existingDividend.market || 'ID',
       });
     }
@@ -1548,7 +1548,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     mutateCollection(bsjpTrades, setBsjpTrades, 'bsjpTrades', col => [newTrade, ...col]);
     logUserActivity('bsjp_trade.created', 'bsjp_trade', newTrade.id, {
       stockCode: newTrade.stockCode || null,
-      date: newTrade.date || null,
+      dateBuy: newTrade.dateBuy || null,
     });
     showToast('Transaksi BSJP berhasil ditambahkan');
     return newTrade;
@@ -1593,7 +1593,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const updateMarketPrice = (stockCode: string, price: string | number) => {
     if (!ensureWritable()) return;
-    const updated = { ...marketPrices, [stockCode]: parseFloat(price) || 0 };
+    const updated = { ...marketPrices, [stockCode]: parseFloat(String(price)) || 0 };
     setMarketPrices(updated);
     persistData('marketPrices', updated);
   };
@@ -1640,7 +1640,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ipoEntries: migratedData.ipoEntries || [],
       ipoAccounts: migratedData.ipoAccounts || [],
       bsjpTrades: migratedData.bsjpTrades || [],
-      assets: migratedData.assets || [],
+      assets: (migratedData as any).assets || [],
       financeAccounts: migratedData.financeAccounts || [],
       financeTransactions: migratedData.financeTransactions || [],
     };

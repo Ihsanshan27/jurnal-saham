@@ -17,6 +17,7 @@ export interface JurnalSahamBackup {
   bsjpTrades?: any[];
   financeAccounts?: any[];
   financeTransactions?: any[];
+  assets?: any[];
   exportDate?: string;
   storage?: string;
 }
