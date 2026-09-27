@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
@@ -19,14 +18,15 @@ import {
   Armchair,
   Search,
   X,
-  ChevronDown,
-  ChevronUp,
   Upload,
   Download,
 } from 'lucide-react';
 import ImportAssetsModal from '@/modules/assets/components/ImportAssetsModal';
 import { useData } from '@/modules/shared/context/DataContext';
 import { usePermissions } from '@/modules/shared/context/PermissionContext';
+import { useDialog } from '@/modules/shared/context/DialogContext';
+import { useTableSort } from '@/modules/shared/hooks/useTableSort';
+import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
 import StatCard from '@/modules/shared/components/StatCard';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
 import CustomSelect from '@/modules/shared/components/CustomSelect';
@@ -37,6 +37,7 @@ import {
   ASSET_GROUP_LABELS,
   ASSET_STATUS_LABELS,
   calculateAssetSummary,
+  AssetItem,
 } from '@/modules/assets/types/assets';
 import { formatRupiah, formatPercent, formatDate } from '@/modules/shared/utils/formatters';
 
@@ -457,22 +458,19 @@ export default function AssetsPage() {
   const { assets, addAsset, batchAddAssets, updateAsset, deleteAsset, batchDeleteAssets, showToast } = useData();
   const rawAssets = useMemo(() => (Array.isArray(assets) ? assets : []), [assets]);
   const { isAdmin, roleLabel } = usePermissions();
+  const { confirm } = useDialog();
 
   // ── All useState hooks first ─────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [editItem, setEditItem] = useState<AssetItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [sortKey, setSortKey] = useState('purchaseDate');
-  const [sortAsc, setSortAsc] = useState(false);
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  // ── All useMemo hooks (must be before any early return) ──────────────────
+  // ── All useMemo hooks ──────────────────────────────────────────────────
   const summary = useMemo(() => calculateAssetSummary(rawAssets), [rawAssets]);
 
   const filtered = useMemo(() => {
@@ -488,15 +486,19 @@ export default function AssetsPage() {
     }
     if (filterGroup !== 'all') list = list.filter((a) => a?.group === filterGroup);
     if (filterStatus !== 'all') list = list.filter((a) => a?.status === filterStatus);
-
-    list.sort((a, b) => {
-      const av = a?.[sortKey] ?? '';
-      const bv = b?.[sortKey] ?? '';
-      if (typeof av === 'number' && typeof bv === 'number') return sortAsc ? av - bv : bv - av;
-      return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
-    });
     return list;
-  }, [rawAssets, search, filterGroup, filterStatus, sortKey, sortAsc]);
+  }, [rawAssets, search, filterGroup, filterStatus]);
+
+  const { sortConfig, sortedItems: sortedFiltered, requestSort } = useTableSort(filtered, {
+    initialKey: 'purchaseDate',
+    initialDirection: 'desc',
+    getValue: (item: AssetItem, key: string) => {
+      if (key === 'purchasePrice' || key === 'currentValue' || key === 'quantity') {
+        return Number(item[key as keyof AssetItem]) || 0;
+      }
+      return item[key as keyof AssetItem] ?? '';
+    },
+  });
 
   // ── Derived values ───────────────────────────────────────────────────────
   const validAssets = useMemo(() => (rawAssets || []).filter((a) => a && typeof a === 'object'), [rawAssets]);
@@ -508,10 +510,10 @@ export default function AssetsPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleOpenAdd = () => { setEditItem(null); setModalOpen(true); };
-  const handleOpenEdit = (item) => { setEditItem(item); setModalOpen(true); };
+  const handleOpenEdit = (item: AssetItem) => { setEditItem(item); setModalOpen(true); };
   const handleCloseModal = () => { setModalOpen(false); setEditItem(null); };
 
-  const handleSave = (data) => {
+  const handleSave = (data: any) => {
     if (editItem) {
       updateAsset(editItem.id, data);
     } else {
@@ -520,10 +522,20 @@ export default function AssetsPage() {
     handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    deleteAsset(id);
-    setDeleteConfirmId(null);
-    setSelectedIds((prev) => prev.filter((item) => item !== id));
+  const handleDelete = async (item: AssetItem) => {
+    if (!item) return;
+    const isConfirmed = await confirm(
+      `Apakah Anda yakin ingin menghapus aset "${item.name}"? Tindakan ini tidak dapat dibatalkan.`,
+      {
+        title: 'Hapus Aset',
+        severity: 'danger',
+        confirmText: 'Hapus',
+      }
+    );
+    if (isConfirmed) {
+      deleteAsset(item.id);
+      setSelectedIds((prev) => prev.filter((id) => id !== item.id));
+    }
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -542,21 +554,20 @@ export default function AssetsPage() {
     );
   };
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = async () => {
     if (selectedIds.length === 0) return;
-    batchDeleteAssets(selectedIds);
-    setSelectedIds([]);
-    setBulkDeleteConfirm(false);
-  };
-
-  const toggleSort = (key) => {
-    if (sortKey === key) setSortAsc((prev) => !prev);
-    else { setSortKey(key); setSortAsc(true); }
-  };
-
-  const SortIcon = ({ col }) => {
-    if (sortKey !== col) return null;
-    return sortAsc ? <ChevronUp size={13} /> : <ChevronDown size={13} />;
+    const isConfirmed = await confirm(
+      `Apakah Anda yakin ingin menghapus ${selectedIds.length} aset yang dipilih? Tindakan ini tidak dapat dibatalkan.`,
+      {
+        title: `Hapus ${selectedIds.length} Aset`,
+        severity: 'danger',
+        confirmText: 'Hapus Semua',
+      }
+    );
+    if (isConfirmed) {
+      batchDeleteAssets(selectedIds);
+      setSelectedIds([]);
+    }
   };
 
   const handleBatchImport = (items: any[]) => {
@@ -770,7 +781,7 @@ export default function AssetsPage() {
               <button
                 className="btn btn-danger"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: '0.82rem' }}
-                onClick={() => setBulkDeleteConfirm(true)}
+                onClick={handleBatchDelete}
               >
                 <Trash2 size={14} /> Hapus Dipilih ({selectedIds.length})
               </button>
@@ -804,35 +815,23 @@ export default function AssetsPage() {
                     />
                   </th>
                   <th style={{ width: 40, textAlign: 'center' }}>No.</th>
-                  <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('name')}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Nama <SortIcon col="name" />
-                    </span>
+                  <th>
+                    <SortableTableHeader label="Nama" sortKey="name" sortConfig={sortConfig} onSort={requestSort} />
                   </th>
-                  <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('category')}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Kategori <SortIcon col="category" />
-                    </span>
+                  <th>
+                    <SortableTableHeader label="Kategori" sortKey="category" sortConfig={sortConfig} onSort={requestSort} />
                   </th>
-                  <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('quantity')}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Qty <SortIcon col="quantity" />
-                    </span>
+                  <th>
+                    <SortableTableHeader label="Qty" sortKey="quantity" sortConfig={sortConfig} onSort={requestSort} />
                   </th>
-                  <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('purchaseDate')}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Tanggal <SortIcon col="purchaseDate" />
-                    </span>
+                  <th>
+                    <SortableTableHeader label="Tanggal" sortKey="purchaseDate" sortConfig={sortConfig} onSort={requestSort} />
                   </th>
-                  <th style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('purchasePrice')}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                      Harga Perolehan <SortIcon col="purchasePrice" />
-                    </span>
+                  <th style={{ textAlign: 'right' }}>
+                    <SortableTableHeader label="Harga Perolehan" sortKey="purchasePrice" sortConfig={sortConfig} onSort={requestSort} align="right" />
                   </th>
-                  <th style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('currentValue')}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                      Nilai Saat Ini <SortIcon col="currentValue" />
-                    </span>
+                  <th style={{ textAlign: 'right' }}>
+                    <SortableTableHeader label="Nilai Saat Ini" sortKey="currentValue" sortConfig={sortConfig} onSort={requestSort} align="right" />
                   </th>
                   <th style={{ textAlign: 'right' }}>G/L</th>
                   <th>Status</th>
@@ -840,7 +839,7 @@ export default function AssetsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((item, index) => {
+                {sortedFiltered.map((item, index) => {
                   if (!item) return null;
                   const category = item.category || 'other';
                   const CatIcon = CATEGORY_ICONS[category] || Box;
@@ -937,7 +936,7 @@ export default function AssetsPage() {
                               className="btn btn-ghost"
                               style={{ padding: '4px 8px', color: 'var(--accent-red)' }}
                               title="Hapus"
-                              onClick={() => setDeleteConfirmId(item.id)}
+                              onClick={() => handleDelete(item)}
                             >
                               <Trash2 size={14} />
                             </button>
@@ -1018,60 +1017,6 @@ export default function AssetsPage() {
           onClose={handleCloseModal}
           onSave={handleSave}
         />
-      )}
-
-      {/* Delete Confirm Modal */}
-      {deleteConfirmId && (
-        <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
-          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Hapus Aset</h2>
-              <button type="button" className="modal-close" onClick={() => setDeleteConfirmId(null)} aria-label="Tutup"><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Yakin ingin menghapus aset ini? Tindakan ini tidak dapat dibatalkan.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setDeleteConfirmId(null)}>Batal</button>
-              <button
-                className="btn btn-danger"
-                onClick={() => handleDelete(deleteConfirmId)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <Trash2 size={14} /> Hapus
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Delete Confirm Modal */}
-      {bulkDeleteConfirm && (
-        <div className="modal-overlay" onClick={() => setBulkDeleteConfirm(false)}>
-          <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="modal-title">Hapus {selectedIds.length} Aset</h2>
-              <button type="button" className="modal-close" onClick={() => setBulkDeleteConfirm(false)} aria-label="Tutup"><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Apakah Anda yakin ingin menghapus <strong>{selectedIds.length}</strong> aset yang dipilih? Tindakan ini tidak dapat dibatalkan.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" onClick={() => setBulkDeleteConfirm(false)}>Batal</button>
-              <button
-                className="btn btn-danger"
-                onClick={handleBatchDelete}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <Trash2 size={14} /> Hapus {selectedIds.length} Aset
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Import Modal */}
