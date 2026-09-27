@@ -119,24 +119,32 @@ function StatusBadge({ status }) {
 }
 
 // ─── Asset Modal ───────────────────────────────────────────────────────────
-function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
+// ─── Asset Modal ───────────────────────────────────────────────────────────
+function AssetModal({ isOpen, editItem, assets, categoryOptions, groupOptions, onClose, onSave }) {
   const isEdit = Boolean(editItem);
 
   const getInitialForm = () =>
     editItem ? { ...editItem } : { ...EMPTY_FORM, code: generateAssetCode(assets) };
 
   const [form, setForm] = useState(getInitialForm);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [isCustomGroup, setIsCustomGroup] = useState(false);
 
   // Sync form when editItem changes (e.g. switching between edit targets)
   useEffect(() => {
-    setForm(getInitialForm());
+    const initial = getInitialForm();
+    setForm(initial);
+    const isStdCategory = Boolean(ASSET_CATEGORY_LABELS[initial.category]);
+    const isStdGroup = Boolean(ASSET_GROUP_LABELS[initial.group]);
+    setIsCustomCategory(!isStdCategory && Boolean(initial.category));
+    setIsCustomGroup(!isStdGroup && Boolean(initial.group));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editItem]);
 
   const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
 
   const handleCategoryChange = (cat) => {
-    const group = ASSET_CATEGORY_LABELS[cat]?.group || 'investment';
+    const group = ASSET_CATEGORY_LABELS[cat]?.group || form.group || 'investment';
     setForm((prev) => ({ ...prev, category: cat, group }));
   };
 
@@ -278,26 +286,90 @@ function AssetModal({ isOpen, editItem, assets, onClose, onSave }) {
 
               {/* Category */}
               <div className="form-group">
-                <label className="form-label">
-                  Kategori <span style={{ color: 'var(--accent-red)' }}>*</span>
-                </label>
-                <CustomSelect
-                  options={CATEGORY_OPTIONS}
-                  value={form.category || 'gold'}
-                  onChange={(v) => handleCategoryChange(v)}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label className="form-label" style={{ margin: 0 }}>
+                    Kategori <span style={{ color: 'var(--accent-red)' }}>*</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '2px 8px', height: 'auto', color: 'var(--accent-blue)' }}
+                    onClick={() => {
+                      const next = !isCustomCategory;
+                      setIsCustomCategory(next);
+                      if (!next) set('category', 'gold');
+                    }}
+                  >
+                    {isCustomCategory ? '← Pilih Preset' : '+ Custom Kategori'}
+                  </button>
+                </div>
+                {isCustomCategory ? (
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Ketik kategori baru (mis. Jam Tangan Mewah, Seni, HKI...)"
+                    value={form.category || ''}
+                    onChange={(e) => set('category', e.target.value)}
+                    required
+                  />
+                ) : (
+                  <CustomSelect
+                    options={categoryOptions}
+                    value={form.category || 'gold'}
+                    onChange={(v) => {
+                      if (v === '__custom__') {
+                        setIsCustomCategory(true);
+                        set('category', '');
+                      } else {
+                        handleCategoryChange(v);
+                      }
+                    }}
+                  />
+                )}
               </div>
 
-              {/* Group (auto from category, read-only) */}
+              {/* Group */}
               <div className="form-group">
-                <label className="form-label">Kelompok</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  readOnly
-                  style={{ opacity: 0.7, cursor: 'default' }}
-                  value={ASSET_GROUP_LABELS[form.group] || ''}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label className="form-label" style={{ margin: 0 }}>
+                    Kelompok <span style={{ color: 'var(--accent-red)' }}>*</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '2px 8px', height: 'auto', color: 'var(--accent-blue)' }}
+                    onClick={() => {
+                      const next = !isCustomGroup;
+                      setIsCustomGroup(next);
+                      if (!next) set('group', 'investment');
+                    }}
+                  >
+                    {isCustomGroup ? '← Pilih Preset' : '+ Custom Kelompok'}
+                  </button>
+                </div>
+                {isCustomGroup ? (
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Ketik kelompok baru (mis. Barang Seni, Koleksi...)"
+                    value={form.group || ''}
+                    onChange={(e) => set('group', e.target.value)}
+                    required
+                  />
+                ) : (
+                  <CustomSelect
+                    options={groupOptions}
+                    value={form.group || 'investment'}
+                    onChange={(v) => {
+                      if (v === '__custom__') {
+                        setIsCustomGroup(true);
+                        set('group', '');
+                      } else {
+                        set('group', v);
+                      }
+                    }}
+                  />
+                )}
               </div>
 
               {/* Purchase Date */}
@@ -467,8 +539,68 @@ export default function AssetsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [filterGroup, setFilterGroup] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  // ── Dynamic Custom Options for Groups and Categories ───────────────────
+  const groupOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    Object.entries(ASSET_GROUP_LABELS).forEach(([val, label]) => {
+      map.set(val, label);
+    });
+    (rawAssets || []).forEach((a) => {
+      if (a?.group && !map.has(a.group)) {
+        map.set(a.group, a.group);
+      }
+    });
+    const list = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+    list.push({ value: '__custom__', label: '+ Kelompok Baru (Custom)...' });
+    return list;
+  }, [rawAssets]);
+
+  const categoryOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    Object.entries(ASSET_CATEGORY_LABELS).forEach(([val, meta]) => {
+      map.set(val, meta.label);
+    });
+    (rawAssets || []).forEach((a) => {
+      if (a?.category && !map.has(a.category)) {
+        map.set(a.category, a.category);
+      }
+    });
+    const list = Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+    list.push({ value: '__custom__', label: '+ Kategori Baru (Custom)...' });
+    return list;
+  }, [rawAssets]);
+
+  const filterGroupOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    map.set('all', 'Semua Kelompok');
+    Object.entries(ASSET_GROUP_LABELS).forEach(([val, label]) => {
+      map.set(val, label);
+    });
+    (rawAssets || []).forEach((a) => {
+      if (a?.group && !map.has(a.group)) {
+        map.set(a.group, a.group);
+      }
+    });
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [rawAssets]);
+
+  const filterCategoryOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    map.set('all', 'Semua Kategori');
+    Object.entries(ASSET_CATEGORY_LABELS).forEach(([val, meta]) => {
+      map.set(val, meta.label);
+    });
+    (rawAssets || []).forEach((a) => {
+      if (a?.category && !map.has(a.category)) {
+        map.set(a.category, a.category);
+      }
+    });
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [rawAssets]);
 
   // ── All useMemo hooks ──────────────────────────────────────────────────
   const summary = useMemo(() => calculateAssetSummary(rawAssets), [rawAssets]);
@@ -481,13 +613,16 @@ export default function AssetsPage() {
         (a) =>
           a?.name?.toLowerCase().includes(q) ||
           a?.code?.toLowerCase().includes(q) ||
-          a?.pic?.toLowerCase().includes(q)
+          a?.pic?.toLowerCase().includes(q) ||
+          a?.category?.toLowerCase().includes(q) ||
+          a?.group?.toLowerCase().includes(q)
       );
     }
     if (filterGroup !== 'all') list = list.filter((a) => a?.group === filterGroup);
+    if (filterCategory !== 'all') list = list.filter((a) => a?.category === filterCategory);
     if (filterStatus !== 'all') list = list.filter((a) => a?.status === filterStatus);
     return list;
-  }, [rawAssets, search, filterGroup, filterStatus]);
+  }, [rawAssets, search, filterGroup, filterCategory, filterStatus]);
 
   const { sortConfig, sortedItems: sortedFiltered, requestSort } = useTableSort(filtered, {
     initialKey: 'purchaseDate',
@@ -728,25 +863,32 @@ export default function AssetsPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div style={{ flex: '0 1 200px' }}>
+          <div style={{ flex: '0 1 190px' }}>
             <CustomSelect
-              options={[{ value: 'all', label: 'Semua Kelompok' }, ...GROUP_OPTIONS]}
+              options={filterGroupOptions}
               value={filterGroup}
               onChange={(v) => setFilterGroup(v)}
             />
           </div>
-          <div style={{ flex: '0 1 180px' }}>
+          <div style={{ flex: '0 1 190px' }}>
+            <CustomSelect
+              options={filterCategoryOptions}
+              value={filterCategory}
+              onChange={(v) => setFilterCategory(v)}
+            />
+          </div>
+          <div style={{ flex: '0 1 170px' }}>
             <CustomSelect
               options={[{ value: 'all', label: 'Semua Status' }, ...STATUS_OPTIONS]}
               value={filterStatus}
               onChange={(v) => setFilterStatus(v)}
             />
           </div>
-          {(search || filterGroup !== 'all' || filterStatus !== 'all') && (
+          {(search || filterGroup !== 'all' || filterCategory !== 'all' || filterStatus !== 'all') && (
             <button
               className="btn btn-ghost"
               style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
-              onClick={() => { setSearch(''); setFilterGroup('all'); setFilterStatus('all'); }}
+              onClick={() => { setSearch(''); setFilterGroup('all'); setFilterCategory('all'); setFilterStatus('all'); }}
             >
               <X size={14} /> Reset
             </button>
@@ -1014,6 +1156,8 @@ export default function AssetsPage() {
           isOpen={modalOpen}
           editItem={editItem}
           assets={rawAssets}
+          categoryOptions={categoryOptions}
+          groupOptions={groupOptions}
           onClose={handleCloseModal}
           onSave={handleSave}
         />

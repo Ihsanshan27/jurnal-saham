@@ -1,4 +1,4 @@
-export type AssetGroup = 'investment' | 'office_inventory';
+export type AssetGroup = 'investment' | 'office_inventory' | (string & {});
 
 export type AssetCategory =
   | 'gold'
@@ -10,7 +10,8 @@ export type AssetCategory =
   | 'vehicle'
   | 'furniture'
   | 'software_license'
-  | 'other';
+  | 'other'
+  | (string & {});
 
 export type AssetStatus = 'active' | 'disposed' | 'maintenance' | 'matured';
 
