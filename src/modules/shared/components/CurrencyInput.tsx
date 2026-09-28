@@ -64,6 +64,8 @@ export function formatLiveCurrency(
 
   const isUS = market === 'US' || market === 'USD';
   const prefix = isUS ? '$ ' : 'Rp ';
+  const thousandSep = isUS ? ',' : '.';
+  const decSep = isUS ? '.' : ',';
 
   let hasDecimal = false;
   let integerPart = '';
@@ -119,13 +121,15 @@ export function formatLiveCurrency(
     }
   }
 
-  if (!integerPart && !decimalPart) {
+  // Remove leading zeros except a single zero
+  integerPart = integerPart.replace(/^0+(?=\d)/, '');
+
+  if (!integerPart && !decimalPart && !hasDecimal) {
     return { display: '', clean: '' };
   }
 
-  const numInt = integerPart ? parseInt(integerPart, 10) : 0;
-  const formattedInt = numInt.toLocaleString(isUS ? 'en-US' : 'id-ID');
-  const decSep = isUS ? '.' : ',';
+  const rawInt = integerPart || '0';
+  const formattedInt = rawInt.replace(/\B(?=(\d{3})+(?!\d))/g, thousandSep);
 
   let display = '';
   let clean = '';
@@ -133,14 +137,14 @@ export function formatLiveCurrency(
   if (hasDecimal) {
     if (endsWithDecimal && !decimalPart) {
       display = `${prefix}${formattedInt}${decSep}`;
-      clean = `${numInt}.`;
+      clean = `${rawInt}.`;
     } else {
       display = `${prefix}${formattedInt}${decSep}${decimalPart}`;
-      clean = `${numInt}.${decimalPart}`;
+      clean = `${rawInt}.${decimalPart}`;
     }
   } else {
     display = `${prefix}${formattedInt}`;
-    clean = `${numInt}`;
+    clean = `${rawInt}`;
   }
 
   return { display, clean };
