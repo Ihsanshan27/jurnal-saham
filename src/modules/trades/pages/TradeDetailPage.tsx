@@ -134,8 +134,8 @@ export default function TradeDetailPage() {
         ...form,
         assetType: form.assetType || 'stock',
         stockCode: form.assetType === 'mutual_fund' ? form.stockCode?.trim() : form.stockCode?.toUpperCase(),
-        buyPrice: parseFloat(form.buyPrice),
-        sellPrice: parseFloat(form.sellPrice),
+        buyPrice: parseFloat(String(form.buyPrice).replace(',', '.')),
+        sellPrice: parseFloat(String(form.sellPrice).replace(',', '.')),
         lots: newLots,
         portfolioId: form.portfolioId || 'default',
         tags: typeof form.tags === 'string' ? form.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : form.tags,
@@ -161,8 +161,8 @@ export default function TradeDetailPage() {
       ...form,
       assetType: form.assetType || 'stock',
       stockCode: form.assetType === 'mutual_fund' ? form.stockCode?.trim() : form.stockCode?.toUpperCase(),
-      buyPrice: parseFloat(form.buyPrice),
-      sellPrice: form.sellPrice ? parseFloat(form.sellPrice) : null,
+      buyPrice: parseFloat(String(form.buyPrice).replace(',', '.')),
+      sellPrice: form.sellPrice ? parseFloat(String(form.sellPrice).replace(',', '.')) : null,
       lots: parseFloat(form.lots),
       portfolioId: form.portfolioId || 'default',
       tags: typeof form.tags === 'string' ? form.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : form.tags,
@@ -297,7 +297,7 @@ export default function TradeDetailPage() {
                         onChange={val => set('buyPrice', val)}
                       />
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                        Total Beli: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(form.buyPrice) || 0 }).totalBuy)}
+                        Total Beli: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, buyPrice: Number(String(form.buyPrice).replace(',', '.')) || 0 }).totalBuy)}
                       </div>
                     </div>
                     <div className="form-group">
@@ -310,7 +310,7 @@ export default function TradeDetailPage() {
                       />
                       {form.sellPrice ? (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                          Total Jual: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(form.sellPrice) || 0 }).totalSell)}
+                          Total Jual: {formatMoney(calculateTradePnL({ ...trade, ...form, lots: Number(form.lots) || 0, sellPrice: Number(String(form.sellPrice).replace(',', '.')) || 0 }).totalSell)}
                         </div>
                       ) : (marketPrices && marketPrices[trade.stockCode] ? (
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>

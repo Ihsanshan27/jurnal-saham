@@ -224,7 +224,7 @@ export default function NewTradePage() {
         if (remainingSellLots >= openTrade.lots) {
           // Full sell of this specific trade
           updateTrade(openTrade.id, {
-            sellPrice: parseFloat(form.sellPrice),
+            sellPrice: parseFloat(String(form.sellPrice).replace(',', '.')),
             dateSell: form.dateSell,
             sellFee: parseFloat(form.sellFee),
             reasonExit: form.reasonExit,
@@ -239,7 +239,7 @@ export default function NewTradePage() {
             ...openTrade,
             id: undefined,
             lots: remainingSellLots,
-            sellPrice: parseFloat(form.sellPrice),
+            sellPrice: parseFloat(String(form.sellPrice).replace(',', '.')),
             dateSell: form.dateSell,
             sellFee: parseFloat(form.sellFee),
             reasonExit: form.reasonExit,
@@ -313,8 +313,8 @@ export default function NewTradePage() {
       assetType: form.assetType || 'stock',
       market: form.market,
       stockCode: form.assetType === 'mutual_fund' || form.assetType === 'sbn' ? form.stockCode.trim() : form.stockCode.toUpperCase(),
-      buyPrice: parseFloat(form.buyPrice),
-      sellPrice: form.sellPrice ? parseFloat(form.sellPrice) : null,
+      buyPrice: parseFloat(String(form.buyPrice).replace(',', '.')),
+      sellPrice: form.sellPrice ? parseFloat(String(form.sellPrice).replace(',', '.')) : null,
       lots: parseFloat(form.lots),
       buyFee: parseFloat(form.buyFee),
       sellFee: parseFloat(form.sellFee),
@@ -337,8 +337,8 @@ export default function NewTradePage() {
   const isSBN = form.assetType === 'sbn';
   const isMutualFundOrSBN = isMutualFund || isSBN;
   const lots = parseFloat(form.lots) || 0;
-  const buyPrice = parseFloat(form.buyPrice) || 0;
-  const sellPrice = parseFloat(form.sellPrice) || 0;
+  const buyPrice = parseFloat(String(form.buyPrice).replace(',', '.')) || 0;
+  const sellPrice = parseFloat(String(form.sellPrice).replace(',', '.')) || 0;
   const shares = isMutualFundOrSBN ? lots : (isUS ? lots : lots * 100);
   const totalBuy = buyPrice * shares;
   const totalSell = sellPrice * shares;
