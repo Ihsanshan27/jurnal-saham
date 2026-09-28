@@ -15,7 +15,11 @@ interface CurrencyInputProps {
   allowDecimal?: boolean;
 }
 
-export function formatLiveCurrency(rawInput: string | number, market: string = 'ID'): { display: string; clean: string } {
+export function formatLiveCurrency(
+  rawInput: string | number,
+  market: string = 'ID',
+  maxDecimals: number = 4
+): { display: string; clean: string } {
   if (rawInput === '' || rawInput === null || rawInput === undefined) {
     return { display: '', clean: '' };
   }
@@ -24,7 +28,7 @@ export function formatLiveCurrency(rawInput: string | number, market: string = '
   let s = str.replace(/^[Rp$\s]+/, '').trim();
   if (!s) return { display: '', clean: '' };
 
-  const isUS = market === 'US';
+  const isUS = market === 'US' || market === 'USD';
   const prefix = isUS ? '$ ' : 'Rp ';
 
   let hasDecimal = false;
@@ -35,55 +39,50 @@ export function formatLiveCurrency(rawInput: string | number, market: string = '
   const lastComma = s.lastIndexOf(',');
   const lastDot = s.lastIndexOf('.');
 
-  if (lastComma !== -1 && lastDot !== -1) {
-    if (lastComma > lastDot) {
+  if (!isUS) {
+    // ID Market: Comma (,) is decimal separator. Dot (.) is thousand separator.
+    if (lastComma !== -1) {
       integerPart = s.substring(0, lastComma).replace(/\./g, '').replace(/[^\d]/g, '');
-      decimalPart = s.substring(lastComma + 1).replace(/[^\d]/g, '');
+      decimalPart = s.substring(lastComma + 1).replace(/[^\d]/g, '').slice(0, maxDecimals);
       hasDecimal = true;
       endsWithDecimal = s.endsWith(',');
-    } else {
-      integerPart = s.substring(0, lastDot).replace(/,/g, '').replace(/[^\d]/g, '');
-      decimalPart = s.substring(lastDot + 1).replace(/[^\d]/g, '');
-      hasDecimal = true;
-      endsWithDecimal = s.endsWith('.');
-    }
-  } else if (lastComma !== -1) {
-    if (isUS) {
-      const digitsAfterComma = s.substring(lastComma + 1);
-      if (digitsAfterComma.length === 3 && s.indexOf(',') === lastComma && !s.endsWith(',')) {
-        integerPart = s.replace(/,/g, '').replace(/[^\d]/g, '');
-      } else {
-        integerPart = s.substring(0, lastComma).replace(/[^\d]/g, '');
-        decimalPart = digitsAfterComma.replace(/[^\d]/g, '');
-        hasDecimal = true;
-        endsWithDecimal = s.endsWith(',');
-      }
-    } else {
-      integerPart = s.substring(0, lastComma).replace(/\./g, '').replace(/[^\d]/g, '');
-      decimalPart = s.substring(lastComma + 1).replace(/[^\d]/g, '');
-      hasDecimal = true;
-      endsWithDecimal = s.endsWith(',');
-    }
-  } else if (lastDot !== -1) {
-    if (!isUS) {
-      const digitsAfterDot = s.substring(lastDot + 1);
-      const isThreeDigitGroup = digitsAfterDot.length === 3 && s.indexOf('.') === lastDot && !s.endsWith('.');
-      if (isThreeDigitGroup && parseInt(s.replace(/\./g, ''), 10) >= 1000) {
+    } else if (lastDot !== -1) {
+      const parts = s.split('.');
+      const isThousandPattern = parts.length > 1 && parts.slice(1).every(p => p.length === 3);
+
+      if (isThousandPattern) {
         integerPart = s.replace(/\./g, '').replace(/[^\d]/g, '');
       } else {
-        integerPart = s.substring(0, lastDot).replace(/\./g, '').replace(/[^\d]/g, '');
-        decimalPart = digitsAfterDot.replace(/[^\d]/g, '');
+        integerPart = parts[0].replace(/[^\d]/g, '');
+        decimalPart = parts.slice(1).join('').replace(/[^\d]/g, '').slice(0, maxDecimals);
         hasDecimal = true;
         endsWithDecimal = s.endsWith('.');
       }
     } else {
-      integerPart = s.substring(0, lastDot).replace(/,/g, '').replace(/[^\d]/g, '');
-      decimalPart = s.substring(lastDot + 1).replace(/[^\d]/g, '');
-      hasDecimal = true;
-      endsWithDecimal = s.endsWith('.');
+      integerPart = s.replace(/[^\d]/g, '');
     }
   } else {
-    integerPart = s.replace(/[^\d]/g, '');
+    // US Market: Dot (.) is decimal separator. Comma (,) is thousand separator.
+    if (lastDot !== -1) {
+      integerPart = s.substring(0, lastDot).replace(/,/g, '').replace(/[^\d]/g, '');
+      decimalPart = s.substring(lastDot + 1).replace(/[^\d]/g, '').slice(0, maxDecimals);
+      hasDecimal = true;
+      endsWithDecimal = s.endsWith('.');
+    } else if (lastComma !== -1) {
+      const parts = s.split(',');
+      const isThousandPattern = parts.length > 1 && parts.slice(1).every(p => p.length === 3);
+
+      if (isThousandPattern) {
+        integerPart = s.replace(/,/g, '').replace(/[^\d]/g, '');
+      } else {
+        integerPart = parts[0].replace(/[^\d]/g, '');
+        decimalPart = parts.slice(1).join('').replace(/[^\d]/g, '').slice(0, maxDecimals);
+        hasDecimal = true;
+        endsWithDecimal = s.endsWith(',');
+      }
+    } else {
+      integerPart = s.replace(/[^\d]/g, '');
+    }
   }
 
   if (!integerPart && !decimalPart) {
@@ -114,7 +113,13 @@ export function formatLiveCurrency(rawInput: string | number, market: string = '
 }
 
 export function formatCurrencyValue(val: number | string, market: string = 'ID'): string {
-  return formatLiveCurrency(val, market).display;
+  const isUS = market === 'US' || market === 'USD';
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));
+  if (isNaN(num) || num === 0) return '';
+  if (isUS) {
+    return `$ ${num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 4 })}`;
+  }
+  return `Rp ${num.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 })}`;
 }
 
 export default function CurrencyInput({
@@ -141,7 +146,7 @@ export default function CurrencyInput({
     const hasExternalChange = value !== lastValueRef.current;
     if (hasExternalChange || !isFocused) {
       lastValueRef.current = value;
-      const { display } = formatLiveCurrency(value, market);
+      const display = formatCurrencyValue(value, market);
       setInputValue(display);
     }
   }, [value, market, isFocused]);
@@ -168,7 +173,7 @@ export default function CurrencyInput({
 
   const handleBlur = () => {
     setIsFocused(false);
-    const { display } = formatLiveCurrency(value, market);
+    const display = formatCurrencyValue(value, market);
     setInputValue(display);
   };
 
