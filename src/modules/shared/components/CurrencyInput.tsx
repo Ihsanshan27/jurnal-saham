@@ -15,6 +15,40 @@ interface CurrencyInputProps {
   allowDecimal?: boolean;
 }
 
+export function expandCurrencyShortcut(inputStr: string): string {
+  let s = inputStr.trim().toLowerCase();
+  let multiplier = 1;
+  let matchFound = false;
+
+  if (/(mly|miliar|billion|b)$/.test(s)) {
+    multiplier = 1000000000;
+    s = s.replace(/(mly|miliar|billion|b)$/, '').trim();
+    matchFound = true;
+  } else if (/(jt|juta|million|m)$/.test(s)) {
+    multiplier = 1000000;
+    s = s.replace(/(jt|juta|million|m)$/, '').trim();
+    matchFound = true;
+  } else if (/(k|rb|ribu|thousand)$/.test(s)) {
+    multiplier = 1000;
+    s = s.replace(/(k|rb|ribu|thousand)$/, '').trim();
+    matchFound = true;
+  } else if (/(triliun|trillion|t)$/.test(s)) {
+    multiplier = 1000000000000;
+    s = s.replace(/(triliun|trillion|t)$/, '').trim();
+    matchFound = true;
+  }
+
+  if (matchFound) {
+    const normalizedNum = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    if (!isNaN(normalizedNum)) {
+      const total = Math.round(normalizedNum * multiplier);
+      return String(total);
+    }
+  }
+
+  return inputStr;
+}
+
 export function formatLiveCurrency(
   rawInput: string | number,
   market: string = 'ID',
@@ -24,8 +58,8 @@ export function formatLiveCurrency(
     return { display: '', clean: '' };
   }
 
-  const str = String(rawInput);
-  let s = str.replace(/^[Rp$\s]+/, '').trim();
+  const expanded = expandCurrencyShortcut(String(rawInput));
+  let s = expanded.replace(/^[Rp$\s]+/, '').trim();
   if (!s) return { display: '', clean: '' };
 
   const isUS = market === 'US' || market === 'USD';
