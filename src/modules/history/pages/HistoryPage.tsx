@@ -404,8 +404,8 @@ export default function HistoryPage() {
           portfolioId: trade.portfolioId || 'default',
           title: `Trade closed ${trade.stockCode}`,
           subtitle: `${trade.strategy || 'Tanpa strategi'} • ${trade.lots} ${getTradeQuantityLabel(trade)}`,
-          amount: trade.pnl,
-          amountKind: trade.pnl >= 0 ? 'positive' : 'negative',
+          amount: calc.pnl,
+          amountKind: calc.pnl >= 0 ? 'positive' : 'negative',
           meta: `Close ${formatDate(trade.dateSell)}`,
           sortTimestamp: parseLocalDate(trade.dateSell)?.getTime() || 0,
           linkTo: `/trades/${trade.id}`,
@@ -736,10 +736,8 @@ export default function HistoryPage() {
                                 className={`font-mono ${isPositive ? 'text-profit' : isNegative ? 'text-loss' : ''}`}
                                 style={{ fontWeight: 800, fontSize: '0.98rem' }}
                               >
-                                {item.amount == null
+                                {item.amount == null || isNaN(Number(item.amount))
                                   ? '—'
-                                  : item.type === 'IPO_EVENT'
-                                  ? moneyFormatter(item.amount)
                                   : moneyFormatter(item.amount)}
                               </div>
                               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
