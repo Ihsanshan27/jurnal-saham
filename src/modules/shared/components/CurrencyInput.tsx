@@ -67,57 +67,38 @@ export function formatLiveCurrency(
   const thousandSep = isUS ? ',' : '.';
   const decSep = isUS ? '.' : ',';
 
-  let hasDecimal = false;
   let integerPart = '';
   let decimalPart = '';
+  let hasDecimal = false;
   let endsWithDecimal = false;
 
-  const lastComma = s.lastIndexOf(',');
-  const lastDot = s.lastIndexOf('.');
-
   if (!isUS) {
-    // ID Market: Comma (,) is decimal separator. Dot (.) is thousand separator.
-    if (lastComma !== -1) {
-      integerPart = s.substring(0, lastComma).replace(/\./g, '').replace(/[^\d]/g, '');
-      decimalPart = s.substring(lastComma + 1).replace(/[^\d]/g, '').slice(0, maxDecimals);
+    // IDR MARKET:
+    // Comma (,) is the DECIMAL SEPARATOR.
+    // Dot (.) is THOUSANDS SEPARATOR (all dots stripped for integerPart).
+    const commaIdx = s.lastIndexOf(',');
+    if (commaIdx !== -1) {
+      integerPart = s.substring(0, commaIdx).replace(/\./g, '').replace(/[^\d]/g, '');
+      decimalPart = s.substring(commaIdx + 1).replace(/[^\d]/g, '').slice(0, maxDecimals);
       hasDecimal = true;
       endsWithDecimal = s.endsWith(',');
-    } else if (lastDot !== -1) {
-      const parts = s.split('.');
-      const isThousandPattern = parts.length > 1 && parts.slice(1).every(p => p.length === 3);
-
-      if (isThousandPattern) {
-        integerPart = s.replace(/\./g, '').replace(/[^\d]/g, '');
-      } else {
-        integerPart = parts[0].replace(/[^\d]/g, '');
-        decimalPart = parts.slice(1).join('').replace(/[^\d]/g, '').slice(0, maxDecimals);
-        hasDecimal = true;
-        endsWithDecimal = s.endsWith('.');
-      }
     } else {
-      integerPart = s.replace(/[^\d]/g, '');
+      // Strip all dots as thousands separators
+      integerPart = s.replace(/\./g, '').replace(/[^\d]/g, '');
     }
   } else {
-    // US Market: Dot (.) is decimal separator. Comma (,) is thousand separator.
-    if (lastDot !== -1) {
-      integerPart = s.substring(0, lastDot).replace(/,/g, '').replace(/[^\d]/g, '');
-      decimalPart = s.substring(lastDot + 1).replace(/[^\d]/g, '').slice(0, maxDecimals);
+    // USD MARKET:
+    // Dot (.) is the DECIMAL SEPARATOR.
+    // Comma (,) is THOUSANDS SEPARATOR (all commas stripped for integerPart).
+    const dotIdx = s.lastIndexOf('.');
+    if (dotIdx !== -1) {
+      integerPart = s.substring(0, dotIdx).replace(/,/g, '').replace(/[^\d]/g, '');
+      decimalPart = s.substring(dotIdx + 1).replace(/[^\d]/g, '').slice(0, maxDecimals);
       hasDecimal = true;
       endsWithDecimal = s.endsWith('.');
-    } else if (lastComma !== -1) {
-      const parts = s.split(',');
-      const isThousandPattern = parts.length > 1 && parts.slice(1).every(p => p.length === 3);
-
-      if (isThousandPattern) {
-        integerPart = s.replace(/,/g, '').replace(/[^\d]/g, '');
-      } else {
-        integerPart = parts[0].replace(/[^\d]/g, '');
-        decimalPart = parts.slice(1).join('').replace(/[^\d]/g, '').slice(0, maxDecimals);
-        hasDecimal = true;
-        endsWithDecimal = s.endsWith(',');
-      }
     } else {
-      integerPart = s.replace(/[^\d]/g, '');
+      // Strip all commas as thousands separators
+      integerPart = s.replace(/,/g, '').replace(/[^\d]/g, '');
     }
   }
 
