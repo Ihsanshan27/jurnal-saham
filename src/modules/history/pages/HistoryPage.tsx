@@ -28,7 +28,7 @@ type TimelineFilter = 'all' | 'trade' | 'cashflow' | 'dividend' | 'ipo';
 
 type TimelineItem = {
   id: string;
-  type: 'TRADE_CLOSED' | 'CASH_DEPOSIT' | 'CASH_WITHDRAW' | 'DIVIDEND_RECEIVED' | 'IPO_EVENT';
+  type: 'TRADE_CLOSED' | 'TRADE_OPEN' | 'CASH_DEPOSIT' | 'CASH_WITHDRAW' | 'DIVIDEND_RECEIVED' | 'IPO_EVENT';
   date: string;
   market: 'ID' | 'US';
   portfolioId: string;
@@ -85,10 +85,11 @@ function buildRangeLabel(startDate?: string, endDate?: string) {
 function getTimelineEventTypeWeight(type: TimelineItem['type']) {
   const weights = {
     TRADE_CLOSED: 1,
-    DIVIDEND_RECEIVED: 2,
-    CASH_DEPOSIT: 3,
-    CASH_WITHDRAW: 4,
-    IPO_EVENT: 5,
+    TRADE_OPEN: 2,
+    DIVIDEND_RECEIVED: 3,
+    CASH_DEPOSIT: 4,
+    CASH_WITHDRAW: 5,
+    IPO_EVENT: 6,
   };
   return weights[type] || 99;
 }
@@ -100,7 +101,7 @@ function normalizeTimelineDate(dateString?: string | null) {
 }
 
 function getTimelineTypeFilter(type: TimelineItem['type']): TimelineFilter {
-  if (type === 'TRADE_CLOSED') return 'trade';
+  if (type === 'TRADE_CLOSED' || type === 'TRADE_OPEN') return 'trade';
   if (type === 'CASH_DEPOSIT' || type === 'CASH_WITHDRAW') return 'cashflow';
   if (type === 'DIVIDEND_RECEIVED') return 'dividend';
   return 'ipo';
@@ -365,24 +366,51 @@ export default function HistoryPage() {
   const totalWinRate = closedTrades.length > 0 ? (closedTrades.filter((trade: any) => trade.pnl > 0).length / closedTrades.length) * 100 : 0;
   const isCustomRangeSelected = selectedRangeKey === 'custom';
 
+  const allMarketTrades = useMemo(() => {
+    return trades
+      .filter((trade: any) => trade.market === activeTab || (!trade.market && activeTab === 'ID'));
+  }, [activeTab, trades]);
+
   const allTimelineItems = useMemo<TimelineItem[]>(() => {
     const items: TimelineItem[] = [];
 
-    closedTrades.forEach((trade: any) => {
-      items.push({
-        id: `trade-${trade.id}`,
-        type: 'TRADE_CLOSED',
-        date: trade.dateSell,
-        market: trade.market || 'ID',
-        portfolioId: trade.portfolioId || 'default',
-        title: `Trade closed ${trade.stockCode}`,
-        subtitle: `${trade.strategy || 'Tanpa strategi'} • ${trade.lots} ${getTradeQuantityLabel(trade)}`,
-        amount: trade.pnl,
-        amountKind: trade.pnl >= 0 ? 'positive' : 'negative',
-        meta: `Close ${formatDate(trade.dateSell)}`,
-        sortTimestamp: parseLocalDate(trade.dateSell)?.getTime() || 0,
-        linkTo: `/trades/${trade.id}`,
-      });
+    allMarketTrades.forEach((trade: any) => {
+      const calc = calculateTradePnL(trade);
+      const isOpen = !isClosedTrade(trade);
+
+      if (trade.dateBuy) {
+        items.push({
+          id: `trade-open-${trade.id}`,
+          type: 'TRADE_OPEN',
+          date: trade.dateBuy,
+          market: trade.market || 'ID',
+          portfolioId: trade.portfolioId || 'default',
+          title: `Beli ${trade.stockCode}`,
+          subtitle: `${trade.strategy || 'Tanpa strategi'} • ${trade.lots} ${getTradeQuantityLabel(trade)} @ ${formatMoney(trade.buyPrice)}`,
+          amount: calc.totalBuy,
+          amountKind: 'neutral',
+          meta: `Buy ${formatDate(trade.dateBuy)} • ${isOpen ? 'Open (Hold)' : 'Closed'}`,
+          sortTimestamp: parseLocalDate(trade.dateBuy)?.getTime() || 0,
+          linkTo: `/trades/${trade.id}`,
+        });
+      }
+
+      if (isClosedTrade(trade)) {
+        items.push({
+          id: `trade-closed-${trade.id}`,
+          type: 'TRADE_CLOSED',
+          date: trade.dateSell,
+          market: trade.market || 'ID',
+          portfolioId: trade.portfolioId || 'default',
+          title: `Trade closed ${trade.stockCode}`,
+          subtitle: `${trade.strategy || 'Tanpa strategi'} • ${trade.lots} ${getTradeQuantityLabel(trade)}`,
+          amount: trade.pnl,
+          amountKind: trade.pnl >= 0 ? 'positive' : 'negative',
+          meta: `Close ${formatDate(trade.dateSell)}`,
+          sortTimestamp: parseLocalDate(trade.dateSell)?.getTime() || 0,
+          linkTo: `/trades/${trade.id}`,
+        });
+      }
     });
 
     marketCashflows.forEach((cashflow: any) => {
@@ -455,7 +483,7 @@ export default function HistoryPage() {
       if (weightDiff !== 0) return weightDiff;
       return left.id.localeCompare(right.id);
     });
-  }, [activePortfolioId, activeTab, closedTrades, formatMoney, ipoEntries, ipoEvents, marketCashflows, marketDividends]);
+  }, [activePortfolioId, activeTab, allMarketTrades, formatMoney, ipoEntries, ipoEvents, marketCashflows, marketDividends]);
 
   const filteredTimelineItems = useMemo(() => {
     const rangeFiltered = selectedRangeSummary
@@ -502,11 +530,11 @@ export default function HistoryPage() {
 
       <MarketTabBar activeTab={activeTab} onChange={(val) => setActiveTab(val as MarketTab)} accentColor="var(--accent-blue-light)" />
 
-      {closedTrades.length === 0 ? (
+      {closedTrades.length === 0 && allTimelineItems.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon"><Icons.History size={48} /></div>
-          <div className="empty-state-title">Belum ada transaksi realized</div>
-          <div className="empty-state-desc">History akan muncul setelah ada transaksi yang sudah dijual atau ditutup.</div>
+          <div className="empty-state-title">Belum ada aktivitas portofolio</div>
+          <div className="empty-state-desc">History akan muncul setelah ada aktivitas trade, cashflow, dividen, atau IPO.</div>
         </div>
       ) : (
         <>
@@ -633,6 +661,7 @@ export default function HistoryPage() {
                       const isNegative = item.amountKind === 'negative';
                       const IconComponent =
                         item.type === 'TRADE_CLOSED' ? Icons.Receipt
+                          : item.type === 'TRADE_OPEN' ? Icons.ShoppingCart
                           : item.type === 'CASH_DEPOSIT' ? Icons.ArrowDownLeft
                           : item.type === 'CASH_WITHDRAW' ? Icons.ArrowUpRight
                           : item.type === 'DIVIDEND_RECEIVED' ? Icons.Coins
@@ -716,6 +745,8 @@ export default function HistoryPage() {
                               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4 }}>
                                 {item.type === 'TRADE_CLOSED'
                                   ? 'Realized P/L'
+                                  : item.type === 'TRADE_OPEN'
+                                  ? 'Total Beli'
                                   : item.type === 'DIVIDEND_RECEIVED'
                                   ? 'Dividen diterima'
                                   : item.type === 'IPO_EVENT'
