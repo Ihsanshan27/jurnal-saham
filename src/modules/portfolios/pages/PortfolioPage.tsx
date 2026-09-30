@@ -45,7 +45,10 @@ export default function PortfolioPage() {
         const isMutualFund = trade.assetType === 'mutual_fund';
         const isSBN = trade.assetType === 'sbn';
         const shares = getTradeQuantityUnits(trade);
-        const totalBuy = trade.buyPrice * shares;
+        const buyVal = trade.buyPrice * shares;
+        const buyFeePct = trade.buyFee ?? 0.15;
+        const buyCommission = buyVal * (buyFeePct / 100);
+        const totalBuy = buyVal + buyCommission;
         const currentPrice = (marketPrices && marketPrices[trade.stockCode]) || trade.sellPrice || 0;
 
         let floatingPnL = 0;

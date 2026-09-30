@@ -38,8 +38,11 @@ export function useOpenPositionMetrics(
   const totalInvested = useMemo(() => {
     return openTrades.reduce((sum, t) => {
       const isUS = t.market === 'US';
-      const shares = t.assetType === 'mutual_fund' ? t.lots : (isUS ? t.lots : t.lots * 100);
-      return sum + t.buyPrice * shares;
+      const shares = t.assetType === 'mutual_fund' || t.assetType === 'sbn' ? t.lots : (isUS ? t.lots : t.lots * 100);
+      const buyValue = t.buyPrice * shares;
+      const buyFeePct = t.buyFee ?? 0.15;
+      const buyCommission = buyValue * (buyFeePct / 100);
+      return sum + buyValue + buyCommission;
     }, 0);
   }, [openTrades]);
 
