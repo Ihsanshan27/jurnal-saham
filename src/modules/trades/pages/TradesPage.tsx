@@ -19,6 +19,8 @@ export default function TradesPage() {
   const [search, setSearch] = useState(() => sessionStorage.getItem('trades_filter_search') || '');
   const [filterStrategy, setFilterStrategy] = useState(() => sessionStorage.getItem('trades_filter_strategy') || '');
   const [filterStatus, setFilterStatus] = useState(() => sessionStorage.getItem('trades_filter_status') || '');
+  const [filterYear, setFilterYear] = useState(() => sessionStorage.getItem('trades_filter_year') || '');
+  const [filterMonth, setFilterMonth] = useState(() => sessionStorage.getItem('trades_filter_month') || '');
   const [sortBy, setSortBy] = useState(() => {
     const saved = sessionStorage.getItem('trades_sort_by') || 'dateBuy';
     if (saved === 'date') return 'dateBuy';
@@ -50,6 +52,14 @@ export default function TradesPage() {
   }, [filterStatus]);
 
   useEffect(() => {
+    sessionStorage.setItem('trades_filter_year', filterYear);
+  }, [filterYear]);
+
+  useEffect(() => {
+    sessionStorage.setItem('trades_filter_month', filterMonth);
+  }, [filterMonth]);
+
+  useEffect(() => {
     sessionStorage.setItem('trades_sort_by', sortBy);
   }, [sortBy]);
 
@@ -61,6 +71,39 @@ export default function TradesPage() {
     sessionStorage.setItem('trades_filter_page', String(page));
   }, [page]);
   const perPage = 15;
+
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const yearSet = new Set<number>();
+    yearSet.add(currentYear);
+    trades.forEach(t => {
+      if (t.dateBuy) {
+        const y = parseInt(t.dateBuy.substring(0, 4), 10);
+        if (!isNaN(y)) yearSet.add(y);
+      }
+      if (t.dateSell) {
+        const y = parseInt(t.dateSell.substring(0, 4), 10);
+        if (!isNaN(y)) yearSet.add(y);
+      }
+    });
+    return Array.from(yearSet).sort((a, b) => b - a);
+  }, [trades]);
+
+  const monthOptions = [
+    { value: '', label: 'Semua Bulan' },
+    { value: '01', label: 'Januari' },
+    { value: '02', label: 'Februari' },
+    { value: '03', label: 'Maret' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'Mei' },
+    { value: '06', label: 'Juni' },
+    { value: '07', label: 'Juli' },
+    { value: '08', label: 'Agustus' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'Oktober' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'Desember' },
+  ];
 
   const filtered = useMemo(() => {
     let result = [...trades];
@@ -77,15 +120,43 @@ export default function TradesPage() {
     } else if (filterStatus === 'closed') {
       result = result.filter(t => t.sellPrice && t.dateSell);
     }
+    if (filterYear) {
+      result = result.filter(t => {
+        const buyYr = t.dateBuy ? t.dateBuy.substring(0, 4) : '';
+        const sellYr = t.dateSell ? t.dateSell.substring(0, 4) : '';
+        return buyYr === filterYear || sellYr === filterYear;
+      });
+    }
+    if (filterMonth) {
+      result = result.filter(t => {
+        const buyMo = t.dateBuy ? t.dateBuy.substring(5, 7) : '';
+        const sellMo = t.dateSell ? t.dateSell.substring(5, 7) : '';
+        return buyMo === filterMonth || sellMo === filterMonth;
+      });
+    }
 
     result.sort((a, b) => {
       let cmp = 0;
       if (sortBy === 'dateBuy') {
         cmp = new Date(a.dateBuy).getTime() - new Date(b.dateBuy).getTime();
-      } else if (sortBy === 'stockCode') {
-        cmp = a.stockCode.localeCompare(b.stockCode);
       } else if (sortBy === 'dateSell') {
         cmp = new Date(a.dateSell || 0).getTime() - new Date(b.dateSell || 0).getTime();
+      } else if (sortBy === 'month') {
+        const dateAStr = a.dateBuy || '';
+        const dateBStr = b.dateBuy || '';
+        const moA = dateAStr ? parseInt(dateAStr.substring(5, 7), 10) : 0;
+        const moB = dateBStr ? parseInt(dateBStr.substring(5, 7), 10) : 0;
+        cmp = moA - moB;
+        if (cmp === 0) cmp = new Date(dateAStr).getTime() - new Date(dateBStr).getTime();
+      } else if (sortBy === 'year') {
+        const dateAStr = a.dateBuy || '';
+        const dateBStr = b.dateBuy || '';
+        const yrA = dateAStr ? parseInt(dateAStr.substring(0, 4), 10) : 0;
+        const yrB = dateBStr ? parseInt(dateBStr.substring(0, 4), 10) : 0;
+        cmp = yrA - yrB;
+        if (cmp === 0) cmp = new Date(dateAStr).getTime() - new Date(dateBStr).getTime();
+      } else if (sortBy === 'stockCode') {
+        cmp = a.stockCode.localeCompare(b.stockCode);
       } else if (sortBy === 'buyPrice') {
         cmp = a.buyPrice - b.buyPrice;
       } else if (sortBy === 'sellPrice') {
@@ -111,7 +182,7 @@ export default function TradesPage() {
     });
 
     return result;
-  }, [trades, search, filterStrategy, filterStatus, sortBy, sortDir]);
+  }, [trades, search, filterStrategy, filterStatus, filterYear, filterMonth, sortBy, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / perPage);
   const paged = filtered.slice((page - 1) * perPage, page * perPage);
@@ -256,11 +327,28 @@ export default function TradesPage() {
 
       {/* Filters */}
       <div className="filter-bar">
-        <div className="search-bar" style={{ flex: 1, minWidth: 200 }}>
+        <div className="search-bar" style={{ flex: 1, minWidth: 180 }}>
           <span className="search-bar-icon"><Icons.Search size={16} /></span>
           <input placeholder="Cari kode saham..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <div style={{ width: 160 }}>
+        <div style={{ width: 140 }}>
+          <CustomSelect 
+            value={filterYear} 
+            onChange={value => { setFilterYear(value); setPage(1); }}
+            options={[
+              { value: '', label: 'Semua Tahun' },
+              ...availableYears.map(y => ({ value: String(y), label: `Tahun ${y}` }))
+            ]}
+          />
+        </div>
+        <div style={{ width: 140 }}>
+          <CustomSelect 
+            value={filterMonth} 
+            onChange={value => { setFilterMonth(value); setPage(1); }}
+            options={monthOptions}
+          />
+        </div>
+        <div style={{ width: 150 }}>
           <CustomSelect 
             value={filterStrategy} 
             onChange={value => { setFilterStrategy(value); setPage(1); }}
@@ -270,7 +358,7 @@ export default function TradesPage() {
             ]}
           />
         </div>
-        <div style={{ width: 140 }}>
+        <div style={{ width: 130 }}>
           <CustomSelect 
             value={filterStatus} 
             onChange={value => { setFilterStatus(value); setPage(1); }}
@@ -281,20 +369,41 @@ export default function TradesPage() {
             ]}
           />
         </div>
-        <div style={{ width: 140 }}>
+        <div style={{ width: 150 }}>
           <CustomSelect 
             value={sortBy} 
             onChange={value => setSortBy(value)}
             options={[
-              { value: 'dateBuy', label: 'Sort: Tanggal' },
+              { value: 'dateBuy', label: 'Sort: Tgl Beli' },
+              { value: 'dateSell', label: 'Sort: Tgl Jual' },
+              { value: 'month', label: 'Sort: Bulan' },
+              { value: 'year', label: 'Sort: Tahun' },
               { value: 'stockCode', label: 'Sort: Kode' },
-              { value: 'pnl', label: 'Sort: P/L' }
+              { value: 'pnl', label: 'Sort: P/L' },
+              { value: 'pnlPercent', label: 'Sort: % P/L' }
             ]}
           />
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}>
+        <button className="btn btn-ghost btn-sm" onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')} title={sortDir === 'desc' ? 'Urutan Menurun' : 'Urutan Meningkat'}>
           {sortDir === 'desc' ? '↓' : '↑'}
         </button>
+        {(search || filterStrategy || filterStatus || filterYear || filterMonth) && (
+          <button 
+            className="btn btn-ghost btn-sm" 
+            style={{ color: 'var(--text-muted)' }}
+            onClick={() => {
+              setSearch('');
+              setFilterStrategy('');
+              setFilterStatus('');
+              setFilterYear('');
+              setFilterMonth('');
+              setPage(1);
+            }}
+            title="Reset Filter"
+          >
+            Reset
+          </button>
+        )}
       </div>
 
       {/* Table */}

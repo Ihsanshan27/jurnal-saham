@@ -32,6 +32,7 @@ export default function FinanceGlobalTransactionsPage() {
   // Ledger Filters
   const [typeFilter, setTypeFilter] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set());
@@ -229,6 +230,7 @@ export default function FinanceGlobalTransactionsPage() {
 
     const finalFiltered = transactionsWithBalance.filter((item: any) => {
       if (typeFilter !== 'all' && item.type !== typeFilter) return false;
+      if (selectedMonth !== 'all' && item.date && item.date.substring(5, 7) !== selectedMonth) return false;
       if (dateFrom && item.date < dateFrom) return false;
       if (dateTo && item.date > dateTo) return false;
       
@@ -246,7 +248,7 @@ export default function FinanceGlobalTransactionsPage() {
       totalDebit,
       totalKredit
     };
-  }, [financeTransactions, financeAccounts, dateFrom, dateTo, typeFilter, selectedAccounts]);
+  }, [financeTransactions, financeAccounts, dateFrom, dateTo, typeFilter, selectedYear, selectedMonth, selectedAccounts]);
 
   const { sortConfig, sortedItems, requestSort } = useTableSort(filteredTransactions, {
     initialKey: 'date',
@@ -522,6 +524,31 @@ export default function FinanceGlobalTransactionsPage() {
                     ]}
                   />
                 </div>
+                <div className="form-group" style={{ minWidth: 140 }}>
+                  <label className="form-label">Filter Bulan</label>
+                  <CustomSelect
+                    value={selectedMonth}
+                    onChange={(value) => {
+                      setSelectedMonth(value);
+                      setActiveLedgerPresetId('CUSTOM');
+                    }}
+                    options={[
+                      { value: 'all', label: 'Semua Bulan' },
+                      { value: '01', label: 'Januari' },
+                      { value: '02', label: 'Februari' },
+                      { value: '03', label: 'Maret' },
+                      { value: '04', label: 'April' },
+                      { value: '05', label: 'Mei' },
+                      { value: '06', label: 'Juni' },
+                      { value: '07', label: 'Juli' },
+                      { value: '08', label: 'Agustus' },
+                      { value: '09', label: 'September' },
+                      { value: '10', label: 'Oktober' },
+                      { value: '11', label: 'November' },
+                      { value: '12', label: 'Desember' }
+                    ]}
+                  />
+                </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="finance-filter-from">Dari</label>
                   <CustomDatePicker
@@ -545,6 +572,7 @@ export default function FinanceGlobalTransactionsPage() {
                     const now = new Date();
                     const currentYr = now.getFullYear();
                     setSelectedYear(String(currentYr));
+                    setSelectedMonth('all');
                     setDateFrom(format(startOfYear(now), 'yyyy-MM-dd'));
                     setDateTo(format(endOfYear(now), 'yyyy-MM-dd'));
                     setActiveLedgerPresetId('CUSTOM');
@@ -558,6 +586,7 @@ export default function FinanceGlobalTransactionsPage() {
                   onClick={() => {
                     const now = new Date();
                     setSelectedYear('all');
+                    setSelectedMonth(format(now, 'MM'));
                     setDateFrom(format(startOfMonth(now), 'yyyy-MM-dd'));
                     setDateTo(format(endOfMonth(now), 'yyyy-MM-dd'));
                     setActiveLedgerPresetId('CUSTOM');
@@ -571,6 +600,7 @@ export default function FinanceGlobalTransactionsPage() {
                   onClick={() => {
                     setTypeFilter('all');
                     setSelectedYear('all');
+                    setSelectedMonth('all');
                     setDateFrom('');
                     setDateTo('');
                     setSelectedAccounts(new Set());
