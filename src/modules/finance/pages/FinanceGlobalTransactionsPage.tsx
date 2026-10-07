@@ -235,8 +235,8 @@ export default function FinanceGlobalTransactionsPage() {
       if (dateTo && item.date > dateTo) return false;
       
       const amount = getFinanceTransactionAmountForDisplay(item);
-      if (amount < 0) totalDebit += Math.abs(amount);
-      else totalKredit += amount;
+      if (amount > 0) totalDebit += amount;
+      else if (amount < 0) totalKredit += Math.abs(amount);
       
       return true;
     });
@@ -626,12 +626,12 @@ export default function FinanceGlobalTransactionsPage() {
                     <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatRupiah(saldoAwal)}</div>
                   </div>
                   <div>
-                    <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Keluar (Debit)</div>
-                    <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatRupiah(totalDebit)}</div>
+                    <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Masuk (Debit)</div>
+                    <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatRupiah(totalDebit)}</div>
                   </div>
                   <div>
-                    <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Masuk (Kredit)</div>
-                    <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatRupiah(totalKredit)}</div>
+                    <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Keluar (Kredit)</div>
+                    <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatRupiah(totalKredit)}</div>
                   </div>
                   <div>
                     <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</div>
@@ -645,8 +645,8 @@ export default function FinanceGlobalTransactionsPage() {
                       <tr>
                         <th><SortableTableHeader label="Tanggal" sortKey="date" sortConfig={sortConfig} onSort={requestSort} /></th>
                         <th>Keterangan</th>
-                        <th style={{ textAlign: 'right' }}>Debit (Keluar)</th>
-                        <th style={{ textAlign: 'right' }}>Kredit (Masuk)</th>
+                        <th style={{ textAlign: 'right' }}>Debit (Masuk)</th>
+                        <th style={{ textAlign: 'right' }}>Kredit (Keluar)</th>
                         <th style={{ textAlign: 'right' }}>Saldo Akhir</th>
                         <th>Aksi</th>
                       </tr>
@@ -659,8 +659,8 @@ export default function FinanceGlobalTransactionsPage() {
                       </tr>
                       {sortedItems.map((transaction: any) => {
                         const signedAmount = getFinanceTransactionAmountForDisplay(transaction);
-                        const isDebit = signedAmount < 0;
-                        const isCredit = signedAmount > 0;
+                        const isDebit = signedAmount > 0;
+                        const isCredit = signedAmount < 0;
                         const account = financeAccounts.find((item: any) => item.id === transaction.accountId);
                         const counterparty = transaction.counterpartyAccountId
                           ? financeAccounts.find((item: any) => item.id === transaction.counterpartyAccountId)
@@ -701,13 +701,13 @@ export default function FinanceGlobalTransactionsPage() {
                               </div>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <div style={{ color: isDebit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
-                                {isDebit ? (isUSD ? formatUSD(Math.abs(signedAmount)) : formatRupiah(Math.abs(signedAmount))) : '-'}
+                              <div style={{ color: isDebit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
+                                {isDebit ? (isUSD ? formatUSD(signedAmount) : formatRupiah(signedAmount)) : '-'}
                               </div>
                             </td>
                             <td style={{ textAlign: 'right' }}>
-                              <div style={{ color: isCredit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
-                                {isCredit ? (isUSD ? formatUSD(signedAmount) : formatRupiah(signedAmount)) : '-'}
+                              <div style={{ color: isCredit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
+                                {isCredit ? (isUSD ? formatUSD(Math.abs(signedAmount)) : formatRupiah(Math.abs(signedAmount))) : '-'}
                               </div>
                             </td>
                             <td style={{ textAlign: 'right' }}>

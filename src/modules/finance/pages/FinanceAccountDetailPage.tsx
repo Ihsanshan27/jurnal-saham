@@ -208,8 +208,8 @@ export default function FinanceAccountDetailPage() {
       if (dateTo && item.date > dateTo) return false;
 
       const amount = getFinanceTransactionAmountForDisplay(item);
-      if (amount < 0) tDebit += Math.abs(amount);
-      else tKredit += amount;
+      if (amount > 0) tDebit += amount;
+      else if (amount < 0) tKredit += Math.abs(amount);
 
       return true;
     });
@@ -1198,12 +1198,12 @@ export default function FinanceAccountDetailPage() {
                   <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-color)' }}>{formatMoney(saldoAwal)}</div>
                 </div>
                 <div>
-                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Keluar (Debit)</div>
-                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatMoney(totalDebit)}</div>
+                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Masuk (Debit)</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatMoney(totalDebit)}</div>
                 </div>
                 <div>
-                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Masuk (Kredit)</div>
-                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)' }}>{formatMoney(totalKredit)}</div>
+                  <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Total Uang Keluar (Kredit)</div>
+                  <div style={{ ...blurStyle, fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-red)' }}>{formatMoney(totalKredit)}</div>
                 </div>
                 <div>
                   <div className="finance-helper-text" style={{ marginBottom: 4, fontWeight: 600 }}>Saldo Akhir {dateTo ? `(${formatDate(dateTo)})` : ''}</div>
@@ -1217,8 +1217,8 @@ export default function FinanceAccountDetailPage() {
                     <tr>
                       <th><SortableTableHeader label="Tanggal" sortKey="date" sortConfig={sortConfig} onSort={requestSort} /></th>
                       <th>Keterangan</th>
-                      <th style={{ textAlign: 'right' }}>Debit (Keluar)</th>
-                      <th style={{ textAlign: 'right' }}>Kredit (Masuk)</th>
+                      <th style={{ textAlign: 'right' }}>Debit (Masuk)</th>
+                      <th style={{ textAlign: 'right' }}>Kredit (Keluar)</th>
                       <th style={{ textAlign: 'right' }}>Saldo Akhir</th>
                       <th>Aksi</th>
                     </tr>
@@ -1231,8 +1231,8 @@ export default function FinanceAccountDetailPage() {
                     </tr>
                     {sortedItems.map((transaction: any) => {
                       const signedAmount = getFinanceTransactionAmountForDisplay(transaction);
-                      const isDebit = signedAmount < 0;
-                      const isCredit = signedAmount > 0;
+                      const isDebit = signedAmount > 0;
+                      const isCredit = signedAmount < 0;
                       const counterparty = transaction.counterpartyAccountId
                         ? financeAccounts.find((item: any) => item.id === transaction.counterpartyAccountId)
                         : null;
@@ -1271,13 +1271,13 @@ export default function FinanceAccountDetailPage() {
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <div style={{ color: isDebit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
-                              {isDebit ? formatMoney(Math.abs(signedAmount)) : '-'}
+                            <div style={{ color: isDebit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
+                              {isDebit ? formatMoney(signedAmount) : '-'}
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <div style={{ color: isCredit ? 'var(--accent-green)' : 'var(--text-muted)', ...blurStyle }}>
-                              {isCredit ? formatMoney(signedAmount) : '-'}
+                            <div style={{ color: isCredit ? 'var(--accent-red)' : 'var(--text-muted)', ...blurStyle }}>
+                              {isCredit ? formatMoney(Math.abs(signedAmount)) : '-'}
                             </div>
                           </td>
                           <td style={{ textAlign: 'right' }}>
