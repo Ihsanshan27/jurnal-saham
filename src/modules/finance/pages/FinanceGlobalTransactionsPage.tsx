@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Landmark, List, TrendingUp, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, Landmark, List, TrendingUp, Eye, Trash2, Download } from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import SortableTableHeader from '@/modules/shared/components/SortableTableHeader';
@@ -11,6 +11,7 @@ import { getFinanceTransactionAmountForDisplay, getFinanceTransactionTypeLabel }
 import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import FinanceTransactionDetailModal from '@/modules/finance/components/FinanceTransactionDetailModal';
+import { exportGlobalLedgerToCsv } from '@/modules/finance/utils/financeExportImport';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import '@/modules/finance/finance.css';
 
@@ -468,6 +469,22 @@ export default function FinanceGlobalTransactionsPage() {
               <div className="form-group" style={{ margin: 0 }}>
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => { setPresetModalType('ledger'); setIsSavePresetModalOpen(true); setNewPresetName(''); setEditPresetId(null); }}>
                   Simpan Preset
+                </button>
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const periodLabel = dateFrom && dateTo ? `${dateFrom}_sd_${dateTo}` : selectedYear !== 'all' ? `tahun_${selectedYear}` : 'filter';
+                    exportGlobalLedgerToCsv(sortedItems, financeAccounts, { periodLabel, dateFrom, dateTo });
+                  }}
+                  disabled={sortedItems.length === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  title="Unduh CSV buku besar global"
+                >
+                  <Download size={14} />
+                  Export CSV ({sortedItems.length})
                 </button>
               </div>
             </div>

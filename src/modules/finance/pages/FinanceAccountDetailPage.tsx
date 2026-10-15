@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRightLeft, Landmark, Pencil, Plus, Save, Trash2, TrendingUp, Eye } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Landmark, Pencil, Plus, Save, Trash2, TrendingUp, Eye, Download, Upload, FileSpreadsheet, Printer } from 'lucide-react';
 import { useData } from '@/modules/shared/context/DataContext';
 import { useDialog } from '@/modules/shared/context/DialogContext';
 import CurrencyInput from '@/modules/shared/components/CurrencyInput';
@@ -15,6 +15,8 @@ import CustomSelect from '@/modules/shared/components/CustomSelect';
 import CustomDatePicker from '@/modules/shared/components/CustomDatePicker';
 import RichTextEditor from '@/modules/shared/components/RichTextEditor';
 import FinanceTransactionDetailModal from '@/modules/finance/components/FinanceTransactionDetailModal';
+import ImportLedgerModal from '@/modules/finance/components/ImportLedgerModal';
+import { exportAccountLedgerToCsv, exportAccountLedgerToPdf } from '@/modules/finance/utils/financeExportImport';
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import '@/modules/finance/finance.css';
 
@@ -140,6 +142,7 @@ export default function FinanceAccountDetailPage() {
   const [selectedYear, setSelectedYear] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear();
@@ -241,6 +244,43 @@ export default function FinanceAccountDetailPage() {
   const combinedBalance = balance + linkedPortfolioOverview.totalLinkedPortfolioBalance;
   const formatMoney = (val: number) => {
     return account?.currency === 'USD' ? formatUSD(val) : formatRupiah(val);
+  };
+
+  const handleExportFiltered = () => {
+    if (!account) return;
+    const periodLabel = dateFrom && dateTo ? `${dateFrom}_sd_${dateTo}` : selectedYear !== 'all' ? `tahun_${selectedYear}` : 'filter';
+    exportAccountLedgerToCsv(account, sortedItems, { periodLabel, dateFrom, dateTo });
+  };
+
+  const handleExportAll = () => {
+    if (!account) return;
+    const chronologicallySorted = [...accountTransactions].sort((a: any, b: any) => {
+      const dateA = new Date(a.date + 'T' + (a.createdAt ? a.createdAt.split('T')[1] : '00:00:00')).getTime();
+      const dateB = new Date(b.date + 'T' + (b.createdAt ? b.createdAt.split('T')[1] : '00:00:00')).getTime();
+      return dateA - dateB;
+    });
+
+    let bal = Number(account.openingBalance) || 0;
+    const allWithBalance = chronologicallySorted.map((t: any) => {
+      bal += getFinanceTransactionAmountForDisplay(t);
+      return { ...t, runningBalance: bal };
+    });
+
+    exportAccountLedgerToCsv(account, allWithBalance, { periodLabel: 'semua' });
+  };
+
+  const handleExportPdf = () => {
+    if (!account) return;
+    const periodLabel = dateFrom && dateTo ? `${formatDate(dateFrom)} s/d ${formatDate(dateTo)}` : selectedYear !== 'all' ? `Tahun ${selectedYear}` : 'Semua Periode';
+    exportAccountLedgerToPdf(account, sortedItems, {
+      saldoAwal,
+      saldoAkhir,
+      totalDebit,
+      totalKredit,
+      dateFrom,
+      dateTo,
+      periodLabel,
+    });
   };
 
   if (!account) {
@@ -1087,8 +1127,52 @@ export default function FinanceAccountDetailPage() {
       </div>
 
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <h3 className="card-title">Ledger Rekening</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleExportFiltered}
+              disabled={sortedItems.length === 0}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Unduh CSV mutasi sesuai filter aktif"
+            >
+              <Download size={15} />
+              Export Filter ({sortedItems.length})
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleExportAll}
+              disabled={accountTransactions.length === 0}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Unduh seluruh histori mutasi rekening ini"
+            >
+              <FileSpreadsheet size={15} />
+              Export Semua
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleExportPdf}
+              disabled={sortedItems.length === 0}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              title="Cetak atau simpan sebagai PDF mutasi rekening (Rekening Koran)"
+            >
+              <Printer size={15} />
+              Cetak / PDF
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => setIsImportModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Upload size={15} />
+              Impor Mutasi
+            </button>
+          </div>
         </div>
         <div className="card-body">
           <div className="finance-ledger-toolbar">
@@ -1331,6 +1415,15 @@ export default function FinanceAccountDetailPage() {
         onEdit={handleEditTransaction}
         onDelete={handleDeleteTransaction}
       />
+
+      {account && (
+        <ImportLedgerModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          account={account}
+          existingTransactions={accountTransactions}
+        />
+      )}
     </div>
   );
 }

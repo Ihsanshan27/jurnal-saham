@@ -44,7 +44,7 @@ export interface DataContextType {
   bsjpTrades: BsjpTrade[]; addBsjpTrade: (trade: Partial<BsjpTrade>) => BsjpTrade | null; updateBsjpTrade: (id: string, updates: Partial<BsjpTrade>) => void; deleteBsjpTrade: (id: string) => void;
   assets: AssetItem[]; addAsset: (asset: Partial<AssetItem>) => AssetItem | null; batchAddAssets: (assets: Partial<AssetItem>[]) => AssetItem[]; updateAsset: (id: string, updates: Partial<AssetItem>) => void; deleteAsset: (id: string) => void; batchDeleteAssets: (ids: string[]) => void; reorderAssets: (orderedIds: string[]) => AssetItem[] | null;
   financeAccounts: FinanceAccount[]; financeTransactions: FinanceTransaction[]; addFinanceAccount: (account: Partial<FinanceAccount>) => FinanceAccount | null; updateFinanceAccount: (id: string, updates: Partial<FinanceAccount>) => FinanceAccount | null; toggleFinanceAccountActive: (id: string) => FinanceAccount | null; deleteFinanceAccount: (id: string) => FinanceAccount | null; reorderFinanceAccounts: (orderedIds: string[]) => FinanceAccount[] | null;
-  addFinanceTransaction: (transaction: Partial<FinanceTransaction>) => FinanceTransaction | null; updateFinanceTransaction: (id: string, updates: Partial<FinanceTransaction>) => FinanceTransaction | null; deleteFinanceTransaction: (id: string) => FinanceTransaction | null; createFinanceTransfer: (transfer: any) => any; createFinancePortfolioTransfer: (transfer: any) => any; createPortfolioToFinanceTransfer: (transfer: any) => any; getFinanceTransactionsByAccount: (accountId: string) => FinanceTransaction[]; getFinanceAccountCurrentBalance: (accountId: string) => number; getFinanceSummary: () => any;
+  addFinanceTransaction: (transaction: Partial<FinanceTransaction>) => FinanceTransaction | null; bulkAddFinanceTransactions: (transactions: Partial<FinanceTransaction>[]) => FinanceTransaction[]; updateFinanceTransaction: (id: string, updates: Partial<FinanceTransaction>) => FinanceTransaction | null; deleteFinanceTransaction: (id: string) => FinanceTransaction | null; createFinanceTransfer: (transfer: any) => any; createFinancePortfolioTransfer: (transfer: any) => any; createPortfolioToFinanceTransfer: (transfer: any) => any; getFinanceTransactionsByAccount: (accountId: string) => FinanceTransaction[]; getFinanceAccountCurrentBalance: (accountId: string) => number; getFinanceSummary: () => any;
   dataLoading: boolean; dataError: string; databaseSetupError: string; usedLocalCacheFallback: boolean; exportData: () => any; importData: (data: any) => Promise<void>; clearData: (options?: Record<string, boolean>) => Promise<void>;
   toasts: ToastItem[]; showToast: (message: string, type?: string) => void;
   tradeFormDraft: any; setTradeFormDraft: (val: any) => void; tradeEditDraft: any; setTradeEditDraft: (val: any) => void; noteFormDraft: any; setNoteFormDraft: (val: any) => void; watchlistFormDraft: any; setWatchlistFormDraft: (val: any) => void; cashflowFormDraft: any; setCashflowFormDraft: (val: any) => void; dividendFormDraft: any; setDividendFormDraft: (val: any) => void; calculatorActiveTab: string; setCalculatorActiveTab: (val: string) => void; calculatorDrafts: any; setCalculatorDrafts: (val: any) => void; canWrite: boolean;
@@ -1080,6 +1080,46 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return finalTransaction;
   };
 
+  const bulkAddFinanceTransactions = (transactions: Partial<FinanceTransaction>[]): FinanceTransaction[] => {
+    if (!ensureWritable() || !transactions.length) return [];
+    const nowIso = new Date().toISOString();
+    const newTransactions: FinanceTransaction[] = [];
+
+    for (const transaction of transactions) {
+      const normalizedAmount = transaction.type === 'adjustment'
+        ? Number(transaction.amount) || 0
+        : Math.abs(Number(transaction.amount) || 0);
+      const isDepositRdn = transaction.category && transaction.category.trim().toLowerCase() === 'deposit rdn';
+      const isWithdrawRdn = transaction.category && transaction.category.trim().toLowerCase() === 'withdraw rdn';
+      const isRdnSync = isDepositRdn || isWithdrawRdn;
+      const rdnSyncMode = isDepositRdn ? 'transfer_to_portfolio' : 'transfer_from_portfolio';
+
+      const baseTransaction = {
+        ...transaction,
+        id: generateId(),
+        amount: normalizedAmount,
+        cashflowSyncMode: isRdnSync ? rdnSyncMode : ((transaction as any).linkToCashflow ? (transaction.cashflowSyncMode || 'mirror') : undefined),
+        linkedPortfolioId: isRdnSync ? transaction.linkedPortfolioId || activePortfolioId || 'default' : ((transaction as any).linkToCashflow ? transaction.linkedPortfolioId || activePortfolioId : undefined),
+        linkToCashflow: isRdnSync ? true : (transaction as any).linkToCashflow,
+        linkedCashflowId: undefined,
+        createdAt: nowIso,
+      };
+      const finalTransaction = (baseTransaction.linkToCashflow || isRdnSync)
+        ? upsertLinkedCashflowForFinanceTransaction(baseTransaction)
+        : baseTransaction;
+
+      newTransactions.push(finalTransaction as FinanceTransaction);
+    }
+
+    saveFinanceTransactions([...newTransactions, ...financeTransactions]);
+    logUserActivity('finance_transaction.bulk_imported', 'finance_transaction', newTransactions[0]?.id || 'bulk', {
+      count: newTransactions.length,
+      accountId: newTransactions[0]?.accountId || null,
+    });
+    showToast(`${newTransactions.length} mutasi berhasil diimpor ke ledger`);
+    return newTransactions;
+  };
+
   const updateFinanceTransaction = (id: string, updates: Partial<FinanceTransaction>) => {
     if (!ensureWritable()) return null;
     const existingTransaction = financeTransactions.find((item: any) => item.id === id);
@@ -1818,6 +1858,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteFinanceAccount,
       reorderFinanceAccounts,
       addFinanceTransaction,
+      bulkAddFinanceTransactions,
       updateFinanceTransaction,
       deleteFinanceTransaction,
       createFinanceTransfer,
