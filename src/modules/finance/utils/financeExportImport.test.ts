@@ -88,8 +88,8 @@ describe('financeExportImport utils', () => {
 
     it('parses Indonesian bank format with Debet / Kredit columns', () => {
       const csv = `Tgl Transaksi,Uraian,Debet,Kredit
-05/10/2026,Transfer Masuk dari Rekening Lain,2500000,0
-06/10/2026,Bayar Tagihan PLN,0,350000`;
+05/10/2026,Transfer Masuk dari Rekening Lain,0,2500000
+06/10/2026,Bayar Tagihan PLN,350000,0`;
 
       const result = parseLedgerCsv(csv, 'acc-bca', []);
       expect(result.rows.length).toBe(2);
@@ -101,5 +101,34 @@ describe('financeExportImport utils', () => {
       expect(result.rows[1].type).toBe('expense');
       expect(result.rows[1].amount).toBe(350000);
     });
+
+    it('parses BCA mutation with metadata header rows and DD/MM dates', () => {
+      const bcaCsv = `NO. REKENING : 1234567890
+NAMA : NASABAH BCA
+PERIODE : 01/10/2026 - 15/10/2026
+MATA UANG : IDR
+Tanggal,Keterangan,Cabang,Jumlah,Tipe,Saldo
+05/10,TRANSFER CR-KE 0987654321,0000,1500000.00,CR,11500000.00
+06/10,TARIK TUNAI ATM,0000,200000.00,DB,11300000.00
+SALDO AWAL : 10000000.00
+TOTAL MUTASI DEBET : 200000.00
+TOTAL MUTASI KREDIT : 1500000.00`;
+
+      const result = parseLedgerCsv(bcaCsv, 'acc-bca', []);
+      expect(result.error).toBeUndefined();
+      expect(result.rows.length).toBe(2);
+      expect(result.rows[0].type).toBe('income');
+      expect(result.rows[0].amount).toBe(1500000);
+      expect(result.rows[0].description).toContain('TRANSFER CR-KE');
+      expect(result.rows[1].type).toBe('expense');
+      expect(result.rows[1].amount).toBe(200000);
+    });
+
+    it('parses Indonesian text month dates like 05 Okt 2026', () => {
+      expect(normalizeDateString('05 Okt 2026')).toBe('2026-10-05');
+      expect(normalizeDateString('12-DES-2026')).toBe('2026-12-12');
+      expect(normalizeDateString('1 Januari 2026')).toBe('2026-01-01');
+    });
   });
 });
+

@@ -163,9 +163,24 @@ export function parseCurrencyAmount(raw: any): { value: number; indicator?: 'CR'
   };
 }
 
+const INDO_MONTHS: Record<string, string> = {
+  jan: '01', januari: '01', january: '01',
+  feb: '02', februari: '02', february: '02',
+  mar: '03', maret: '03', march: '03',
+  apr: '04', april: '04',
+  mei: '05', may: '05',
+  jun: '06', juni: '06', june: '06',
+  jul: '07', juli: '07', july: '07',
+  agu: '08', ags: '08', agustus: '08', august: '08',
+  sep: '09', september: '09',
+  okt: '10', oct: '10', oktober: '10', october: '10',
+  nov: '11', nop: '11', november: '11',
+  des: '12', dec: '12', desember: '12', december: '12',
+};
+
 /**
  * Normalizes various date formats into YYYY-MM-DD
- * Handles: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DD/MM/YY, DD MMM YYYY
+ * Handles: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DD/MM/YY, DD/MM (BCA), DD MMM YYYY
  */
 export function normalizeDateString(raw: string): string | null {
   if (!raw) return null;
@@ -193,6 +208,31 @@ export function normalizeDateString(raw: string): string | null {
     return `${year}-${month}-${day}`;
   }
 
+  // DD/MM or DD-MM (e.g. BCA format without year: 05/10)
+  const dmMatch = str.match(/^(\d{1,2})[-/.](\d{1,2})$/);
+  if (dmMatch) {
+    const currentYear = new Date().getFullYear();
+    const day = dmMatch[1].padStart(2, '0');
+    const month = dmMatch[2].padStart(2, '0');
+    return `${currentYear}-${month}-${day}`;
+  }
+
+  // DD MMM YYYY or DD-MMM-YYYY (e.g. 05 Okt 2026 or 05-OCT-2026)
+  const textMonthMatch = str.match(/^(\d{1,2})[\s\-_/]+([a-zA-Z]+)[\s\-_/]+(\d{2,4})$/);
+  if (textMonthMatch) {
+    const day = textMonthMatch[1].padStart(2, '0');
+    const mStr = textMonthMatch[2].toLowerCase();
+    const month = INDO_MONTHS[mStr];
+    let year = textMonthMatch[3];
+    if (year.length === 2) {
+      const currentCentury = Math.floor(new Date().getFullYear() / 100) * 100;
+      year = String(currentCentury + parseInt(year, 10));
+    }
+    if (month) {
+      return `${year}-${month}-${day}`;
+    }
+  }
+
   // Try standard JS Date parsing fallback
   const timestamp = Date.parse(str);
   if (!isNaN(timestamp)) {
@@ -207,15 +247,15 @@ export function normalizeDateString(raw: string): string | null {
 }
 
 const COLUMN_ALIASES = {
-  date: ['tanggal', 'date', 'tgl', 'transactiondate', 'tgltransaksi', 'waktu', 'valuedate', 'postdate', 'postingdate', 'tglvaluta'],
-  description: ['keterangan', 'deskripsi', 'description', 'uraian', 'rincian', 'transaksi', 'memo', 'narration', 'detail', 'remarks', 'uraiantransaksi'],
+  date: ['tanggal', 'date', 'tgl', 'transactiondate', 'tgltransaksi', 'waktu', 'valuedate', 'postdate', 'postingdate', 'tglvaluta', 'waktutransaksi'],
+  description: ['keterangan', 'deskripsi', 'description', 'uraian', 'rincian', 'transaksi', 'memo', 'narration', 'detail', 'remarks', 'uraiantransaksi', 'berita', 'keteranganmutasi'],
   category: ['kategori', 'category', 'pos', 'jenistransaksi', 'tipepengeluaran'],
   type: ['tipe', 'type', 'jenistransaksi', 'arah'],
-  inAmount: ['masuk', 'uangmasuk', 'debit', 'debet', 'cr', 'credit', 'kreditmasuk', 'in', 'penerimaan', 'setoran'],
-  outAmount: ['keluar', 'uangkeluar', 'kredit', 'db', 'debitkeluar', 'out', 'pengeluaran', 'penarikan'],
-  singleAmount: ['jumlah', 'nominal', 'amount', 'mutasi', 'nilai', 'transaksi'],
-  indicator: ['crdb', 'dbcr', 'dk', 'kd', 'indicator', 'mutasitrp', 'dc'],
-  notes: ['catatan', 'notes', 'note', 'keterangantambahan', 'pesan'],
+  inAmount: ['masuk', 'uangmasuk', 'debit', 'debet', 'cr', 'credit', 'kreditmasuk', 'in', 'penerimaan', 'setoran', 'mutasikredit'],
+  outAmount: ['keluar', 'uangkeluar', 'kredit', 'db', 'debitkeluar', 'out', 'pengeluaran', 'penarikan', 'mutasidebet'],
+  singleAmount: ['jumlah', 'nominal', 'amount', 'mutasi', 'nilai', 'transaksi', 'total'],
+  indicator: ['crdb', 'dbcr', 'dk', 'kd', 'indicator', 'mutasitrp', 'dc', 'mutasiarah'],
+  notes: ['catatan', 'notes', 'note', 'keterangantambahan', 'pesan', 'cabang', 'branch', 'noref', 'referensi'],
 };
 
 function cleanHeaderKey(s: string): string {
@@ -223,15 +263,17 @@ function cleanHeaderKey(s: string): string {
 }
 
 /**
- * Parses raw CSV content into validated Ledger rows
+ * Parses raw CSV/Text content into validated Ledger rows
+ * Searches dynamically for header row to support Indonesian bank exports with metadata headers (BCA, Mandiri, BRI, BNI).
  */
 export function parseLedgerCsv(
   csvText: string,
   accountId: string,
-  existingTransactions: FinanceTransaction[] = []
+  existingTransactions: FinanceTransaction[] = [],
+  preset: 'auto' | 'default' | 'bca' | 'mandiri' | 'bri' | 'bni' | 'ewallet' = 'auto'
 ): ParseLedgerResult {
   const records = parseCSVTokenizer(csvText);
-  if (records.length < 2) {
+  if (records.length === 0) {
     return {
       rows: [],
       totalValid: 0,
@@ -239,59 +281,133 @@ export function parseLedgerCsv(
       totalInvalid: 0,
       totalIn: 0,
       totalOut: 0,
-      error: 'File CSV harus memiliki minimal 1 baris header dan 1 baris data.',
+      error: 'Data kosong. Silakan pilih file CSV atau tempel teks mutasi.',
     };
   }
 
-  const rawHeaders = records[0];
-  const cleanedHeaders = rawHeaders.map(cleanHeaderKey);
+  // Find header row in first 20 records
+  let headerRowIndex = -1;
+  let idxDate = -1;
+  let idxDesc = -1;
+  let idxCat = -1;
+  let idxType = -1;
+  let idxIn = -1;
+  let idxOut = -1;
+  let idxSingle = -1;
+  let idxIndicator = -1;
+  let idxNotes = -1;
 
-  const findColIndex = (aliases: string[]): number => {
-    return cleanedHeaders.findIndex((h) => aliases.some((a) => h.includes(a) || a.includes(h)));
-  };
+  for (let r = 0; r < Math.min(records.length, 20); r++) {
+    const rawHeaders = records[r];
+    const cleanedHeaders = rawHeaders.map(cleanHeaderKey);
 
-  const idxDate = findColIndex(COLUMN_ALIASES.date);
-  const idxDesc = findColIndex(COLUMN_ALIASES.description);
-  const idxCat = findColIndex(COLUMN_ALIASES.category);
-  const idxType = findColIndex(COLUMN_ALIASES.type);
-  const idxIn = findColIndex(COLUMN_ALIASES.inAmount);
-  const idxOut = findColIndex(COLUMN_ALIASES.outAmount);
-  const idxSingle = findColIndex(COLUMN_ALIASES.singleAmount);
-  const idxIndicator = findColIndex(COLUMN_ALIASES.indicator);
-  const idxNotes = findColIndex(COLUMN_ALIASES.notes);
-
-  if (idxDate === -1) {
-    return {
-      rows: [],
-      totalValid: 0,
-      totalDuplicate: 0,
-      totalInvalid: 0,
-      totalIn: 0,
-      totalOut: 0,
-      error: 'Kolom Tanggal (Date/Tanggal/Tgl) tidak ditemukan di baris header CSV.',
+    const findColIndex = (aliases: string[]): number => {
+      return cleanedHeaders.findIndex((h) => aliases.some((a) => h === a || h.startsWith(a)));
     };
+
+    const dIdx = findColIndex(['tanggal', 'date', 'tgl', 'transactiondate', 'tgltransaksi', 'waktu', 'valuedate', 'postdate', 'postingdate', 'tglvaluta', 'waktutransaksi']);
+    const descIdx = findColIndex(['keterangan', 'deskripsi', 'description', 'uraian', 'rincian', 'transaksi', 'memo', 'narration', 'detail', 'remarks', 'uraiantransaksi', 'berita', 'keteranganmutasi']);
+    const catIdx = findColIndex(['kategori', 'category', 'pos', 'jenistransaksi', 'tipepengeluaran']);
+    const typeIdx = findColIndex(['tipe', 'type', 'jenistransaksi', 'arah', 'crdb', 'dbcr', 'dk', 'kd', 'indicator', 'mutasitrp', 'dc', 'mutasiarah']);
+
+    // Check specific Masuk/Keluar vs Debet/Kredit
+    const hasMasuk = findColIndex(['masuk', 'uangmasuk', 'penerimaan', 'setoran', 'in']);
+    const hasKeluar = findColIndex(['keluar', 'uangkeluar', 'pengeluaran', 'penarikan', 'out']);
+    const hasDebet = findColIndex(['debet', 'debit', 'mutasidebet', 'db']);
+    const hasKredit = findColIndex(['kredit', 'credit', 'mutasikredit', 'cr']);
+    const sIdx = findColIndex(['jumlah', 'nominal', 'amount', 'mutasi', 'nilai', 'total']);
+
+    let inIdx = -1;
+    let outIdx = -1;
+
+    if (hasMasuk !== -1 || hasKeluar !== -1) {
+      inIdx = hasMasuk;
+      outIdx = hasKeluar;
+    } else if (hasDebet !== -1 && hasKredit !== -1) {
+      // In bank statements (Mandiri, BRI, BNI), Debet = Keluar, Kredit = Masuk
+      inIdx = hasKredit;
+      outIdx = hasDebet;
+    } else if (hasKredit !== -1) {
+      inIdx = hasKredit;
+    } else if (hasDebet !== -1) {
+      outIdx = hasDebet;
+    }
+
+    if (dIdx !== -1 && (inIdx !== -1 || outIdx !== -1 || sIdx !== -1)) {
+      headerRowIndex = r;
+      idxDate = dIdx;
+      idxDesc = descIdx;
+      idxCat = catIdx;
+      idxType = typeIdx;
+      idxIn = inIdx;
+      idxOut = outIdx;
+      idxSingle = sIdx;
+      idxIndicator = typeIdx;
+      idxNotes = findColIndex(['catatan', 'notes', 'note', 'keterangantambahan', 'pesan', 'cabang', 'branch', 'noref', 'referensi']);
+      break;
+    }
   }
 
-  const hasAmountCol = idxIn !== -1 || idxOut !== -1 || idxSingle !== -1;
-  if (!hasAmountCol) {
-    return {
-      rows: [],
-      totalValid: 0,
-      totalDuplicate: 0,
-      totalInvalid: 0,
-      totalIn: 0,
-      totalOut: 0,
-      error: 'Kolom Jumlah mutasi tidak ditemukan. Harap sertakan kolom Masuk/Keluar, Debit/Kredit, atau Jumlah.',
-    };
+  // Fallback: If no header found, check if record 0 starts with a date (headerless format)
+  let startDataRow = headerRowIndex + 1;
+  if (headerRowIndex === -1) {
+    if (records.length > 0 && normalizeDateString(records[0][0])) {
+      startDataRow = 0;
+      idxDate = 0;
+      idxDesc = 1;
+      const sample = records[0];
+      if (sample.length >= 5) {
+        const col4Val = String(sample[4]).toUpperCase().trim();
+        if (col4Val === 'CR' || col4Val === 'DB' || col4Val === 'K' || col4Val === 'D') {
+          idxSingle = 3;
+          idxIndicator = 4;
+        } else {
+          idxIn = 3;
+          idxOut = 2;
+        }
+      } else if (sample.length === 4) {
+        const col3Val = String(sample[3]).toUpperCase().trim();
+        if (col3Val === 'CR' || col3Val === 'DB' || col3Val === 'K' || col3Val === 'D') {
+          idxSingle = 2;
+          idxIndicator = 3;
+        } else {
+          idxIn = 3;
+          idxOut = 2;
+        }
+      } else if (sample.length >= 3) {
+        idxSingle = 2;
+      }
+    } else {
+      return {
+        rows: [],
+        totalValid: 0,
+        totalDuplicate: 0,
+        totalInvalid: 0,
+        totalIn: 0,
+        totalOut: 0,
+        error: 'Kolom Tanggal dan Nominal mutasi tidak ditemukan. Pastikan data memiliki baris header seperti Tanggal, Keterangan, Masuk/Keluar.',
+      };
+    }
   }
 
   const rows: ParsedLedgerRow[] = [];
   let totalIn = 0;
   let totalOut = 0;
 
-  for (let i = 1; i < records.length; i++) {
+  for (let i = startDataRow; i < records.length; i++) {
     const cols = records[i];
     if (cols.length === 0 || cols.every((c) => !c.trim())) continue;
+
+    const firstCell = String(cols[0] || '').toLowerCase().trim();
+    if (
+      firstCell.includes('saldo awal') ||
+      firstCell.includes('saldo akhir') ||
+      firstCell.includes('total mutasi') ||
+      firstCell.includes('bersambung') ||
+      firstCell.includes('keterangan:')
+    ) {
+      continue;
+    }
 
     const rawDate = cols[idxDate] || '';
     const date = normalizeDateString(rawDate);
@@ -318,7 +434,6 @@ export function parseLedgerCsv(
         amount = rawOut;
         type = 'expense';
       } else if (rawIn > 0 && rawOut > 0) {
-        // Both filled: choose larger or default to in
         if (rawIn >= rawOut) {
           amount = rawIn;
           type = 'income';
@@ -329,14 +444,19 @@ export function parseLedgerCsv(
       }
     } else if (idxSingle !== -1) {
       const parsedAmount = parseCurrencyAmount(cols[idxSingle]);
-      const rawIndicator = idxIndicator !== -1 ? cols[idxIndicator]?.toUpperCase().trim() : '';
-      const indicator = parsedAmount.indicator || (rawIndicator.includes('CR') ? 'CR' : rawIndicator.includes('DB') ? 'DB' : undefined);
+      const rawIndicator = (
+        (idxIndicator !== -1 ? cols[idxIndicator] : '') ||
+        (idxType !== -1 ? cols[idxType] : '')
+      )?.toUpperCase().trim();
 
-      if (indicator === 'CR') {
+      const isIndicatorCr = parsedAmount.indicator === 'CR' || rawIndicator.includes('CR') || rawIndicator === 'K';
+      const isIndicatorDb = parsedAmount.indicator === 'DB' || rawIndicator.includes('DB') || rawIndicator === 'D';
+
+      if (isIndicatorCr) {
         type = 'income';
         amount = Math.abs(parsedAmount.value);
         rawIn = amount;
-      } else if (indicator === 'DB') {
+      } else if (isIndicatorDb) {
         type = 'expense';
         amount = Math.abs(parsedAmount.value);
         rawOut = amount;
@@ -353,9 +473,9 @@ export function parseLedgerCsv(
 
     // Override type if explicit type column matches valid FinanceTransactionType
     if (rawTypeVal) {
-      if (rawTypeVal.includes('income') || rawTypeVal.includes('pemasukan') || rawTypeVal.includes('masuk')) {
+      if (rawTypeVal === 'cr' || rawTypeVal === 'k' || rawTypeVal.includes('income') || rawTypeVal.includes('pemasukan') || rawTypeVal.includes('masuk')) {
         type = 'income';
-      } else if (rawTypeVal.includes('expense') || rawTypeVal.includes('pengeluaran') || rawTypeVal.includes('keluar')) {
+      } else if (rawTypeVal === 'db' || rawTypeVal === 'd' || rawTypeVal.includes('expense') || rawTypeVal.includes('pengeluaran') || rawTypeVal.includes('keluar')) {
         type = 'expense';
       } else if (rawTypeVal.includes('transfer_in') || rawTypeVal.includes('transfer masuk')) {
         type = 'transfer_in';

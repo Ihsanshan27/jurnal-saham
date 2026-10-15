@@ -8,11 +8,14 @@ import {
   X,
   AlertCircle,
   ArrowRightLeft,
-  Filter,
+  ClipboardPaste,
+  HelpCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { FinanceAccount, FinanceTransaction } from '@/modules/finance/types/finance';
 import { useData } from '@/modules/shared/context/DataContext';
 import { formatRupiah, formatUSD } from '@/modules/shared/utils/formatters';
+import CustomSelect from '@/modules/shared/components/CustomSelect';
 import {
   downloadLedgerTemplateCsv,
   parseLedgerCsv,
@@ -36,6 +39,11 @@ export default function ImportLedgerModal({
   onSuccess,
 }: ImportLedgerModalProps) {
   const { bulkAddFinanceTransactions, showToast } = useData();
+
+  // Input mode: file upload or direct text paste
+  const [inputMode, setInputMode] = useState<'file' | 'paste'>('file');
+  const [bankPreset, setBankPreset] = useState<'auto' | 'default' | 'bca' | 'mandiri' | 'bri' | 'bni' | 'ewallet'>('auto');
+
   const [file, setFile] = useState<File | null>(null);
   const [rawText, setRawText] = useState<string>('');
   const [parseResult, setParseResult] = useState<{
@@ -53,7 +61,7 @@ export default function ImportLedgerModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset when opened
+  // Set default bank preset based on account name / institution
   useEffect(() => {
     if (isOpen) {
       setFile(null);
@@ -62,8 +70,30 @@ export default function ImportLedgerModal({
       setSkipDuplicates(true);
       setFilterPreviewStatus('all');
       setIsSubmitting(false);
+      setInputMode('file');
+
+      const inst = (account.institutionName || account.name || '').toLowerCase();
+      if (inst.includes('bca')) {
+        setBankPreset('bca');
+      } else if (inst.includes('mandiri')) {
+        setBankPreset('mandiri');
+      } else if (inst.includes('bri')) {
+        setBankPreset('bri');
+      } else if (inst.includes('bni')) {
+        setBankPreset('bni');
+      } else {
+        setBankPreset('auto');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, account]);
+
+  // Re-parse if preset or text changes in paste mode
+  useEffect(() => {
+    if (rawText.trim()) {
+      const result = parseLedgerCsv(rawText, account.id, existingTransactions, bankPreset);
+      setParseResult(result);
+    }
+  }, [bankPreset]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -75,12 +105,22 @@ export default function ImportLedgerModal({
     setFile(f);
     const reader = new FileReader();
     reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setRawText(content || '');
-      const result = parseLedgerCsv(content || '', account.id, existingTransactions);
+      const content = (event.target?.result as string) || '';
+      setRawText(content);
+      const result = parseLedgerCsv(content, account.id, existingTransactions, bankPreset);
       setParseResult(result);
     };
     reader.readAsText(f);
+  };
+
+  const handlePasteChange = (text: string) => {
+    setRawText(text);
+    if (!text.trim()) {
+      setParseResult(null);
+      return;
+    }
+    const result = parseLedgerCsv(text, account.id, existingTransactions, bankPreset);
+    setParseResult(result);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -93,6 +133,13 @@ export default function ImportLedgerModal({
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+  };
+
+  const resetData = () => {
+    setFile(null);
+    setRawText('');
+    setParseResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const formatMoney = (val: number) => {
@@ -150,54 +197,39 @@ export default function ImportLedgerModal({
 
   if (!isOpen) return null;
 
+  const hasParsedData = Boolean(parseResult && parseResult.rows.length > 0);
+
   return (
-    <div className="modal-overlay" style={{ zIndex: 1050 }}>
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1050 }}>
       <div
-        className="modal-content"
+        className="modal modal-flex"
         style={{
-          maxWidth: '850px',
-          width: '95%',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          overflow: 'hidden',
+          maxWidth: hasParsedData ? 880 : 660,
+          width: '95vw',
+          maxHeight: '92vh',
+          transition: 'max-width 0.2s ease',
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'var(--bg-card)',
-          }}
-        >
+        <div className="modal-header">
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
               <ArrowRightLeft size={20} className="text-primary" />
               Impor Mutasi Transaksi
             </h3>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-              Rekening: <strong>{account.name}</strong> ({account.institutionName})
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 3 }}>
+              Rekening: <strong>{account.name}</strong> ({account.institutionName}) &bull; Mata Uang: <strong>{account.currency}</strong>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={onClose}
-            aria-label="Tutup Modal"
-            style={{ padding: '6px 8px' }}
-          >
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Tutup">
             <X size={18} />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Action Bar / Template Download */}
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Preset & Action Bar */}
           <div
             style={{
               display: 'flex',
@@ -207,13 +239,31 @@ export default function ImportLedgerModal({
               gap: 12,
               padding: '12px 16px',
               backgroundColor: 'var(--bg-card-hover)',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
             }}
           >
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Mendukung CSV standar & mutasi bank Indonesia (BCA, Mandiri, BRI, BNI, e-Wallet).
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <label htmlFor="bank-preset-select" style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Format Bank:
+              </label>
+              <div style={{ minWidth: 170 }}>
+                <CustomSelect
+                  value={bankPreset}
+                  onChange={(val) => setBankPreset(val as any)}
+                  options={[
+                    { value: 'auto', label: 'Auto-Detect (Rekomendasi)' },
+                    { value: 'bca', label: 'BCA (KlikBCA / myBCA)' },
+                    { value: 'mandiri', label: 'Bank Mandiri (Livin)' },
+                    { value: 'bri', label: 'Bank BRI (BRIMO)' },
+                    { value: 'bni', label: 'Bank BNI' },
+                    { value: 'default', label: 'Template Jurnal Standar' },
+                    { value: 'ewallet', label: 'E-Wallet (GoPay/OVO/Dana)' },
+                  ]}
+                />
+              </div>
             </div>
+
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -225,20 +275,44 @@ export default function ImportLedgerModal({
             </button>
           </div>
 
-          {/* Upload Drop Zone */}
-          {!parseResult || parseResult.rows.length === 0 ? (
+          {/* Mode Switch Tabs (Only when not showing parsed preview) */}
+          {!hasParsedData && (
+            <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
+              <button
+                type="button"
+                className={`btn btn-sm ${inputMode === 'file' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setInputMode('file')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <FileText size={15} />
+                Unggah File CSV / TXT
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${inputMode === 'paste' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setInputMode('paste')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <ClipboardPaste size={15} />
+                Salin &amp; Tempel Teks (Paste)
+              </button>
+            </div>
+          )}
+
+          {/* Upload Drop Zone Mode */}
+          {!hasParsedData && inputMode === 'file' && (
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onClick={() => fileInputRef.current?.click()}
               style={{
                 border: '2px dashed var(--border-color)',
-                borderRadius: 12,
+                borderRadius: 'var(--radius-lg)',
                 padding: '36px 20px',
                 textAlign: 'center',
                 cursor: 'pointer',
                 backgroundColor: 'var(--bg-card)',
-                transition: 'border-color 0.2s',
+                transition: 'border-color 0.2s, background-color 0.2s',
               }}
             >
               <input
@@ -248,15 +322,36 @@ export default function ImportLedgerModal({
                 style={{ display: 'none' }}
                 onChange={handleFileChange}
               />
-              <Upload size={36} style={{ color: 'var(--text-secondary)', marginBottom: 12 }} />
-              <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 4 }}>
-                Pilih atau seret file CSV mutasi ke sini
+              <Upload size={38} style={{ color: 'var(--accent-primary, #3b82f6)', marginBottom: 12 }} />
+              <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                Pilih atau seret file CSV/TXT mutasi ke sini
               </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Format file: .csv atau .txt (Header: Tanggal, Keterangan, Masuk/Keluar atau Debet/Kredit)
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto' }}>
+                Mendukung file unduhan mutasi dari KlikBCA, myBCA, Mandiri, BRI, BNI, maupun template jurnal standar.
               </div>
             </div>
-          ) : null}
+          )}
+
+          {/* Paste Mode */}
+          {!hasParsedData && inputMode === 'paste' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label htmlFor="import-paste-textarea" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Tempelkan teks tabel mutasi rekening Anda di bawah ini:
+              </label>
+              <textarea
+                id="import-paste-textarea"
+                rows={7}
+                className="form-input"
+                style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.82rem', resize: 'vertical' }}
+                placeholder={`Contoh tempelan dari KlikBCA atau spreadsheet:\nTanggal\tKeterangan\tCabang\tJumlah\tTipe\tSaldo\n05/10/2026\tTRANSFER CR-KE 12345\t0000\t1.500.000,00\tCR\t11.500.000,00\n06/10/2026\tTARIK TUNAI ATM\t0000\t200.000,00\tDB\t11.300.000,00`}
+                value={rawText}
+                onChange={(e) => handlePasteChange(e.target.value)}
+              />
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <HelpCircle size={14} /> Tip: Anda bisa langsung copy-paste baris mutasi dari browser internet banking.
+              </div>
+            </div>
+          )}
 
           {/* Error Message if parsing failed */}
           {parseResult?.error && (
@@ -265,23 +360,23 @@ export default function ImportLedgerModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid var(--accent-red)',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
                 color: 'var(--accent-red)',
                 padding: '12px 16px',
-                borderRadius: 8,
-                fontSize: '0.9rem',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.85rem',
               }}
             >
-              <AlertCircle size={20} />
+              <AlertCircle size={20} style={{ flexShrink: 0 }} />
               <div>{parseResult.error}</div>
             </div>
           )}
 
           {/* Parse Result Summary & Controls */}
-          {parseResult && parseResult.rows.length > 0 && (
+          {hasParsedData && parseResult && (
             <>
-              {/* File Info Bar */}
+              {/* File Info Bar with Reset button */}
               <div
                 style={{
                   display: 'flex',
@@ -289,26 +384,26 @@ export default function ImportLedgerModal({
                   alignItems: 'center',
                   padding: '8px 12px',
                   backgroundColor: 'var(--bg-card-hover)',
-                  borderRadius: 6,
+                  borderRadius: 'var(--radius-md)',
                   fontSize: '0.85rem',
+                  border: '1px solid var(--border-color)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <FileText size={16} className="text-primary" />
-                  <strong>{file?.name || 'File Mutasi'}</strong> (
-                  {parseResult.rows.length} baris terbaca)
+                  <span>
+                    <strong>{file ? file.name : 'Teks Mutasi'}</strong> &bull;{' '}
+                    <span style={{ color: 'var(--text-secondary)' }}>{parseResult.rows.length} baris terbaca</span>
+                  </span>
                 </div>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    setFile(null);
-                    setParseResult(null);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                  }}
-                  style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                  onClick={resetData}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', padding: '4px 8px' }}
                 >
-                  Ganti File
+                  <RotateCcw size={13} />
+                  Ganti Data
                 </button>
               </div>
 
@@ -316,53 +411,53 @@ export default function ImportLedgerModal({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                  gap: 12,
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: 10,
                 }}
               >
                 <div
                   style={{
                     backgroundColor: 'var(--bg-card-hover)',
-                    padding: '12px',
-                    borderRadius: 8,
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-color)',
                   }}
                 >
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Siap Diimpor</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Siap Diimpor</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-green)' }}>
-                    {itemsToImport.length} <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>baris</span>
+                    {itemsToImport.length} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>baris</span>
                   </div>
                 </div>
 
                 <div
                   style={{
                     backgroundColor: 'var(--bg-card-hover)',
-                    padding: '12px',
-                    borderRadius: 8,
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-color)',
                   }}
                 >
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Duplikat Terdeteksi</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Duplikat Terdeteksi</div>
                   <div
                     style={{
                       fontSize: '1.25rem',
                       fontWeight: 700,
-                      color: parseResult.totalDuplicate > 0 ? 'var(--accent-yellow, #f59e0b)' : 'var(--text-secondary)',
+                      color: parseResult.totalDuplicate > 0 ? '#f59e0b' : 'var(--text-secondary)',
                     }}
                   >
-                    {parseResult.totalDuplicate} <span style={{ fontSize: '0.8rem', fontWeight: 400 }}>baris</span>
+                    {parseResult.totalDuplicate} <span style={{ fontSize: '0.75rem', fontWeight: 400 }}>baris</span>
                   </div>
                 </div>
 
                 <div
                   style={{
                     backgroundColor: 'var(--bg-card-hover)',
-                    padding: '12px',
-                    borderRadius: 8,
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-color)',
                   }}
                 >
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Uang Masuk</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Uang Masuk</div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--accent-green)' }}>
                     {formatMoney(parseResult.totalIn)}
                   </div>
@@ -371,37 +466,38 @@ export default function ImportLedgerModal({
                 <div
                   style={{
                     backgroundColor: 'var(--bg-card-hover)',
-                    padding: '12px',
-                    borderRadius: 8,
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-color)',
                   }}
                 >
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Uang Keluar</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Total Uang Keluar</div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--accent-red)' }}>
                     {formatMoney(parseResult.totalOut)}
                   </div>
                 </div>
               </div>
 
-              {/* Duplicate Handling Option */}
+              {/* Duplicate Handling Option Banner */}
               {parseResult.totalDuplicate > 0 && (
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
+                    justifyContent: 'space-between',
+                    gap: 12,
                     padding: '10px 14px',
                     backgroundColor: 'rgba(245, 158, 11, 0.1)',
                     border: '1px solid rgba(245, 158, 11, 0.3)',
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-md)',
                     fontSize: '0.85rem',
                   }}
                 >
-                  <AlertTriangle size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    Ditemukan {parseResult.totalDuplicate} transaksi yang sama persis (tanggal, nominal & keterangan) dengan mutasi yang sudah ada.
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertTriangle size={17} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                    <span>Ditemukan <strong>{parseResult.totalDuplicate}</strong> transaksi yang identik dengan histori sebelumnya.</span>
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 600, userSelect: 'none' }}>
                     <input
                       type="checkbox"
                       checked={skipDuplicates}
@@ -422,8 +518,8 @@ export default function ImportLedgerModal({
                   gap: 8,
                 }}
               >
-                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Pratinjau Data Mutasi:</div>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 600 }}>Pratinjau Data Mutasi:</div>
+                <div style={{ display: 'flex', gap: 4 }}>
                   <button
                     type="button"
                     className={`btn btn-sm ${filterPreviewStatus === 'all' ? 'btn-primary' : 'btn-secondary'}`}
@@ -466,12 +562,12 @@ export default function ImportLedgerModal({
                   maxHeight: '260px',
                   overflowY: 'auto',
                   border: '1px solid var(--border-color)',
-                  borderRadius: 8,
+                  borderRadius: 'var(--radius-md)',
                 }}
               >
-                <table className="table" style={{ fontSize: '0.85rem' }}>
+                <table className="table" style={{ fontSize: '0.82rem' }}>
                   <thead>
-                    <tr>
+                    <tr style={{ position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
                       <th style={{ width: '80px' }}>Status</th>
                       <th style={{ width: '100px' }}>Tanggal</th>
                       <th style={{ width: '90px' }}>Tipe</th>
@@ -501,7 +597,7 @@ export default function ImportLedgerModal({
                               <span
                                 className="badge badge-danger"
                                 title={row.validationError}
-                                style={{ fontSize: '0.75rem', padding: '2px 6px' }}
+                                style={{ fontSize: '0.72rem', padding: '2px 6px' }}
                               >
                                 Error
                               </span>
@@ -511,7 +607,7 @@ export default function ImportLedgerModal({
                                 style={{
                                   backgroundColor: 'rgba(245, 158, 11, 0.2)',
                                   color: '#f59e0b',
-                                  fontSize: '0.75rem',
+                                  fontSize: '0.72rem',
                                   padding: '2px 6px',
                                 }}
                                 title={row.duplicateReason}
@@ -521,13 +617,13 @@ export default function ImportLedgerModal({
                             ) : (
                               <span
                                 className="badge badge-success"
-                                style={{ fontSize: '0.75rem', padding: '2px 6px' }}
+                                style={{ fontSize: '0.72rem', padding: '2px 6px' }}
                               >
                                 Siap
                               </span>
                             )}
                           </td>
-                          <td>{row.date}</td>
+                          <td style={{ whiteSpace: 'nowrap' }}>{row.date}</td>
                           <td>
                             <span style={{ textTransform: 'capitalize' }}>
                               {row.type === 'income'
@@ -558,16 +654,7 @@ export default function ImportLedgerModal({
         </div>
 
         {/* Modal Footer */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 12,
-            backgroundColor: 'var(--bg-card)',
-          }}
-        >
+        <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
             Batal
           </button>
@@ -575,13 +662,15 @@ export default function ImportLedgerModal({
             type="button"
             className="btn btn-primary"
             onClick={handleImportSubmit}
-            disabled={!parseResult || itemsToImport.length === 0 || isSubmitting}
+            disabled={!hasParsedData || itemsToImport.length === 0 || isSubmitting}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <CheckCircle size={16} />
             {isSubmitting
               ? 'Mengimpor...'
-              : `Impor ${itemsToImport.length} Mutasi`}
+              : hasParsedData && itemsToImport.length > 0
+              ? `Impor ${itemsToImport.length} Mutasi`
+              : 'Impor Mutasi'}
           </button>
         </div>
       </div>
